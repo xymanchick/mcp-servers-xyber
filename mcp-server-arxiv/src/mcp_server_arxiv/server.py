@@ -4,6 +4,10 @@ from contextlib import asynccontextmanager
 from typing import Any, Literal
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from starlette.middleware.base import BaseHTTPMiddleware
+import time
+from starlette.requests import Request
+from starlette.responses import Response
 
 from mcp_server_arxiv.arxiv import (
     _ArxivService,
@@ -14,7 +18,37 @@ from mcp_server_arxiv.arxiv import (
     ArxivSearchResult,
 )
 
+from .logging_config import configure_logging # Modified By Ansh Juneja ....
+configure_logging() # Modified By Ansh Juneja ....
+
 logger = logging.getLogger(__name__)
+
+# --- Simple In-memory Metrics ---   --> Written by Ansh Juneja ....
+metrics = {
+    "request_count": 0,
+    "error_count": 0,
+    "request_latency_seconds": [],  # store latencies; in production use histogram/buckets
+}
+
+# --- Performance Stats Middleware ---   --> Written by Ansh Juneja ....
+class PerformanceStatsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        start_time = time.time()
+        metrics["request_count"] += 1
+
+        try:
+            response = await call_next(request)
+        except Exception as e:
+            metrics["error_count"] += 1
+            logger.error(f"Request caused an error: {e}", exc_info=True)
+            raise
+        finally:
+            end_time = time.time()
+            latency = end_time - start_time
+            metrics["request_latency_seconds"].append(latency)
+            logger.debug(f"Request path={request.url.path} latency={latency:.4f}s")
+
+        return response
 
 # --- Lifespan Management --- #
 @asynccontextmanager

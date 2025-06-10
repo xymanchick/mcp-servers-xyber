@@ -12,6 +12,8 @@ from mcp_server_arxiv.logging_config import (configure_logging,
 
 from mcp_server_arxiv.server import mcp_server
 
+from mcp_server_arxiv.server import PerformanceStatsMiddleware, metrics
+
 configure_logging()
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,22 @@ def create_app() -> FastAPI:
     # Mount MCP server
     app.mount("/mcp-server", mcp_app)
 
+    # Activating performance stats middleware
+    app.add_middleware(PerformanceStatsMiddleware)
+
+    # Exposing the endpoint to show the metrics
+    @app.get("/metrics")
+    async def get_metrics():
+        return {
+            "request_count": metrics["request_count"],
+            "error_count": metrics["error_count"],
+            "error_rate": metrics["error_count"] / max(metrics["request_count"], 1),
+            "average_latency_seconds": (
+                sum(metrics["request_latency_seconds"]) / len(metrics["request_latency_seconds"])
+                if metrics["request_latency_seconds"] else 0
+            )
+        }
+
     return app
 
 
@@ -40,13 +58,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run ArXiv MCP server")
     parser.add_argument(
         "--host",
-        default=os.getenv("MCP_ARXIV_HOST", "0.0.0.0"),
+        # default=os.getenv("MCP_ARXIV_HOST", "0.0.0.0"),
+        default="0.0.0.0",
         help="Host to bind to (Default: MCP_ARXIV_HOST or 0.0.0.0)",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=int(os.getenv("MCP_ARXIV_PORT", "8006")), # Default port 8006 for ArXiv
+        # default=int(os.getenv("MCP_ARXIV_PORT", "8006")), # Default port 8006 for ArXiv
+        default="5000", # Default port 8006 for ArXiv
         help="Port to listen on (Default: MCP_ARXIV_PORT or 8006)",
     )
     parser.add_argument(

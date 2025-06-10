@@ -5,11 +5,20 @@ import tempfile
 from functools import lru_cache
 from typing import List, Optional, Any
 
-import arxiv # Official arxiv library
+import arxiv  # Official arxiv library
 import fitz  # PyMuPDF
 
 from mcp_server_arxiv.arxiv.config import ArxivConfig, ArxivServiceError, ArxivApiError, ArxivConfigError
 from mcp_server_arxiv.arxiv.models import ArxivSearchResult
+
+from .exceptions import ( 
+    ServiceUnavailableError,
+    InvalidResponseError,
+    InputValidationError,
+    UnknownMCPError
+)
+
+from .decorators import retry_on_exception
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +35,7 @@ async def _async_download_and_extract_pdf_text(
     paper: arxiv.Result = paper_details['paper_obj']
     arxiv_id = paper_details['arxiv_id']
     pdf_url = paper_details['pdf_url']
-    
+
     full_text_content = None
     processing_error_message = None
     temp_pdf_path = None
@@ -47,6 +56,7 @@ async def _async_download_and_extract_pdf_text(
 
         logger.info(f"  Parsing PDF: {temp_pdf_path}")
         # PDF parsing is CPU-bound, run in executor
+
         def parse_pdf_sync():
             doc = fitz.open(temp_pdf_path)
             extracted_pages = [page.get_text("text", sort=True) for page in doc]
@@ -60,6 +70,7 @@ async def _async_download_and_extract_pdf_text(
             # processing_error_message = "Could not extract text content from PDF" # Not necessarily an error, could be image-based
         elif max_text_length is not None and len(full_text_content) > max_text_length:
             full_text_content = full_text_content[:max_text_length] + f"... (truncated to {max_text_length} chars)"
+
         logger.info(f"  Successfully extracted text for {arxiv_id} (length: {len(full_text_content)} chars).")
 
     except FileNotFoundError:
@@ -96,7 +107,7 @@ async def _async_download_and_extract_pdf_text(
 
 class _ArxivService:
     """Encapsulates ArXiv client logic and configuration."""
-
+    
     def __init__(self, config: ArxivConfig):
         self.config = config
         if arxiv is None or fitz is None:
@@ -105,6 +116,13 @@ class _ArxivService:
         self.client = arxiv.Client()  # Standard synchronous client
         logger.info("_ArxivService initialized.")
 
+    @retry_on_exception(
+        retries=3,
+        delay=1.5,
+        backoff=2.0,
+        exceptions=(ArxivApiError, InvalidResponseError, ArxivServiceError),
+        operation="ArXiv API Search Call"
+    )
     async def search(
         self,
         query: str,
@@ -130,14 +148,14 @@ class _ArxivService:
         logger.info(f"Performing ArXiv search for query: '{query[:100]}...'")
         if not query:
             logger.warning("Received empty query for ArXiv search.")
-            raise ValueError("Search query cannot be empty.")
+            raise InputValidationError("Search query cannot be empty.")
 
         effective_max_results = max_results_override if max_results_override is not None else self.config.default_max_results
         effective_max_text_length = max_text_length_override if max_text_length_override is not None else self.config.default_max_text_length
 
         try:
             loop = asyncio.get_running_loop()
-
+            
             # The arxiv.Search and client.results are synchronous, run them in executor
             search_params = arxiv.Search(
                 query=query,
@@ -156,8 +174,7 @@ class _ArxivService:
                 papers_metadata = await loop.run_in_executor(None, list, results_iterator)
             except Exception as e: # Catch broad exceptions from arxiv library during initial fetch
                 logger.error(f"Error fetching initial results from ArXiv for query '{query}': {e}", exc_info=True)
-                raise ArxivApiError(f"Failed to retrieve search results from ArXiv: {e}") from e
-
+                raise InvalidResponseError(f"Failed to retrieve search results from ArXiv: {e}") from e
 
             if not papers_metadata:
                 logger.info(f"No papers found on ArXiv for query: '{query}'")
@@ -172,7 +189,7 @@ class _ArxivService:
                     if not isinstance(paper_obj, arxiv.Result):
                         logger.warning(f"Skipping non-Result item from ArXiv: {type(paper_obj)}")
                         continue
-                    
+
                     paper_initial_details = {
                         'paper_obj': paper_obj,
                         'arxiv_id': paper_obj.get_short_id(),
@@ -219,18 +236,22 @@ class _ArxivService:
                         # Should not happen with return_exceptions=True
                         logger.warning(f"Unexpected item in gathered results: {type(res_or_exc)}")
 
-
             logger.info(f"ArXiv search successful, processed {len(final_results_list)} papers for query '{query}'.")
             return final_results_list
+            
+#        except ValueError as ve: # E.g. empty query
+#            raise ve
+#        except ArxivApiError: # Re-raise if already specific
+#            raise
 
-        except ValueError as ve: # E.g. empty query
-            raise ve
-        except ArxivApiError: # Re-raise if already specific
+        except InputValidationError:
+            raise
+        except InvalidResponseError:
             raise
         except Exception as e:
             logger.error(f"Error during ArXiv search operation for query '{query}': {e}", exc_info=True)
             # This is a catch-all for unexpected issues in the orchestration
-            raise ArxivServiceError(f"An unexpected error occurred during the ArXiv search operation: {e}") from e
+            raise ServiceUnavailableError(f"Unexpected error during ArXiv search: {e}") from e
 
 
 @lru_cache(maxsize=1)
