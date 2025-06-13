@@ -11,7 +11,7 @@ import fitz  # PyMuPDF
 from mcp_server_arxiv.arxiv.config import ArxivConfig, ArxivServiceError, ArxivApiError, ArxivConfigError
 from mcp_server_arxiv.arxiv.models import ArxivSearchResult
 
-from .exceptions import ( 
+from .exceptions import (
     ServiceUnavailableError,
     InvalidResponseError,
     InputValidationError,
@@ -76,12 +76,12 @@ async def _async_download_and_extract_pdf_text(
     except FileNotFoundError:
         processing_error_message = "[Download failed or file not found after download attempt]"
         logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
-    except arxiv.arxiv.DownloadError as e:
-        processing_error_message = f"[Failed to download PDF: {e}]"
-        logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
-    except fitz.fitz.FitzError as e: # Specific exception for PyMuPDF errors
-        processing_error_message = f"[Failed to parse PDF: {e}]"
-        logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
+    # except arxiv.arxiv.DownloadError as e:
+    #     processing_error_message = f"[Failed to download PDF: {e}]"
+    #     logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
+    # except fitz.fitz.FitzError as e: # Specific exception for PyMuPDF errors
+    #     processing_error_message = f"[Failed to parse PDF: {e}]"
+    #     logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
     except Exception as e:
         processing_error_message = f"[Unexpected error processing PDF {arxiv_id}: {type(e).__name__} - {e}]"
         logger.error(f"  Error for {arxiv_id}: {processing_error_message}", exc_info=True)
@@ -107,7 +107,7 @@ async def _async_download_and_extract_pdf_text(
 
 class _ArxivService:
     """Encapsulates ArXiv client logic and configuration."""
-    
+
     def __init__(self, config: ArxivConfig):
         self.config = config
         if arxiv is None or fitz is None:
@@ -155,14 +155,14 @@ class _ArxivService:
 
         try:
             loop = asyncio.get_running_loop()
-            
+
             # The arxiv.Search and client.results are synchronous, run them in executor
             search_params = arxiv.Search(
                 query=query,
                 max_results=effective_max_results, # Fetch this many primary results
                 sort_by=arxiv.SortCriterion.Relevance
             )
-            
+
             # Get all metadata results first (blocking call)
             try:
                 results_iterator = await loop.run_in_executor(
@@ -238,7 +238,7 @@ class _ArxivService:
 
             logger.info(f"ArXiv search successful, processed {len(final_results_list)} papers for query '{query}'.")
             return final_results_list
-            
+
 #        except ValueError as ve: # E.g. empty query
 #            raise ve
 #        except ArxivApiError: # Re-raise if already specific
