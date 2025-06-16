@@ -2,7 +2,7 @@ import json
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, List, Optional, Literal
+from typing import Any, List, Literal
 
 from fastmcp import FastMCP, Context
 from fastmcp.exceptions import ToolError
@@ -46,22 +46,22 @@ mcp_server = FastMCP("twitter-server", lifespan=app_lifespan)
 async def create_tweet(
     ctx: Context,
     text: str,
-    image_content_str: Optional[str] = None,
-    poll_options: Optional[List[str]] = None,
-    poll_duration: Optional[int] = None,
-    in_reply_to_tweet_id: Optional[str] = None,
-    quote_tweet_id: Optional[str] = None
+    image_content_str: str | None = None,
+    poll_options: List[str] | None = None,
+    poll_duration: int | None = None,
+    in_reply_to_tweet_id: str | None = None,
+    quote_tweet_id: str | None = None
 ) -> str:
     """
     Create a new tweet with optional media, polls, replies or quotes.
 
     Args:
         text: The text content of the tweet. Will be truncated to the configured maximum tweet length if necessary.
-        image_content_str: A Base64-encoded string of image data to attach as media. Requires media uploads to be enabled in config.
-        poll_options: A list of 2 to 4 options to include in a poll.
-        poll_duration: Duration of the poll in minutes (must be between 5 and 10080).
-        in_reply_to_tweet_id: The ID of an existing tweet to reply to. Note: Your text must include "@username" of the tweet's author.
-        quote_tweet_id: The ID of an existing tweet to quote. The quoted tweet will appear inline, with your text shown above it.
+        image_content_str: A Base64-encoded string of image data to attach as media. Optional, pass null for no image. Requires media uploads to be enabled in config.
+        poll_options: A list of 2 to 4 options to include in a poll. Optional, pass null for no poll.
+        poll_duration: Duration of the poll in minutes (must be between 5 and 10080). Optional, pass null for no poll.
+        in_reply_to_tweet_id: The ID of an existing tweet to reply to. Optional, pass null for no reply. Note: Your text must include "@username" of the tweet's author.
+        quote_tweet_id: The ID of an existing tweet to quote. Optional, pass null for no quote. The quoted tweet will appear inline, with your text shown above it.
 
     Returns:
         Success message with tweet ID or error message.
