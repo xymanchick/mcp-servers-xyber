@@ -38,38 +38,9 @@ def mock_temp_dir():
     return os.path.join(os.getcwd(), "mcp-server-arxiv", "tests", "data")
 
 
-def mock_download_side_effect_http_error(*args, **kwargs):
-    """Simulate an HTTP error during PDF download."""
-    raise urllib.error.HTTPError(
-        url="http://arxiv.org/pdf/1234.56789.pdf",
-        code=500,
-        msg="Internal Server Error",
-        hdrs=None,
-        fp=None,
-    )
-
-
-def mock_download_side_effect_do_nothing(*args, **kwargs):
-    pass
-
-
 def mock_download_side_effect_urllib_error(*args, **kwargs):
     """Simulate a URLError during PDF download."""
     raise urllib.error.URLError("Network error")
-
-
-def mock_download_side_effect_success(*args, **kwargs):
-    """Simulate a successful PDF download."""
-    return ArxivSearchResult(
-        arxiv_id="1234.56789",
-        pdf_url="http://arxiv.org/pdf/1234.56789.pdf",
-        full_text="",
-        processing_error=None,
-        title="Mock Paper Title",
-        authors=["Author One", "Author Two"],
-        published_date="2023-10-01",
-        summary="This is a mock summary of the paper.",
-    )
 
 
 def mock_download_side_effect_timeout(*args, **kwargs):
