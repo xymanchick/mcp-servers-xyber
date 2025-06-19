@@ -8,6 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import time
 from starlette.requests import Request
 from starlette.responses import Response
+from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
 from mcp_server_arxiv.arxiv import (
     _ArxivService,
@@ -81,18 +82,30 @@ mcp_server = FastMCP(
     lifespan=app_lifespan
 )
 
+class ArxivInput(BaseModel):
+    model_config = ConfigDict(extra="forbid") 
+    query: str = Field(..., min_length=3, max_length=512, json_schema_extra={"strip_whitespace": True})
+    max_results: int = Field(default=5, ge=1, le=50, description="Maximum number of results to return (default: 5, max: 50)")
+    max_text_length: int =  Field(default=100, ge=100, description="Maximum characters of extracted text per paper (default: unlimited, min: 100)")    
+
+
 # --- Tool Definitions --- #
 @mcp_server.tool()
 async def arxiv_search(
     ctx: Context,
-    query: str,  # The search query string for ArXiv
-    max_results: int | None = None,  # Optional override for the maximum number of results to fetch and process (1-50)
-    max_text_length: int | None = None,  # Optional max characters of full text per paper (min 100)
+    arguments: dict,
 ) -> str:
     """Searches arXiv for scientific papers based on a query, downloads PDFs, extracts text, and returns formatted results."""
     arxiv_service = ctx.request_context.lifespan_context["arxiv_service"]
 
     try:
+        #converting dict to pydantic model ArxivInput
+        valid_arxiv_input = ArxivInput.model_validate(arguments)
+        query = valid_arxiv_input.query
+        max_results = valid_arxiv_input.max_results
+        max_text_length = valid_arxiv_input.max_text_length
+
+
         # Execute core logic
         search_results: list[ArxivSearchResult] = await arxiv_service.search(
             query=query,
@@ -113,6 +126,11 @@ async def arxiv_search(
         logger.info(f"Successfully processed search request. Returning {len(search_results)} formatted ArXiv results")
         
         return formatted_response
+
+    except ValidationError as validation_err:
+        msg = " ".join(f"{'.'.join(str(loc) for loc in err['loc'])}: {err['msg']}" for err in validation_err.errors())
+        logger.error(f"400 Bad Request: Input Validation failed for 'arxiv_search' tool, {msg}")
+        raise ToolError(f"400 Bad Request: Input Validation failed for 'arxiv_search' tool, {msg}")
     
     except ValueError as val_err:
         logger.warning(f"Input validation error: {val_err}")
