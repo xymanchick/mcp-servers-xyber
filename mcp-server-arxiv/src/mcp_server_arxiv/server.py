@@ -18,6 +18,7 @@ from mcp_server_arxiv.arxiv import (
     ArxivApiError,
     ArxivSearchResult,
 )
+from mcp_server_arxiv.arxiv.exceptions import InputValidationError
 
 from .logging_config import configure_logging # Modified By Ansh Juneja ....
 configure_logging() # Modified By Ansh Juneja ....
@@ -78,7 +79,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 # --- MCP Server Initialization --- #
 mcp_server = FastMCP(
     name="arxiv",
-    description="Search arXiv for scientific papers and extract their content",
+    # description="Search arXiv for scientific papers and extract their content",
     lifespan=app_lifespan
 )
 
@@ -127,12 +128,8 @@ async def arxiv_search(
         
         return formatted_response
 
-    except ValidationError as validation_err:
-        msg = " ".join(f"{'.'.join(str(loc) for loc in err['loc'])}: {err['msg']}" for err in validation_err.errors())
-        logger.error(f"400 Bad Request: Input Validation failed for 'arxiv_search' tool, {msg}")
-        raise ToolError(f"400 Bad Request: Input Validation failed for 'arxiv_search' tool, {msg}")
-    
-    except ValueError as val_err:
+    except InputValidationError as val_err:
+
         logger.warning(f"Input validation error: {val_err}")
         raise ToolError(f"Input validation error: {val_err}") from val_err
     

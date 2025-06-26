@@ -7,12 +7,25 @@ from typing import List, Optional, Any
 import urllib.error
 
 import arxiv  # Official arxiv library
+
+import fitz  # PyMuPDF
+
+from mcp_server_arxiv.arxiv.config import ArxivConfig, ArxivServiceError, ArxivApiError, ArxivConfigError
+from mcp_server_arxiv.arxiv.models import ArxivSearchResult
+
+from .exceptions import (
+    ServiceUnavailableError,
+    InvalidResponseError,
+    InputValidationError,
+    UnknownMCPError
+
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential,
     before_sleep_log,
     retry_if_exception_type,
+
 )
 import pymupdf as fitz  # PyMuPDF for PDF parsing
 
@@ -92,6 +105,14 @@ async def _async_download_and_extract_pdf_text(
             "[Download failed or file not found after download attempt]"
         )
         logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
+
+    # except arxiv.arxiv.DownloadError as e:
+    #     processing_error_message = f"[Failed to download PDF: {e}]"
+    #     logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
+    # except fitz.fitz.FitzError as e: # Specific exception for PyMuPDF errors
+    #     processing_error_message = f"[Failed to parse PDF: {e}]"
+    #     logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
+
     except urllib.error.HTTPError as e:
         processing_error_message = f"[Failed to download PDF: {e}]"
         logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
@@ -119,6 +140,7 @@ async def _async_download_and_extract_pdf_text(
     ) as e:  # Specific exception for PyMuPDF errors
         processing_error_message = f"[Failed to parse PDF: {e}]"
         logger.error(f"  Error for {arxiv_id}: {processing_error_message}")
+
     except Exception as e:
         processing_error_message = (
             f"[Unexpected error processing PDF {arxiv_id}: {type(e).__name__} - {e}]"
@@ -316,6 +338,14 @@ class _ArxivService:
                 f"ArXiv search successful, processed {len(final_results_list)} papers for query '{query}'."
             )
             return final_results_list
+
+
+#        except ValueError as ve: # E.g. empty query
+#            raise ve
+#        except ArxivApiError: # Re-raise if already specific
+#            raise
+
+
 
         except ValueError as ve:  # E.g. empty query
             raise ve
