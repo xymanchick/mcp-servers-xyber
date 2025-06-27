@@ -4,11 +4,6 @@ from contextlib import asynccontextmanager
 from typing import Any, Literal
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from starlette.middleware.base import BaseHTTPMiddleware
-import time
-from starlette.requests import Request
-from starlette.responses import Response
-from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
 from mcp_server_arxiv.arxiv import (
     _ArxivService,
@@ -18,39 +13,8 @@ from mcp_server_arxiv.arxiv import (
     ArxivApiError,
     ArxivSearchResult,
 )
-from mcp_server_arxiv.arxiv.exceptions import InputValidationError
-
-from .logging_config import configure_logging # Modified By Ansh Juneja ....
-configure_logging() # Modified By Ansh Juneja ....
 
 logger = logging.getLogger(__name__)
-
-# --- Simple In-memory Metrics ---   --> Written by Ansh Juneja ....
-metrics = {
-    "request_count": 0,
-    "error_count": 0,
-    "request_latency_seconds": [],  # store latencies; in production use histogram/buckets
-}
-
-# --- Performance Stats Middleware ---   --> Written by Ansh Juneja ....
-class PerformanceStatsMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
-        start_time = time.time()
-        metrics["request_count"] += 1
-
-        try:
-            response = await call_next(request)
-        except Exception as e:
-            metrics["error_count"] += 1
-            logger.error(f"Request caused an error: {e}", exc_info=True)
-            raise
-        finally:
-            end_time = time.time()
-            latency = end_time - start_time
-            metrics["request_latency_seconds"].append(latency)
-            logger.debug(f"Request path={request.url.path} latency={latency:.4f}s")
-
-        return response
 
 # --- Lifespan Management --- #
 @asynccontextmanager
@@ -79,34 +43,21 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 # --- MCP Server Initialization --- #
 mcp_server = FastMCP(
     name="arxiv",
-    # description="Search arXiv for scientific papers and extract their content",
     lifespan=app_lifespan
 )
-
-class ArxivInput(BaseModel):
-    model_config = ConfigDict(extra="forbid") 
-    query: str = Field(..., min_length=3, max_length=512, json_schema_extra={"strip_whitespace": True})
-    max_results: int = Field(default=5, ge=1, le=50, description="Maximum number of results to return (default: 5, max: 50)")
-    max_text_length: int =  Field(default=100, ge=100, description="Maximum characters of extracted text per paper (default: unlimited, min: 100)")    
-
 
 # --- Tool Definitions --- #
 @mcp_server.tool()
 async def arxiv_search(
     ctx: Context,
-    arguments: dict,
+    query: str,  # The search query string for ArXiv
+    max_results: int | None = None,  # Optional override for the maximum number of results to fetch and process (1-50)
+    max_text_length: int | None = None,  # Optional max characters of full text per paper (min 100)
 ) -> str:
     """Searches arXiv for scientific papers based on a query, downloads PDFs, extracts text, and returns formatted results."""
     arxiv_service = ctx.request_context.lifespan_context["arxiv_service"]
 
     try:
-        #converting dict to pydantic model ArxivInput
-        valid_arxiv_input = ArxivInput.model_validate(arguments)
-        query = valid_arxiv_input.query
-        max_results = valid_arxiv_input.max_results
-        max_text_length = valid_arxiv_input.max_text_length
-
-
         # Execute core logic
         search_results: list[ArxivSearchResult] = await arxiv_service.search(
             query=query,
@@ -127,9 +78,8 @@ async def arxiv_search(
         logger.info(f"Successfully processed search request. Returning {len(search_results)} formatted ArXiv results")
         
         return formatted_response
-
-    except InputValidationError as val_err:
-
+    
+    except ValueError as val_err:
         logger.warning(f"Input validation error: {val_err}")
         raise ToolError(f"Input validation error: {val_err}") from val_err
     

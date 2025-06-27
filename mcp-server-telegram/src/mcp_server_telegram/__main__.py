@@ -28,6 +28,11 @@ def create_app() -> FastAPI:
         lifespan=mcp_app.router.lifespan_context
     )   
     
+    # Add health check endpoint
+    @app.get("/health", status_code=200)
+    def health_check():
+        return {"status": "ok"}
+    
     # Mount MCP server
     app.mount("/mcp-server", mcp_app)
 

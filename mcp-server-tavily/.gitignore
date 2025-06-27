@@ -26,6 +26,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Powershell scripts
+*.ps1
+
 # Distribution / packaging
 .Python
 build/

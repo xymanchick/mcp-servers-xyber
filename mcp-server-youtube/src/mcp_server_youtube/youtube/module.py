@@ -102,7 +102,7 @@ class YouTubeSearcher:
                                 transcript = self._get_transcript_by_id(video_id, language)
                             except YouTubeTranscriptError as transcript_error:
                                 logger.warning(f"Transcript unavailable for video {video_id}: {transcript_error}")
-                                transcript = f"[Transcript unavailable: {transcript_error.message}]"
+                                transcript = f"[Transcript unavailable: {str(transcript_error)}]"
                             except Exception as transcript_error:
                                 logger.warning(f"Unexpected transcript error for video {video_id}: {transcript_error}")
                                 transcript = "[Transcript unavailable: Unable to retrieve transcript]"

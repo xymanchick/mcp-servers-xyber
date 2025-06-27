@@ -83,8 +83,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 # --- MCP Server Initialization --- #
 mcp_server = FastMCP(
     name="qdrant",
-    description="Store and retrieve information using Qdrant vector database",
-    lifespan=app_lifespan,
+    lifespan=app_lifespan
 )
 
 # --- Tool Definitions --- #

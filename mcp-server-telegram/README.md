@@ -79,6 +79,18 @@ python -m src.mcp_server_telegram
     docker run --rm -it -p 8002:8002 --env-file .env mcp-server-telegram
 ```
 
+{
+  "mcpServers": {
+    "telegram-mcp": { // You can name this whatever you like
+      "command": "<absolute-path-to-your-telegram-mcp-executable>",
+      "env": {
+        "TELEGRAM_TOKEN": "<your-telegram-bot-api-token>",
+        "TELEGRAM_CHANNEL": "<your-telegram-channel-id-e.g. @mychannel>"
+      }
+    }
+  }
+}
+
 ## API Usage
 
 The server exposes MCP-compatible endpoints. The primary tool is `post_to_telegram`.

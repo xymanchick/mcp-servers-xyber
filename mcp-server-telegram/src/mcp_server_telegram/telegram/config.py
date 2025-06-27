@@ -1,4 +1,4 @@
-### src/mcp_server_telegram/telegram/config.py
+# mcp_server_telegram/telegram/config.py
 
 from typing import Optional, Any
 from pydantic import Field
@@ -31,15 +31,11 @@ class TelegramApiError(TelegramServiceError):
 class TelegramConfig(BaseSettings):
     """
     Configuration for connecting to the Telegram Bot API.
-    Reads from environment variables prefixed with TELEGRAM_.
+    This model holds the configuration but does not enforce loading from a .env file.
     """
-    model_config = SettingsConfigDict(
-        env_prefix="TELEGRAM_",
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-        case_sensitive=False,
-    )
+    # <--- CHANGE: The model_config is removed to make it more flexible.
+    # We no longer force reading from a specific env_file or using a prefix.
+    # This allows us to create an instance by passing arguments directly.
 
     token: str = Field(..., description="The Telegram Bot API token.")
     channel: str = Field(..., description="The Telegram channel ID (e.g., @channelname or chat_id).")

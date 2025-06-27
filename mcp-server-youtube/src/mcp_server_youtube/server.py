@@ -42,7 +42,6 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 # --- MCP Server Initialization --- #
 mcp_server = FastMCP(
     name="youtube",
-    description="Search YouTube videos and retrieve their transcripts",
     lifespan=app_lifespan
 )
 

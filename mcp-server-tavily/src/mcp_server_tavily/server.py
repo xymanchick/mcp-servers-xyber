@@ -45,7 +45,6 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 # --- MCP Server Initialization --- #
 mcp_server = FastMCP(
     name="tavily",
-    description="Perform web searches using the Tavily API",
     lifespan=app_lifespan
 )
 

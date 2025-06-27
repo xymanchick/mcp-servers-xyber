@@ -17,7 +17,7 @@ LOGGING_CONFIG = {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
-            "level": logging_level,
+            "level": "INFO",
             "stream": "ext://sys.stdout",
         },
         "file": {
@@ -26,10 +26,9 @@ LOGGING_CONFIG = {
             "filename": "app.log",
             "maxBytes": 10485760,  # 10MB
             "backupCount": 5,
-            "level": logging_level, # for dyanamic configuration ...
         },
     },
-    "root": {"handlers": ["console", "file"], "level": f"{logging_level}"},
+    "root": {"handlers": ["console"], "level": f"{logging_level}"},
 }
 
 

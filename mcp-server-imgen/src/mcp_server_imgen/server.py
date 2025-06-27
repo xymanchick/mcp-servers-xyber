@@ -48,7 +48,6 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 # --- MCP Server Initialization --- #
 mcp_server = FastMCP(
     name="imgen",
-    description="Generate images from text using Google Vertex AI Stable Diffusion",
     lifespan=app_lifespan
 )
 

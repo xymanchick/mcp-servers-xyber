@@ -1,16 +1,12 @@
-### src/mcp_server_telegram/server.py
+# mcp_server_telegram/server.py
 import logging
+from typing import Dict, Any
 
-from typing import AsyncIterator, List, Dict, Any, Literal
-from contextlib import asynccontextmanager
-from collections.abc import AsyncIterator
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
-
+from fastapi import Request # <-- CHANGE: Import Request to access headers
 
 from mcp_server_telegram.telegram import (
-    _TelegramService,
     get_telegram_service,
     TelegramServiceError,
     TelegramConfigError,
@@ -18,57 +14,51 @@ from mcp_server_telegram.telegram import (
 
 logger = logging.getLogger(__name__)
 
-
-
-# --- Lifespan Management --- #
-@asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
-    """Manage server startup/shutdown. Initializes the Telegram service."""
-    logger.info("Lifespan: Initializing services...")
-    
-    try:
-        # Initialize services
-        telegram_service: _TelegramService = get_telegram_service()
-        
-        logger.info("Lifespan: Services initialized successfully")
-        yield {"telegram_service": telegram_service}
-    
-    except TelegramConfigError as init_err:
-        logger.error(f"FATAL: Lifespan initialization failed: {init_err}", exc_info=True)
-        raise init_err
-    
-    except Exception as startup_err:
-        logger.error(f"FATAL: Unexpected error during lifespan initialization: {startup_err}", exc_info=True)
-        raise startup_err
-    
-    finally:
-        logger.info("Lifespan: Shutdown cleanup completed")
-
-# --- MCP Server Initialization --- #
+# --- MCP Server Initialization (NO LIFESPAN) --- #
+# CHANGE: The lifespan is removed. The server is now stateless at startup.
 mcp_server = FastMCP(
     name="telegram",
-    description="Post messages to a pre-configured Telegram channel",
-    lifespan=app_lifespan
 )
 
-# --- Tool Definitions --- #
 @mcp_server.tool()
 async def post_to_telegram(
     ctx: Context,
-    message: str, 
+    message: str, # <-- The tool is now very simple! It only takes the message.
 ) -> str:
-    """Posts a given message to a pre-configured Telegram channel."""
-    telegram_service = ctx.request_context.lifespan_context["telegram_service"]
+    """
+    Posts a message to a pre-configured Telegram channel.
+    The API Token and Channel ID must be provided in the request headers:
+    - 'X-Telegram-Token'
+    - 'X-Telegram-Channel'
+    """
+    request: Request = ctx.request_context.request
+    
+    # --- Get BOTH token and channel from headers ---
+    token = request.headers.get("X-Telegram-Token")
+    channel = request.headers.get("X-Telegram-Channel")
+
+    # --- Validate that both were provided ---
+    if not token:
+        logger.error("Request failed: Missing 'X-Telegram-Token' header.")
+        raise ToolError("Your request is missing the required 'X-Telegram-Token' HTTP header.")
+    if not channel:
+        logger.error("Request failed: Missing 'X-Telegram-Channel' header.")
+        raise ToolError("Your request is missing the required 'X-Telegram-Channel' HTTP header.")
+
+    logger.info(f"Received request to post to channel '{channel}' with a provided token.")
 
     try:
+        # Get a service instance configured with the user's specific key and channel.
+        telegram_service = get_telegram_service(token=token, channel=channel)
+        
         success: bool = await telegram_service.send_message(message)
         
         if success:
-            logger.info("Message successfully posted to the Telegram channel")
-            return "Message successfully posted to the Telegram channel"
+            logger.info(f"Message successfully posted to the Telegram channel '{channel}'")
+            return f"Message successfully posted to the Telegram channel '{channel}'"
         else:
-            logger.warning("Failed to post message to the Telegram channel")
-            raise ToolError("Failed to post message to the Telegram channel")
+            logger.warning(f"Failed to post message to the Telegram channel '{channel}'")
+            raise ToolError("The Telegram service failed to post the message.")
     
     except TelegramServiceError as service_err:
         logger.error(f"Service error during message posting: {service_err}")

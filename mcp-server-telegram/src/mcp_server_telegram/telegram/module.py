@@ -1,9 +1,9 @@
-### src/mcp_server_telegram/telegram/module.py
+# mcp_server_telegram/telegram/module.py
 import logging
 import requests
 import asyncio
-from functools import lru_cache
 from typing import Any
+from functools import lru_cache
 
 from mcp_server_telegram.telegram.config import (
     TelegramConfig,
@@ -81,9 +81,9 @@ class _TelegramService:
                     )
                 else:
                     logger.error(f"Failed to send message (400 Bad Request): {error_desc}, Details: {error_json}")
-                    return False 
+                    return False
 
-            response.raise_for_status() 
+            response.raise_for_status()
 
             logger.info(f"Message sent successfully to channel {self.config.channel}")
             return True
@@ -95,10 +95,10 @@ class _TelegramService:
                 details = http_err.response.json()
             except requests.exceptions.JSONDecodeError:
                 details = {"raw_response": http_err.response.text}
-            
+
             err_msg = f"HTTP error sending message to Telegram: {http_err}"
             logger.error(err_msg, exc_info=True)
-            return False 
+            return False
         except requests.exceptions.RequestException as req_err: # Catches ConnectionError, Timeout, etc.
             err_msg = f"Request exception sending message to Telegram: {req_err}"
             logger.error(err_msg, exc_info=True)
@@ -108,23 +108,17 @@ class _TelegramService:
             logger.error(err_msg, exc_info=True)
             return False
 
-@lru_cache(maxsize=1)
-def get_telegram_service() -> _TelegramService:
+@lru_cache(maxsize=128)
+def get_telegram_service(token: str, channel: str) -> _TelegramService:
     """
-    Factory function to get a singleton instance of the Telegram service.
-    Handles configuration loading and service initialization.
-
-    Returns:
-        An initialized _TelegramService instance.
-
-    Raises:
-        TelegramConfigError: If configuration loading or validation fails.
+    Factory function to get a cached instance of the Telegram service.
+    This avoids re-creating objects for every request from the same user.
     """
     try:
-        config = TelegramConfig()
+        config = TelegramConfig(token=token, channel=channel)
         service = _TelegramService(config=config)
-        logger.info("Telegram service instance retrieved successfully.")
+        logger.info(f"Telegram service instance retrieved/created for channel {channel}.")
         return service
-    except Exception as e: # Catches Pydantic ValidationError if env vars are missing/invalid
+    except Exception as e:
         logger.error(f"Failed to initialize TelegramConfig or _TelegramService: {e}", exc_info=True)
         raise TelegramConfigError(f"Configuration error for Telegram service: {e}") from e
