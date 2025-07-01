@@ -3,12 +3,6 @@
 
 # Mac OS-specific storage files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
 # Output files from code fetcher
 code_output.json
@@ -17,7 +11,6 @@ code_fetcher.py
 
 #help documents
 help.txt
-mcp-server-youtube/src/mcp_server_youtube/help.txt
 
 # vim
 *.swp
@@ -182,37 +175,4 @@ cython_debug/
 # IDEs
 .idea/
 .vscode/
-
-# PowerShell command files
-arxiv_command.ps1
-command.ps1
-youtube_command.ps1
-
-# Python cache
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual environments
-venv/
-env/
-ENV/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Logs
-*.log
-logs/
-
-# Docker
-.dockerignore
-
-# Temporary files
-*.tmp
-*.temp
 
