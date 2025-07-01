@@ -19,13 +19,16 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "aiohttp>=3.8.0",
     "async-lru>=2.0.0",
-    "oauthlib>=3.2.0"
+    "oauthlib>=3.2.0",
+    "tenacity>=8.5.0"
 ]
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "pytest",
-    "httpx", 
+    "pytest-mock",
+    "pytest-asyncio",
+    "httpx",
     "ruff",
     "black",
     "isort",

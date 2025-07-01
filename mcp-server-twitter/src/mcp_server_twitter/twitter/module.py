@@ -4,13 +4,47 @@ import io
 import ssl
 import asyncio
 from functools import lru_cache
+from typing import Optional
 import aiohttp
 import tweepy
-from tweepy import API, Client
+import requests
+import anyio
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log, retry_if_exception
+from tweepy import API, Client, OAuth1UserHandler
 from tweepy.asynchronous import AsyncClient
+from tweepy.errors import TweepyException, HTTPException
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
+
+
+def is_retryable_tweepy_error(exception: Exception) -> bool:
+    """Return True if the exception is a TweepyException with a 5xx status code."""
+    if not isinstance(exception, TweepyException):
+        return False
+
+    response = getattr(exception, "response", None)
+    if response is None:
+        return False
+
+    return 500 <= response.status_code < 600
+
+
+retry_async_wrapper = retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(min=0.5, max=10),
+    retry=retry_if_exception_type(aiohttp.ClientError) | retry_if_exception(is_retryable_tweepy_error),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
+
+retry_sync_in_async_wrapper = retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(min=0.5, max=10),
+    retry=retry_if_exception_type(requests.exceptions.RequestException) | retry_if_exception(is_retryable_tweepy_error),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
 
 
 class AsyncTwitterClient:
@@ -30,34 +64,38 @@ class AsyncTwitterClient:
             consumer_secret=config.API_SECRET_KEY,
             access_token=config.ACCESS_TOKEN,
             access_token_secret=config.ACCESS_TOKEN_SECRET,
+            bearer_token=config.BEARER_TOKEN,
             wait_on_rate_limit=True
         )
 
-        auth = tweepy.OAuthHandler(config.API_KEY, config.API_SECRET_KEY)
+        auth = OAuth1UserHandler(config.API_KEY, config.API_SECRET_KEY)
         auth.set_access_token(config.ACCESS_TOKEN, config.ACCESS_TOKEN_SECRET)
         self._sync_api = API(auth, wait_on_rate_limit=True)
 
+    @retry_sync_in_async_wrapper
     async def _upload_media(self, image_content_str: str):
         """
         Internal method to upload media to Twitter.
         Note: Using sync client as Tweepy doesn't support async media upload yet.
         """
-        print("uploadadasdasdasdasasdas----------------------------------------------------------------------")
-        print(image_content_str)
         image_content = base64.b64decode(image_content_str)
         image_file = io.BytesIO(image_content)
         image_file.name = "image.png"
-        # Use sync client for media upload
-        return self._sync_api.media_upload(filename=image_file.name, file=image_file)
+        
+        media = await anyio.to_thread.run_sync(
+            lambda: self._sync_api.media_upload(filename=image_file.name, file=image_file)
+        )
+        return media
 
+    @retry_async_wrapper
     async def create_tweet(
             self,
             text: str,
-            image_content_str: str = None,
-            poll_options: list[str] = None,
-            poll_duration: int = None,
-            in_reply_to_tweet_id: str = None,
-            quote_tweet_id: str = None
+            image_content_str: str | None = None,
+            poll_options: list[str] | None = None,
+            poll_duration: int | None = None,
+            in_reply_to_tweet_id: str | None = None,
+            quote_tweet_id: str | None = None
     ):
         """
         Create a new tweet with optional media, polls, replies or quotes.
@@ -109,8 +147,10 @@ class AsyncTwitterClient:
             return response.data["id"]
 
         except Exception as e:
-            return str(e)
+            logger.error(f"Failed to create tweet: {e}", exc_info=True)
+            raise
 
+    @retry_async_wrapper
     async def retweet_tweet(self, tweet_id: str):
         """
         Retweet an existing tweet asynchronously.
@@ -125,8 +165,10 @@ class AsyncTwitterClient:
             await self.client.retweet(tweet_id=tweet_id)
             return f"Successfully retweet post {tweet_id}"
         except Exception as e:
-            return str(e)
+            logger.error(f"Failed to retweet tweet {tweet_id}: {e}", exc_info=True)
+            raise
 
+    @retry_async_wrapper
     async def get_user_tweets(self, user_id: str, max_results: int = 10):
         """
         Retrieve recent tweets posted by a specified user asynchronously.
@@ -155,6 +197,7 @@ class AsyncTwitterClient:
                 logger.error("4. For reading other users' tweets, you may need elevated access")
             raise
 
+    @retry_async_wrapper
     async def follow_user(self, user_id: str):
         """
         Follow another Twitter user asynchronously.
@@ -169,8 +212,10 @@ class AsyncTwitterClient:
             await self.client.follow_user(user_id=user_id)
             return f"Successfully followed user: {user_id}"
         except Exception as e:
-            return str(e)
+            logger.error(f"Failed to follow user {user_id}: {e}", exc_info=True)
+            raise
 
+    @retry_async_wrapper
     async def initialize(self):
         """
         Initialize and test the Twitter client connection.
