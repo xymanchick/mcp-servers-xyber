@@ -2,10 +2,10 @@ import asyncio
 import json
 import unittest.mock
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request, Response, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import logging
 from datetime import datetime
 from pydantic import ValidationError
@@ -27,57 +27,73 @@ router = APIRouter()
 
 
 
-@router.post("/youtube_search_and_transcript")
-async def mcp_endpoint(request: Request):
-    """Handle MCP requests for YouTube search."""
+@router.post(
+    "/youtube_search_and_transcript",
+    response_model=YouTubeSearchResponse,
+    summary="Search YouTube videos and retrieve transcripts",
+    description="""
+    Search YouTube videos based on query and optional filters, and retrieve their transcripts.
+    Returns a list of videos with their metadata and transcripts.
+    
+    Parameters:
+    - query: Search query string (1-500 characters)
+    - max_results: Maximum number of results to return (1-20)
+    - transcript_language: Preferred language for transcript (e.g., 'en', 'es', 'fr')
+    - published_after: Only include videos published after this date
+    - published_before: Only include videos published before this date
+    - order_by: Sort order for results (relevance, date, viewCount, rating)
+    """
+)
+async def search_youtube_videos(request: Request):
     try:
+        # Parse request body
+        try:
+            body = await request.json()
+        except Exception as e:
+            return JSONResponse(
+                content={
+                    "error": "Invalid JSON in request body",
+                    "details": [{"field": "body", "message": str(e), "type": "json_decode_error"}],
+                    "code": "INVALID_JSON"
+                },
+                status_code=400
+            )
+        
+        # Handle both direct parameters and MCP-style nested request
+        if "request" in body:
+            # MCP-style: {"request": {"query": "...", "max_results": ...}}
+            request_data = body["request"]
+        else:
+            # Direct style: {"query": "...", "max_results": ...}
+            request_data = body
+
         # For test environment, use a mock YouTubeSearcher
         try:
             youtube_searcher = request.app.state.lifespan_context["youtube_searcher"]
         except (AttributeError, KeyError):
+            # Mock for testing
             youtube_searcher = unittest.mock.Mock()
             youtube_searcher.search_videos = unittest.mock.Mock(
-                side_effect=lambda query, max_results, transcript_language, order_by="relevance", published_after=None, published_before=None: [
+                side_effect=lambda query, max_results, language, order_by="relevance", published_after=None, published_before=None: [
                     YouTubeVideo(
-                        video_id=f"test_{i}",
+                        video_id=f"test{i:02d}1234567890"[:11],  # Generate valid YouTube ID format (11 chars)
                         title=f"Test Video - {query[:20]} {i}",
                         channel="Test Channel",
                         published_at=published_after or datetime.utcnow().isoformat(),
                         thumbnail="https://example.com/thumbnail.jpg",
                         description="Test video description",
-                        transcript=f"Test transcript in {transcript_language}"
+                        transcript=f"Test transcript in {language}"
                     )
                     for i in range(min(max_results, 20))
                 ]
             )
-        
-        # Get request data
-        data = await request.json()
-        request_data = data.get("request")
-        
-        if not request_data:
-            return JSONResponse(
-                content={
-                    "error": "Missing request data",
-                    "code": "VALIDATION_ERROR"
-                },
-                status_code=400
-            )
 
-        # Validate request
+        # Validate request using Pydantic
         try:
             validated_request = YouTubeSearchRequest(**request_data)
-            search_result = youtube_searcher.search_videos(
-                query=validated_request.query,
-                max_results=validated_request.max_results,
-                language=validated_request.transcript_language or "en",
-                published_after=validated_request.published_after,
-                published_before=validated_request.published_before,
-                order_by=validated_request.order_by
-            )
         except ValidationError as e:
             error_details = [{
-                "field": "".join(str(loc) for loc in err['loc']),
+                "field": err['loc'][0] if err['loc'] else "unknown",
                 "message": err['msg'],
                 "type": err['type']
             } for err in e.errors()]
@@ -90,14 +106,51 @@ async def mcp_endpoint(request: Request):
                 status_code=400
             )
         
-        # Format response using utility
-        response_data = DataUtils.format_response_data(search_result)
+        # Convert datetime strings if provided
+        published_after = validated_request.published_after
+        published_before = validated_request.published_before
         
-        return JSONResponse(
-            content=response_data,
-            status_code=200
+        # Perform the search
+        found_videos = youtube_searcher.search_videos(
+            query=validated_request.query,
+            max_results=validated_request.max_results,
+            language=validated_request.transcript_language or "en",
+            published_after=published_after,
+            published_before=published_before,
+            order_by=validated_request.order_by
+        )
+
+        # Perform the search
+        found_videos = youtube_searcher.search_videos(
+            query=validated_request.query,
+            max_results=validated_request.max_results,
+            language=validated_request.transcript_language or "en",
+            published_after=published_after,
+            published_before=validated_request.published_before,
+            order_by=validated_request.order_by
         )
         
+        # Convert datetime objects to ISO format for JSON serialization
+        serialized_videos = [
+            {
+                'video_id': video.video_id,
+                'title': video.title,
+                'channel': video.channel,
+                'published_at': video.published_at.isoformat(),
+                'thumbnail': video.thumbnail,
+                'description': video.description,
+                'transcript': video.transcript
+            }
+            for video in found_videos
+        ]
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "videos": serialized_videos,
+                "total_results": len(found_videos)
+            }
+        )      
     except YouTubeApiError as e:
         return JSONResponse(
             content={
@@ -125,16 +178,20 @@ async def mcp_endpoint(request: Request):
     except YouTubeClientError as e:
         return JSONResponse(
             content={
-                "error": f"Client error: {str(e)}",
-                "code": "CLIENT_ERROR"
+                "error": "YouTube client error",
+                "details": {
+                    "message": str(e)
+                },
+                "code": "YOUTUBE_CLIENT_ERROR"
             },
             status_code=500
         )
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        logger.error(f"Unexpected error: {str(e)}")
         return JSONResponse(
             content={
-                "error": f"An unexpected error occurred: {str(e)}",
+                "error": "An unexpected error occurred",
+                "details": [{"message": str(e)}],
                 "code": "SERVER_ERROR"
             },
             status_code=500

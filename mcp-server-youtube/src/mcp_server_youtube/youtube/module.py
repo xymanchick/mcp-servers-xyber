@@ -1,7 +1,9 @@
 import json
 import logging
+from datetime import datetime
 from functools import lru_cache
-from typing import Any, Optional
+from typing import Any, Optional, Dict, List
+import xml.etree.ElementTree as ET
 
 # --- Third-party Imports ---
 from googleapiclient.discovery import Resource, build
@@ -15,9 +17,9 @@ from mcp_server_youtube.youtube.models import YouTubeVideo
 from youtube_transcript_api import (
     NoTranscriptFound,
     TranscriptsDisabled,
-    NoTranscriptAvailable,
     CouldNotRetrieveTranscript,
-    YouTubeTranscriptApi
+    YouTubeTranscriptApi,
+    FetchedTranscriptSnippet
 )
 
 # --- Setup Logger ---
@@ -81,8 +83,8 @@ class YouTubeSearcher:
             query: Search query string
             max_results: Maximum number of results to return
             order_by: Sort order for results (relevance, date, viewCount, rating)
-            published_after: Only include videos published after this date
-            published_before: Only include videos published before this date
+            published_after: Only include videos published after this date (datetime or str)
+            published_before: Only include videos published before this date (datetime or str)
 
         Returns:
             Dictionary of search parameters
@@ -95,6 +97,12 @@ class YouTubeSearcher:
             'type': 'video',
             'order': order_by or 'relevance'
         }
+
+        # Convert datetime objects to ISO format strings if necessary
+        if isinstance(published_after, datetime):
+            published_after = published_after.isoformat()
+        if isinstance(published_before, datetime):
+            published_before = published_before.isoformat()
 
         # Add date filters if provided
         if published_after:
@@ -142,100 +150,135 @@ class YouTubeSearcher:
             transcript=transcript
         )
 
+    def _get_friendly_transcript_message(self, video_id: str, error: Exception) -> str:
+        """
+        Convert technical transcript errors into user-friendly messages.
+        
+        Args:
+            video_id: The video ID that failed
+            error: The exception that occurred
+            
+        Returns:
+            A user-friendly message explaining why the transcript isn't available
+        """
+        error_str = str(error).lower()
+        
+        # Map technical errors to friendly messages
+        if "transcripts are disabled" in error_str:
+            return "[Transcripts disabled by creator]"
+        elif "no transcript found" in error_str:
+            return "[No transcript available in requested language]"
+        elif "no element found" in error_str or "xml" in error_str or "parse" in error_str:
+            return "[Transcript data corrupted or unavailable]"
+        elif "could not retrieve" in error_str:
+            return "[Transcript temporarily unavailable]"
+        elif "forbidden" in error_str or "403" in error_str:
+            return "[Transcript access restricted]"
+        elif "not found" in error_str or "404" in error_str:
+            return "[Video or transcript not found]"
+        else:
+            return "[Transcript unavailable]"
+
     def _get_transcript_by_id(self, video_id: str, language: str) -> str:
         """
-        Fetch the transcript for a specific video ID with improved error handling.
-
+        Fetches the transcript for a given YouTube video ID with improved error handling.
+        
         Args:
-            video_id: The YouTube video ID to fetch transcript for.
+            video_id: The unique ID of the YouTube video.
             language: The preferred language code for the transcript.
-
+            
         Returns:
-            The transcript text as a string, or an error message if transcript retrieval fails.
+            A string containing the transcript data or a friendly error message.
         """
         try:
-            try:
-                # Get transcript list with error handling
-                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-            except CouldNotRetrieveTranscript as e:
-                # Handle specific transcript retrieval errors
-                logger.debug(f"Could not retrieve transcript for {video_id}: {str(e).split('!')[0]}")
-                return f"[Transcript unavailable: {str(e).split('!')[0]}]"
-            except Exception as e:
-                logger.error(f"Unexpected error listing transcripts for {video_id}: {e}", exc_info=True)
-                return f"[Error listing transcripts: {str(e)}]"
-
-            # Try to get the preferred language transcript
-            try:
-                transcript = transcript_list.find_transcript([language])
-            except NoTranscriptFound:
-                # Try automatic translation if preferred language not available
-                try:
-                    transcript = transcript_list.find_transcript(['en']).translate(language)
-                except NoTranscriptFound:
-                    # Try English transcript if translation not available
-                    try:
-                        transcript = transcript_list.find_transcript(['en'])
-                    except NoTranscriptFound:
-                        # Try any available transcript
-                        try:
-                            transcript = transcript_list.find_manually_created_transcript()
-                        except NoTranscriptFound:
-                            logger.debug(f"No transcript found for {video_id} in any language")
-                            return "[No transcript available for this video]"
-
-            # Fetch and process transcript with XML error handling
-            try:
-                transcript_text = " ".join([segment.text for segment in transcript.fetch()])
-                if len(transcript_text) > self.max_transcript_preview:
-                    return transcript_text[:self.max_transcript_preview] + "... [Preview truncated]"
-                return transcript_text
-            except ET.ParseError as e:
-                logger.debug(f"XML parsing error for {video_id} transcript: {str(e)}")
-                return f"[XML parsing error: {str(e)}]"
-            except Exception as parse_error:
-                logger.warning(f"Error parsing transcript for video {video_id}: {parse_error}")
-                return f"[Transcript parsing error: {str(parse_error)}]"
-            
+            # Get transcript list first to check availability
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
         except TranscriptsDisabled:
             logger.debug(f"Transcripts disabled for video {video_id}")
-            return "[Transcripts are disabled for this video]"
-        except NoTranscriptAvailable:
-            logger.debug(f"No transcript available for video {video_id}")
-            return "[No transcript available for this video]"
+            return "[Transcripts disabled by creator]"
+        except CouldNotRetrieveTranscript as e:
+            logger.debug(f"Could not retrieve transcript list for video {video_id}: {e}")
+            return "[Transcript temporarily unavailable]"
         except Exception as e:
-            logger.error(f"Unexpected error fetching transcript for video {video_id}: {e}", exc_info=True)
-            return f"[Error fetching transcript: {str(e)}]"
+            logger.debug(f"Error listing transcripts for video {video_id}: {e}")
+            return self._get_friendly_transcript_message(video_id, e)
+
+        # Try to get transcript with fallback logic
+        try:
+            # 1. Try preferred language
+            transcript = transcript_list.find_transcript([language])
+        except NoTranscriptFound:
+            try:
+                # 2. Try English
+                transcript = transcript_list.find_transcript(['en'])
+            except NoTranscriptFound:
+                try:
+                    # 3. Try any manually created transcript
+                    transcript = transcript_list.find_manually_created_transcript()
+                except NoTranscriptFound:
+                    logger.debug(f"No manual transcripts available for video {video_id}")
+                    return "[No transcript available in any language]"
+
+        # Fetch transcript with comprehensive error handling
+        try:
+            transcript_entries = transcript.fetch()
+            
+            # Handle both dictionary format and FetchedTranscriptSnippet objects
+            transcript_text_parts = []
+            for entry in transcript_entries:
+                if hasattr(entry, 'text'):
+                    # New format: FetchedTranscriptSnippet object
+                    transcript_text_parts.append(entry.text)
+                elif isinstance(entry, dict) and 'text' in entry:
+                    # Old format: dictionary
+                    transcript_text_parts.append(entry['text'])
+                else:
+                    # Fallback: convert to string
+                    transcript_text_parts.append(str(entry))
+
+            if not transcript_text_parts:
+                return "[Transcript appears to be empty]"
+                
+            transcript_text = " ".join(transcript_text_parts)
+            
+            # Truncate if too long
+            if len(transcript_text) > self.max_transcript_preview:
+                transcript_text = transcript_text[:self.max_transcript_preview] + "..."
+                
+            return transcript_text
+
+        except ET.ParseError as e:
+            logger.debug(f"XML parsing error for video {video_id}: {e}")
+            return "[Transcript data corrupted]"
+        except Exception as e:
+            logger.debug(f"Error fetching transcript for video {video_id}: {e}")
+            return self._get_friendly_transcript_message(video_id, e)
 
     def _process_search_results(
         self,
         search_response: dict,
         language: str
-    ) -> list[YouTubeVideo]:
-        """
-        Process the search response and fetch transcripts for each video.
-
-        Args:
-            search_response: The raw search response from YouTube Data API.
-            language: The preferred language code for the transcript.
-
-        Returns:
-            A list of YouTubeVideo objects with video details and transcripts.
-        """
+    ) -> List[YouTubeVideo]:
+        """Process the search response and fetch transcripts for each video."""
         found_videos = []
+        transcript_stats = {'success': 0, 'failed': 0, 'disabled': 0}
+        
         if "items" in search_response:
             for search_item in search_response.get("items", []):
                 if self._is_valid_search_item(search_item):
                     video_id = search_item.get("id", {}).get("videoId")
                     if video_id:
-                        try:
-                            transcript = self._get_transcript_by_id(video_id, language)
-                        except YouTubeTranscriptError as transcript_error:
-                            logger.warning(f"Transcript unavailable for video {video_id}: {transcript_error}")
-                            transcript = f"[Transcript unavailable: {str(transcript_error)}]"
-                        except Exception as transcript_error:
-                            logger.warning(f"Unexpected transcript error for video {video_id}: {transcript_error}")
-                            transcript = "[Transcript unavailable: Unable to retrieve transcript]"
+                        # Get transcript with improved error handling
+                        transcript = self._get_transcript_by_id(video_id, language)
+                        
+                        # Update statistics
+                        if transcript.startswith('['):
+                            if 'disabled' in transcript.lower():
+                                transcript_stats['disabled'] += 1
+                            else:
+                                transcript_stats['failed'] += 1
+                        else:
+                            transcript_stats['success'] += 1
                         
                         video = self._create_video_from_search_item(search_item, transcript)
                         found_videos.append(video)

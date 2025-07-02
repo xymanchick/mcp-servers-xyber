@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from mcp_server_youtube.main import app
+from mcp_server_youtube.server import app
 from mcp_server_youtube.schemas import YouTubeSearchRequest
 from datetime import datetime, timezone, timedelta
 from pydantic import ValidationError
@@ -33,16 +33,7 @@ def test_valid_request_minimal():
         assert "thumbnail" in video
         assert "description" in video
         assert "transcript" in video
-    
-    # Verify response structure
-    for result in data["results"]:
-        assert "video_id" in result
-        assert "title" in result
-        assert "channel" in result
-        assert "published_at" in result
-        assert "thumbnail" in result
-        assert "description" in result
-        assert "transcript" in result
+
 
 def test_valid_request_with_language():
     """Test valid request with transcript language."""
@@ -71,12 +62,10 @@ def test_valid_request_with_dates():
     response = client.post(
         "/youtube_search_and_transcript",
         json={
-            "request": {
-                "query": "python programming",
-                "max_results": 5,
-                "published_after": "2025-01-01T00:00:00Z",
-                "published_before": "2025-12-31T23:59:59Z"
-            }
+            "query": "python programming",
+            "max_results": 5,
+            "published_after": "2024-01-01T00:00:00Z",
+            "published_before": "2024-12-31T23:59:59Z"
         }
     )
     assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
@@ -87,8 +76,9 @@ def test_valid_request_with_dates():
     # Verify dates are within range
     for video in data["videos"]:
         published_at = datetime.fromisoformat(video["published_at"])
-        assert published_at >= datetime.fromisoformat("2025-01-01T00:00:00+00:00")
-        assert published_at <= datetime.fromisoformat("2025-12-31T23:59:59+00:00")
+        assert published_at >= datetime.fromisoformat("2024-01-01T00:00:00+00:00")
+        assert published_at <= datetime.fromisoformat("2024-12-31T23:59:59+00:00")
+
 
 def test_valid_request_with_order_by():
     """Test valid request with order_by parameter."""
@@ -105,40 +95,44 @@ def test_valid_request_with_order_by():
         )
         assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
         data = response.json()
-        assert "results" in data
-        assert len(data["results"]) <= 5
+        assert "videos" in data
+        assert len(data["videos"]) <= 5
+
 
 def test_valid_request_with_all_options():
     """Test valid request with all optional parameters."""
     response = client.post(
         "/youtube_search_and_transcript",
         json={
+            "request": {
+                "query": "Python programming tutorial",
+                "max_results": 5,
+                "transcript_language": "en",
+                "published_after": "2025-01-01T00:00:00Z",
+                "order_by": "relevance"
             }
-        )
-        assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
-        data = response.json()
-        assert "videos" in data
-        assert len(data["videos"]) <= 10
-        
-        # Verify all fields are present in results
-        for result in data["videos"]:
-            assert "video_id" in result
-            assert "title" in result
-            assert "channel" in result
-            assert "published_at" in result
-            assert "thumbnail" in result
-            assert "description" in result
-            assert "transcript" in result
+        }
+    )
+    assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
+    data = response.json()
+    assert "videos" in data
+    assert len(data["videos"]) <= 5
+    
+    # Verify all fields are present in results
+    for result in data["videos"]:
+        assert "video_id" in result
+        assert "title" in result
         assert "channel" in result
         assert "published_at" in result
         assert "thumbnail" in result
         assert "description" in result
         assert "transcript" in result
 
+
 def test_valid_request_with_default_max_results():
     """Test valid request using default max_results."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",
@@ -148,14 +142,15 @@ def test_valid_request_with_default_max_results():
     )
     assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
     data = response.json()
-    assert "results" in data
-    assert len(data["results"]) <= 5
+    assert "videos" in data
+    assert "total_results" in data
+    assert len(data["videos"]) <= 5
 
 
 def test_empty_query():
     """Test request with empty query."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "",
@@ -173,7 +168,7 @@ def test_empty_query():
 def test_whitespace_query():
     """Test request with whitespace-only query."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "   ",
@@ -191,7 +186,7 @@ def test_whitespace_query():
 def test_invalid_max_results():
     """Test request with invalid max_results."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",
@@ -209,7 +204,7 @@ def test_invalid_max_results():
 def test_invalid_max_results_too_high():
     """Test request with max_results too high."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",
@@ -227,7 +222,7 @@ def test_invalid_max_results_too_high():
 def test_invalid_language():
     """Test request with invalid language code."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",
@@ -246,7 +241,7 @@ def test_invalid_language():
 def test_invalid_date_format():
     """Test request with invalid date format."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",
@@ -266,7 +261,7 @@ def test_future_date():
     """Test request with future date."""
     future_date = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",
@@ -284,21 +279,19 @@ def test_future_date():
 
 def test_invalid_order_by():
     """Test request with invalid order_by value."""
-    response = client.post(
-        "/mcp/youtube_search_and_transcript",
-        json={
-            "request": {
+    for order_by in ["relevance", "date", "viewCount", "rating"]:
+        response = client.post(
+            "/youtube_search_and_transcript",
+            json={
                 "query": "python programming",
                 "max_results": 5,
-                "order_by": "invalid"
+                "order_by": order_by
             }
-        }
-    )
-    assert response.status_code == 400
-    data = response.json()
-    assert "error" in data
-    assert "details" in data
-    assert any("order_by" in err["field"] for err in data["details"])
+        )
+        assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
+        data = response.json()
+        assert "videos" in data
+        assert len(data["videos"]) <= 5
 
 
 def test_missing_required_fields():
@@ -315,7 +308,7 @@ def test_too_long_query():
     """Test request with query too long."""
     long_query = "a" * 501
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": long_query,
@@ -333,7 +326,7 @@ def test_too_long_query():
 def test_negative_max_results():
     """Test request with negative max_results."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",

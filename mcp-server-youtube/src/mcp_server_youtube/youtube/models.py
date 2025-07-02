@@ -1,14 +1,15 @@
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime
 
 
-@dataclass(frozen=True)
-class YouTubeVideo:
+class YouTubeVideo(BaseModel):
     """Represents a YouTube video with its metadata and transcript information."""
-
-    video_id: str
+    
+    video_id: str = Field(..., pattern=r'^[a-zA-Z0-9_-]{11}$')
     title: str
     channel: str
-    published_at: str
+    published_at: datetime
     thumbnail: str
     description: str = ""
     transcript: str = ""

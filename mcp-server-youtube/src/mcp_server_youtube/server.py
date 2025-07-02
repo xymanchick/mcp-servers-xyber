@@ -6,6 +6,11 @@ from typing import AsyncIterator, Any, Dict, List
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import ValidationError as PydanticValidationError
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+from typing import Dict, Any
 
 from mcp_server_youtube.schemas import (
     YouTubeSearchRequest,
@@ -54,11 +59,45 @@ async def app_lifespan(app: Any) -> AsyncIterator[dict[str, Any]]:
     finally:
         logger.info("Shutdown cleanup completed")
 
+# Initialize FastAPI app with documentation
+app = FastAPI(
+    title="YouTube Search and Transcript API",
+    description="""
+    API for searching YouTube videos and retrieving their transcripts.
+    
+    This API allows you to:
+    - Search YouTube videos using various filters
+    - Retrieve video transcripts in multiple languages
+    - Get video metadata including thumbnails and descriptions
+    """,
+    version="1.0.0",
+    contact={
+        "name": "Xyber Labs",
+        "email": "support@xyberlabs.com"
+    },
+    license_info={
+        "name": "Proprietary",
+        "url": "https://www.xyberlabs.com/license"
+    }
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Initialize MCP server
 mcp_server = FastMCP(
-    name="youtube",
     lifespan=app_lifespan
 )
+
+# Add routes
+from mcp_server_youtube.routes import router
+app.include_router(router)
 
 # --- Regular HTTP Endpoint --- #
 @mcp_server.tool()
