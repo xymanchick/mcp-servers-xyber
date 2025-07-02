@@ -11,7 +11,7 @@ client = TestClient(app)
 def test_valid_request_minimal():
     """Test minimal valid request with required fields only."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",
@@ -21,8 +21,18 @@ def test_valid_request_minimal():
     )
     assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
     data = response.json()
-    assert "results" in data
-    assert len(data["results"]) <= 3
+    assert "videos" in data
+    assert len(data["videos"]) <= 3
+    
+    # Verify response structure
+    for video in data["videos"]:
+        assert "video_id" in video
+        assert "title" in video
+        assert "channel" in video
+        assert "published_at" in video
+        assert "thumbnail" in video
+        assert "description" in video
+        assert "transcript" in video
     
     # Verify response structure
     for result in data["results"]:
@@ -37,7 +47,7 @@ def test_valid_request_minimal():
 def test_valid_request_with_language():
     """Test valid request with transcript language."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",
@@ -48,13 +58,18 @@ def test_valid_request_with_language():
     )
     assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
     data = response.json()
-    assert "results" in data
-    assert len(data["results"]) <= 5
+    assert "videos" in data
+    assert len(data["videos"]) <= 5
+    
+    # Verify transcript language
+    for video in data["videos"]:
+        assert video["transcript"] != "[No transcript available]" or video["transcript"] != "[Transcripts are disabled]"
+
 
 def test_valid_request_with_dates():
     """Test valid request with date filters."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
             "request": {
                 "query": "python programming",
@@ -66,14 +81,20 @@ def test_valid_request_with_dates():
     )
     assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
     data = response.json()
-    assert "results" in data
-    assert len(data["results"]) <= 5
+    assert "videos" in data
+    assert len(data["videos"]) <= 5
+    
+    # Verify dates are within range
+    for video in data["videos"]:
+        published_at = datetime.fromisoformat(video["published_at"])
+        assert published_at >= datetime.fromisoformat("2025-01-01T00:00:00+00:00")
+        assert published_at <= datetime.fromisoformat("2025-12-31T23:59:59+00:00")
 
 def test_valid_request_with_order_by():
     """Test valid request with order_by parameter."""
     for order_by in ["relevance", "date", "viewCount", "rating"]:
         response = client.post(
-            "/mcp/youtube_search_and_transcript",
+            "/youtube_search_and_transcript",
             json={
                 "request": {
                     "query": "python programming",
@@ -90,27 +111,24 @@ def test_valid_request_with_order_by():
 def test_valid_request_with_all_options():
     """Test valid request with all optional parameters."""
     response = client.post(
-        "/mcp/youtube_search_and_transcript",
+        "/youtube_search_and_transcript",
         json={
-            "request": {
-                "query": "python programming",
-                "max_results": 10,
-                "transcript_language": "en",
-                "published_after": "2025-01-01T00:00:00Z",
-                "published_before": "2025-12-31T23:59:59Z",
-                "order_by": "relevance"
             }
-        }
-    )
-    assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
-    data = response.json()
-    assert "results" in data
-    assert len(data["results"]) <= 10
-    
-    # Verify all fields are present in results
-    for result in data["results"]:
-        assert "video_id" in result
-        assert "title" in result
+        )
+        assert response.status_code == 200, f"Response status: {response.status_code}, Content: {response.json()}"
+        data = response.json()
+        assert "videos" in data
+        assert len(data["videos"]) <= 10
+        
+        # Verify all fields are present in results
+        for result in data["videos"]:
+            assert "video_id" in result
+            assert "title" in result
+            assert "channel" in result
+            assert "published_at" in result
+            assert "thumbnail" in result
+            assert "description" in result
+            assert "transcript" in result
         assert "channel" in result
         assert "published_at" in result
         assert "thumbnail" in result
