@@ -214,6 +214,153 @@ class AsyncTwitterClient:
         except Exception as e:
             logger.error(f"Failed to follow user {user_id}: {e}", exc_info=True)
             raise
+        async def get_trends(self, countries: List[str], max_trends: int = 50) -> Dict[str, List[str]]:
+        """
+        Retrieve trending topics for each provided WOEID.
+
+        Args:
+            countries: List of countries
+            max_trends: Maximum number of trends to return per WOEID (1-50).
+
+        Returns:
+            Dict mapping WOEID to a list of trending topic names.
+            If an error occurs for a WOEID, the list contains a single error string.
+        """
+        trends_result: Dict[str, List[str]] = {}
+        woeid_by_country = {
+            "Worldwide": 1,
+            "Algeria": 23424740,
+            "Argentina": 23424747,
+            "Australia": 23424748,
+            "Austria": 23424750,
+            "Bahrain": 23424753,
+            "Belgium": 23424757,
+            "Belarus": 23424765,
+            "Brazil": 23424768,
+            "Canada": 23424775,
+            "Chile": 23424782,
+            "China": 23424781,
+            "Colombia": 23424787,
+            "Dominican Republic": 23424800,
+            "Ecuador": 23424801,
+            "Egypt": 23424802,
+            "Ireland": 23424803,
+            "France": 23424819,
+            "Germany": 23424829,
+            "Ghana": 23424824,
+            "Greece": 23424833,
+            "Guatemala": 23424834,
+            "Indonesia": 23424846,
+            "India": 23424848,
+            "Italy": 23424853,
+            "Japan": 23424856,
+            "Jordan": 23424860,
+            "Kenya": 23424863,
+            "South Korea": 23424868,
+            "Kuwait": 23424870,
+            "Lebanon": 23424873,
+            "Latvia": 23424874,
+            "Oman": 23424898,
+            "Malaysia": 23424901,
+            "Mexico": 23424900,
+            "Netherlands": 23424909,
+            "Norway": 23424910,
+            "Nigeria": 23424908,
+            "New Zealand": 23424916,
+            "Pakistan": 23424922,
+            "Poland": 23424923,
+            "Panama": 23424924,
+            "Portugal": 23424925,
+            "Qatar": 23424930,
+            "Russia": 23424936,
+            "Saudi Arabia": 23424938,
+            "South Africa": 23424942,
+            "Singapore": 23424948,
+            "Spain": 23424950,
+            "Sweden": 23424954,
+            "Switzerland": 23424957,
+            "Thailand": 23424960,
+            "Turkey": 23424969,
+            "United Arab Emirates": 23424738,
+            "Ukraine": 23424976,
+            "United Kingdom": 23424975,
+            "United States": 23424977,
+            "Venezuela": 23424982,
+            "Vietnam": 23424984
+        }
+
+        bearer_token = getattr(self.config, "BEARER_TOKEN", None) or os.getenv("BEARER_TOKEN")
+        if not bearer_token:
+            raise ValueError("Bearer token not configured for trends endpoint")
+
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+        timeout = aiohttp.ClientTimeout(total=30)
+
+        async with aiohttp.ClientSession(
+            timeout=timeout,
+            connector=aiohttp.TCPConnector(ssl=self.ssl_context)
+        ) as session:
+            for country in countries:
+                if country in woeid_by_country:
+                    woeid = woeid_by_country[country]
+                    url = f"https://api.twitter.com/2/trends/by/woeid/{woeid}"
+                    params = {"max_trends": max_trends}
+                    try:
+                        async with session.get(url, headers=headers, params=params) as resp:
+                            if resp.status != 200:
+                                trends_result[str(country)] = [f"Error: {resp.status} {await resp.text()}"]
+                                continue
+
+                            data = await resp.json()
+                            trends = [
+                                t.get("trend_name")
+                                for t in data.get("data", [])
+                                if isinstance(t, dict) and t.get("trend_name")
+                            ]
+                            trends_result[str(country)] = trends
+                    except Exception as e:
+                        trends_result[str(country)] = [f"Error retrieving trends: {str(e)}"]
+                else:
+                    logger.error(f"woeid for {country} not found")
+
+        return trends_result
+
+    async def search_hashtag(self, hashtag: str, max_results: int = 10) -> List[str]:
+        """
+        Search recent tweets containing a specific hashtag and return their texts,
+        ordered by popularity (likes + retweets).
+
+        Args:
+            hashtag: Hashtag to search for (with or without '#').
+            max_results: Maximum number of tweets to return (10-100).
+
+        Returns:
+            List of tweet texts.
+        """
+        if not hashtag.startswith("#"):
+            hashtag = f"#{hashtag}"
+
+        max_results = max(10, min(max_results, 100))
+
+        try:
+            resp = await self.client.search_recent_tweets(
+                query=hashtag,
+                max_results=max_results,
+                tweet_fields=["id", "text", "public_metrics", "created_at"],
+                sort_order="relevancy"
+            )
+
+            if not resp or not resp.data:
+                return []
+
+            tweets = resp.data
+
+            return [t.text for t in tweets]
+
+        except Exception as e:
+            logger.error(f"Error searching hashtag {hashtag}: {str(e)}", exc_info=True)
+            raise
+
 
     @retry_async_wrapper
     async def initialize(self):
