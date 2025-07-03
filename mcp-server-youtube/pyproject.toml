@@ -23,10 +23,11 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest",
-    "httpx", 
+    "httpx",
     "ruff",
     "black",
     "isort",
+    "pytest-asyncio>=1.0.0",
 ]
 debug = [
     "debugpy>=1.8.0",
