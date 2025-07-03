@@ -46,6 +46,38 @@ Retweet an existing tweet on behalf of the authenticated user.
 **Returns:**
 - `str`: A success message confirming the retweet.
 
+### `get_trends` 
+Retrieve trending topics for one or more countries.
+
+**Args**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `countries` | `list[str]` | One or more countries. |
+| `max_trends` | `int`, optional | Maximum trends to return per country (1 – 50, default 50). |
+
+**Returns**
+
+`dict` – Maps each countries to a list of trending topic names.  
+If an error occurs for a country, the list contains a single error string.
+
+
+### `search_hashtag` 
+Search recent tweets that contain a specific hashtag and return their texts, ordered by relevancy
+
+**Args**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `hashtag` | `str` | Hashtag to search (with or without “#”). |
+| `max_results` | `int`, optional | Maximum tweets to return (10 – 100, default 10). |
+
+**Returns**
+
+`list[str]` – The text of matched tweets, ordered by **likes + retweets**.
+
+---
+
 ## Configuration
 
 Create a `.env` file in the root directory containing:
