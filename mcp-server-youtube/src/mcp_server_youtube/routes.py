@@ -9,9 +9,9 @@ from datetime import datetime
 from fastapi import APIRouter
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from mcp_server_youtube.youtube.models import YouTubeSearchRequest
 from mcp_server_youtube.youtube.models import YouTubeSearchResponse
 from mcp_server_youtube.youtube.models import YouTubeVideo
-from mcp_server_youtube.youtube.schemas import YouTubeSearchRequest
 from mcp_server_youtube.youtube.youtube_errors import YouTubeApiError
 from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError
 from mcp_server_youtube.youtube.youtube_errors import YouTubeTranscriptError
@@ -63,6 +63,24 @@ async def search_youtube_videos(request: Request):
             # Direct style: {"query": "...", "max_results": ...}
             request_data = body
 
+        # Validate request using Pydantic
+        try:
+            validated_request = YouTubeSearchRequest(**request_data)
+        except ValidationError as e:
+            error_details = [{
+                'field': err['loc'][0] if err['loc'] else 'unknown',
+                'message': err['msg'],
+                'type': err['type']
+            } for err in e.errors()]
+            return JSONResponse(
+                content={
+                    'error': 'Validation failed',
+                    'details': error_details,
+                    'code': 'VALIDATION_ERROR'
+                },
+                status_code=400
+            )
+
         # For test environment, use a mock YouTubeSearcher
         try:
             youtube_searcher = request.app.state.lifespan_context['youtube_searcher']
@@ -84,24 +102,6 @@ async def search_youtube_videos(request: Request):
                 ]
             )
 
-        # Validate request using Pydantic
-        try:
-            validated_request = YouTubeSearchRequest(**request_data)
-        except ValidationError as e:
-            error_details = [{
-                'field': err['loc'][0] if err['loc'] else 'unknown',
-                'message': err['msg'],
-                'type': err['type']
-            } for err in e.errors()]
-            return JSONResponse(
-                content={
-                    'error': 'Validation failed',
-                    'details': error_details,
-                    'code': 'VALIDATION_ERROR'
-                },
-                status_code=400
-            )
-
         # Convert datetime strings if provided
         published_after = validated_request.published_after
         published_before = validated_request.published_before
@@ -113,16 +113,6 @@ async def search_youtube_videos(request: Request):
             language=validated_request.transcript_language or 'en',
             published_after=published_after,
             published_before=published_before,
-            order_by=validated_request.order_by
-        )
-
-        # Perform the search
-        found_videos = youtube_searcher.search_videos(
-            query=validated_request.query,
-            max_results=validated_request.max_results,
-            language=validated_request.transcript_language or 'en',
-            published_after=published_after,
-            published_before=validated_request.published_before,
             order_by=validated_request.order_by
         )
 

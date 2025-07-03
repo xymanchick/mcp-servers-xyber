@@ -6,9 +6,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastmcp import Context
-from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
+from fastmcp.server import FastMCP
 from mcp_server_youtube.routes import router
 from mcp_server_youtube.youtube.models import YouTubeSearchRequest
 from mcp_server_youtube.youtube.models import YouTubeSearchResponse
@@ -17,6 +16,7 @@ from mcp_server_youtube.youtube.module import get_youtube_searcher
 from mcp_server_youtube.youtube.module import YouTubeSearcher
 from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError
 from pydantic import ValidationError as PydanticValidationError
+# from typing import TYPE_CHECKING
 
 
 logger = logging.getLogger(__name__)
@@ -43,17 +43,11 @@ async def app_lifespan(app: FastAPI) -> AsyncIterator[dict[str, object]]:
 
     except YouTubeClientError as init_err:
         logger.error('Lifespan initialization failed', exc_info=True)
-        raise ToolError(
-            f'Service initialization failed: {init_err}',
-            code='INITIALIZATION_ERROR'
-        ) from init_err
+        raise ToolError(f'Service initialization failed: {init_err}') from init_err
 
     except Exception as unexpected_err:
         logger.error('Unexpected initialization error', exc_info=True)
-        raise ToolError(
-            'Unexpected startup error',
-            code='INTERNAL_ERROR'
-        ) from unexpected_err
+        raise ToolError('Unexpected startup error') from unexpected_err
 
     finally:
         logger.info('Shutdown cleanup completed')
@@ -101,16 +95,13 @@ app.include_router(router)
 
 # --- Regular HTTP Endpoint --- #
 @mcp_server.tool()
-async def youtube_search_and_transcript(
-        ctx: Context,
-        request: dict[str, object]
-) -> str:
+async def youtube_search_and_transcript(ctx, request):
     """Search YouTube videos and retrieve transcripts."""
     youtube_searcher = ctx.lifespan_context['youtube_searcher']
 
     try:
         validated_request = YouTubeSearchRequest(**request)
-        search_result = youtube_searcher.search_videos(
+        search_result = await youtube_searcher.search_videos(
             query=validated_request.query,
             max_results=validated_request.max_results,
             language=validated_request.transcript_language or 'en'

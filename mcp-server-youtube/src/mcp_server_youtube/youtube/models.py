@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import datetime
 from datetime import timezone
 from enum import Enum
@@ -11,6 +12,7 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import field_validator
+from pydantic import model_validator
 from pydantic.types import StringConstraints
 from pydantic_core import PydanticCustomError
 
@@ -82,6 +84,33 @@ class LanguageCode(str, Enum):
     KOREAN = 'ko'
     RUSSIAN = 'ru'
     CHINESE = 'zh'
+
+
+class TranscriptStatus(str, Enum):
+    """Status of transcript retrieval."""
+    SUCCESS = 'success'
+    NO_TRANSCRIPT = 'no_transcript'
+    BLOCKED = 'blocked'
+    DISABLED = 'disabled'
+    UNAVAILABLE = 'unavailable'
+    ERROR = 'error'
+
+
+class TranscriptResult(BaseModel):
+    """Result of transcript retrieval."""
+    status: TranscriptStatus
+    transcript: str | None | None = None
+    language: str | None | None = None
+    available_languages: Sequence[str | None] = Field(default_factory=list)
+    error_message: str | None | None = None
+
+    @model_validator(mode='after')
+    def validate_status(self) -> TranscriptResult:
+        """Validate that the status matches the data."""
+        if self.status == TranscriptStatus.SUCCESS:
+            assert self.transcript is not None, 'Transcript must be present for success'
+            assert self.language is not None, 'Language must be present for success'
+        return self
 
 
 class YouTubeSearchRequest(BaseModel):
