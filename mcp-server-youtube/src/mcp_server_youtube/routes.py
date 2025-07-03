@@ -18,6 +18,7 @@ from mcp_server_youtube.youtube.youtube_errors import YouTubeTranscriptError
 from pydantic import ValidationError
 from sse_starlette.sse import EventSourceResponse
 
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()

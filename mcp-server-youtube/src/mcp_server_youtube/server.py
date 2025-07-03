@@ -16,7 +16,6 @@ from mcp_server_youtube.youtube.module import get_youtube_searcher
 from mcp_server_youtube.youtube.module import YouTubeSearcher
 from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError
 from pydantic import ValidationError as PydanticValidationError
-# from typing import TYPE_CHECKING
 
 
 logger = logging.getLogger(__name__)
