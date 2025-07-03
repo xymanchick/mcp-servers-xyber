@@ -4,9 +4,6 @@ import logging
 import xml
 from datetime import datetime
 from functools import lru_cache
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from googleapiclient.discovery import build
 from googleapiclient.discovery import Resource
@@ -20,6 +17,7 @@ from youtube_transcript_api import NoTranscriptFound
 from youtube_transcript_api import TranscriptsDisabled
 from youtube_transcript_api import VideoUnavailable
 from youtube_transcript_api import YouTubeTranscriptApi
+
 
 # --- Setup Logger ---
 logger = logging.getLogger(__name__)
@@ -71,9 +69,9 @@ class YouTubeSearcher:
             self,
             query: str,
             max_results: int = 15,
-            order_by: Optional[str] = None,
-            published_after: Optional[str] = None,
-            published_before: Optional[str] = None
+            order_by: str | None = None,
+            published_after: str | None = None,
+            published_before: str | None = None
     ) -> dict:
         """
         Build search parameters for YouTube Data API request.
@@ -127,7 +125,7 @@ class YouTubeSearcher:
         """
         return search_item.get('id', {}).get('kind') == 'youtube#video'
 
-    def _create_video_from_search_item(self, search_item: dict, transcript: Optional[str], transcript_language: Optional[str]) -> YouTubeVideo:
+    def _create_video_from_search_item(self, search_item: dict, transcript: str | None, transcript_language: str | None) -> YouTubeVideo:
         """
         Create a YouTubeVideo object from a search item and transcript.
 
@@ -168,7 +166,7 @@ class YouTubeSearcher:
             has_transcript=has_real_transcript
         )
 
-    def _get_transcript_by_id(self, video_id: str, language: str = 'en') -> Tuple[Optional[str], Optional[str]]:
+    def _get_transcript_by_id(self, video_id: str, language: str = 'en') -> tuple[str | None, str | None]:
         """
         Get transcript for a video ID with helpful status messages
         Returns: (transcript_text_or_status, language_code)
@@ -270,14 +268,14 @@ class YouTubeSearcher:
             return f'Unexpected error: {str(e)}', None
 
     def search_videos(
-            self,
-            query: str,
-            max_results: int = 15,
-            language: str = 'en',
-            order_by: str = 'relevance',
-            published_after: Optional[datetime] = None,
-            published_before: Optional[datetime] = None
-    ) -> List[YouTubeVideo]:
+        self,
+        query: str,
+        max_results: int = 15,
+        language: str = 'en',
+        order_by: str = 'relevance',
+        published_after: datetime | None = None,
+        published_before: datetime | None = None
+    ) -> list[YouTubeVideo]:
         """
         Search YouTube videos and retrieve their transcripts.
 

@@ -1,7 +1,10 @@
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any
-import re
+from __future__ import annotations
+
+from datetime import datetime
+from datetime import timezone
+
 from pydantic import BaseModel
+
 
 class DataUtils:
     """
@@ -11,33 +14,29 @@ class DataUtils:
     @staticmethod
     def format_iso_datetime(dt_str: str, for_youtube_api: bool = False) -> str:
         """
-        Format a datetime string to ISO format with timezone.
+        Convert a datetime string to ISO format with timezone.
 
         Args:
-            dt_str: Input datetime string in ISO format
-            for_youtube_api: If True, formats the datetime for YouTube API
+            dt_str: Input datetime string
+            for_youtube_api: If True, formats datetime for YouTube API
 
         Returns:
-            Formatted datetime string with timezone
+            Formatted datetime string
         """
         try:
-            # Handle both Z and ±HH:MM timezone formats
+            # Normalize to include timezone
             if dt_str.endswith('Z'):
                 dt_str = dt_str[:-1] + '+00:00'
-            elif '+' not in dt_str and '-' not in dt_str:
-                dt_str = dt_str + '+00:00'
-            
+            elif '+' not in dt_str and '-' not in dt_str[10:]:
+                dt_str += '+00:00'
+
             dt = datetime.fromisoformat(dt_str)
-            if not dt.tzinfo:
-                dt = dt.replace(tzinfo=timezone.utc)
-            
-            # Format for YouTube API if requested
-            if for_youtube_api:
-                return dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-            
-            return dt.isoformat()
+            dt = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+            return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ') if for_youtube_api else dt.isoformat()
+
         except ValueError as e:
-            raise ValueError(f"Invalid datetime format: {str(e)}") from e
+            raise ValueError(f'Invalid datetime format: {e}') from e
 
     @staticmethod
     def compare_datetimes(dt1: str, dt2: str) -> int:
@@ -45,91 +44,84 @@ class DataUtils:
         Compare two datetime strings.
 
         Args:
-            dt1: First datetime string
-            dt2: Second datetime string
+            dt1: First datetime
+            dt2: Second datetime
 
         Returns:
-            -1 if dt1 < dt2
-            0 if dt1 == dt2
-            1 if dt1 > dt2
+            -1 if dt1 < dt2, 0 if equal, 1 if dt1 > dt2
         """
         try:
-            dt1 = datetime.fromisoformat(DataUtils.format_iso_datetime(dt1))
-            dt2 = datetime.fromisoformat(DataUtils.format_iso_datetime(dt2))
-            
-            if dt1 < dt2:
-                return -1
-            elif dt1 > dt2:
-                return 1
-            return 0
+            dt1_parsed = datetime.fromisoformat(DataUtils.format_iso_datetime(dt1))
+            dt2_parsed = datetime.fromisoformat(DataUtils.format_iso_datetime(dt2))
+
+            return (dt1_parsed > dt2_parsed) - (dt1_parsed < dt2_parsed)
+
         except ValueError as e:
-            raise ValueError(f"Invalid datetime comparison: {str(e)}") from e
+            raise ValueError(f'Invalid datetime comparison: {e}') from e
 
     @staticmethod
-    def validate_date_range(start_date: Optional[str], end_date: Optional[str]) -> None:
+    def validate_date_range(start_date: str | None, end_date: str | None) -> None:
         """
-        Validate that a date range is valid (start_date <= end_date).
+        Ensure start_date is not after end_date.
 
         Args:
             start_date: Start date string
             end_date: End date string
 
         Raises:
-            ValueError: If the date range is invalid
+            ValueError: If start_date > end_date
         """
-        if not start_date or not end_date:
-            return
-            
-        if DataUtils.compare_datetimes(start_date, end_date) > 0:
-            raise ValueError("Start date cannot be after end date")
+        if start_date and end_date:
+            if DataUtils.compare_datetimes(start_date, end_date) > 0:
+                raise ValueError('Start date cannot be after end date')
 
     @staticmethod
-    def format_video_data(video_data: Dict[str, Any]) -> Dict[str, Any]:
+    def format_video_data(video_data: dict | None) -> dict | None:
         """
-        Format video data from YouTube API response.
+        Extract and format video data from raw YouTube API response.
 
         Args:
-            video_data: Raw video data dictionary
+            video_data: Raw video metadata dictionary
 
         Returns:
-            Formatted video data dictionary
+            Cleaned and formatted video data dictionary
         """
-        formatted = {
+        if not video_data:
+            return None
+
+        snippet = video_data.get('snippet', {})
+        return {
             'video_id': video_data.get('id', {}).get('videoId', 'N/A'),
-            'title': video_data.get('snippet', {}).get('title', 'N/A'),
-            'description': video_data.get('snippet', {}).get('description', ''),
-            'channel': video_data.get('snippet', {}).get('channelTitle', 'N/A'),
-            'published_at': DataUtils.format_iso_datetime(
-                video_data.get('snippet', {}).get('publishedAt', 'N/A')
-            ),
-            'thumbnail': video_data.get('snippet', {}).get('thumbnails', {})
-                .get('default', {}).get('url', 'N/A')
+            'title': snippet.get('title', 'N/A'),
+            'description': snippet.get('description', ''),
+            'channel': snippet.get('channelTitle', 'N/A'),
+            'published_at': DataUtils.format_iso_datetime(snippet.get('publishedAt', 'N/A')),
+            'thumbnail': snippet.get('thumbnails', {}).get('default', {}).get('url', 'N/A'),
         }
-        return formatted
 
     @staticmethod
-    def format_response_data(videos: list[BaseModel]) -> Dict[str, Any]:
+    def format_response_data(videos: list[BaseModel]) -> dict:
         """
-        Format response data for API output.
+        Format a list of video models for API output.
 
         Args:
-            videos: List of video models
+            videos: List of Pydantic video model instances
 
         Returns:
-            Formatted response dictionary
+            Dictionary suitable for JSON API response
         """
         return {
             'results': [
                 {
-                    'video_id': video.video_id,
-                    'title': video.title,
-                    'channel': video.channel,
-                    'published_at': video.published_at,
-                    'thumbnail': video.thumbnail,
-                    'description': video.description,
-                    'transcript': video.transcript
+                    'video_id': v.video_id,
+                    'title': v.title,
+                    'channel': v.channel,
+                    'published_at': v.published_at,
+                    'thumbnail': v.thumbnail,
+                    'description': v.description,
+                    'transcript': v.transcript,
                 }
-                for video in videos
+                for v in videos
             ],
-            'total_results': len(videos)
+            'total_results': len(videos),
         }
