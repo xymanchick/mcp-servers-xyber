@@ -37,11 +37,23 @@ This API provides functionality to search YouTube videos and retrieve their tran
             "published_at": "string",
             "thumbnail": "string",
             "description": "string",
-            "transcript": "string"
+            "transcript": "string | status message",
+            "transcript_language": "string | null",
+            "has_transcript": boolean
         }
     ]
 }
 ```
+
+**Transcript Status Messages:**
+- When YouTube's anti-bot protection blocks transcript access, the response will include a status message instead of the transcript text.
+- Status messages indicate why the transcript couldn't be retrieved and include the language code if available.
+- Example status messages:
+  - "Transcript available in en but currently blocked by YouTube's anti-bot protection"
+  - "Transcripts disabled by video creator"
+  - "Video unavailable"
+  - "No transcripts available"
+  - "Error accessing transcript: [error message]"
 
 ### 2. Server-Sent Events (SSE)
 

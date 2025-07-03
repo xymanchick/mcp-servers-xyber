@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from mcp_server_youtube.server import app
-from mcp_server_youtube.schemas import YouTubeSearchRequest
+from mcp_server_youtube.youtube.schemas import YouTubeSearchRequest
 from datetime import datetime, timezone, timedelta
 from pydantic import ValidationError
 

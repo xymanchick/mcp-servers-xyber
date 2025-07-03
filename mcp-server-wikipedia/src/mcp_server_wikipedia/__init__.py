@@ -1,0 +1,1 @@
+# Root of the mcp_server_wikipedia package
