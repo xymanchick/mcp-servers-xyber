@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 from pydantic.types import StringConstraints
 
@@ -13,7 +13,9 @@ class YouTubeVideo(BaseModel):
     published_at: datetime
     thumbnail: str
     description: str = ""
-    transcript: str = ""
+    transcript: Optional[str] = None
+    transcript_language: Optional[str] = None
+    has_transcript: bool = False
 
     @property
     def url(self) -> str:
@@ -22,7 +24,8 @@ class YouTubeVideo(BaseModel):
 
     def __str__(self) -> str:
         """Returns a string representation of the YouTubeVideo object."""
-        return f"Video ID: {self.video_id}\nTitle: {self.title}\nChannel: {self.channel}\nPublished at: {self.published_at}\nThumbnail: {self.thumbnail}\nDescription: {self.description}\nTranscript: {self.transcript}"
+        transcript_info = f"Transcript: {self.transcript}\nLanguage: {self.transcript_language}" if self.has_transcript else "No transcript available"
+        return f"Video ID: {self.video_id}\nTitle: {self.title}\nChannel: {self.channel}\nPublished at: {self.published_at}\nThumbnail: {self.thumbnail}\nDescription: {self.description}\n{transcript_info}"
 
 
 class YouTubeSearchResponse(BaseModel):
