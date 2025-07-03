@@ -10,18 +10,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
-from typing import Dict, Any
-
-from mcp_server_youtube.schemas import (
-    YouTubeSearchRequest,
-    YouTubeSearchResponse,
-    YouTubeVideo
-)
-from mcp_server_youtube.youtube import (
-    YouTubeClientError,
-    YouTubeSearcher,
-    get_youtube_searcher
-)
+from mcp_server_youtube.youtube.schemas import YouTubeSearchRequest
+from mcp_server_youtube.youtube.models import YouTubeSearchResponse
+from mcp_server_youtube.youtube.module import YouTubeSearcher, get_youtube_searcher
+from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError
 
 logger = logging.getLogger(__name__)
 

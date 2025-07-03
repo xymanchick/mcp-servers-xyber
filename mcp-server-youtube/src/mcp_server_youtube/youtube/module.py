@@ -1,5 +1,6 @@
 import json
 import logging
+import xml
 from datetime import datetime
 from functools import lru_cache
 from typing import Any, Optional, Dict, List
@@ -8,12 +9,14 @@ import xml.etree.ElementTree as ET
 # --- Third-party Imports ---
 from googleapiclient.discovery import Resource, build
 from googleapiclient.errors import HttpError
-from mcp_server_youtube.youtube.config import (YouTubeApiError,
-                                               YouTubeClientError,
-                                               YouTubeConfig,
-                                               YouTubeTranscriptError)
+from mcp_server_youtube.youtube.config import YouTubeConfig
+from mcp_server_youtube.youtube.youtube_errors import (YouTubeApiError,
+                                                       YouTubeClientError,
+                                                       YouTubeTranscriptError)
 from mcp_server_youtube.utils.data_utils import DataUtils
 from mcp_server_youtube.youtube.models import YouTubeVideo
+import requests
+
 from youtube_transcript_api import (
     NoTranscriptFound,
     TranscriptsDisabled,
@@ -193,15 +196,38 @@ class YouTubeSearcher:
         try:
             # Get transcript list first to check availability
             transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-        except TranscriptsDisabled:
-            logger.debug(f"Transcripts disabled for video {video_id}")
+        except TranscriptsDisabled as e:
+            # Transcripts are disabled by creator
+            logger.warning(f"Transcripts disabled for video ID {video_id}")
             return "[Transcripts disabled by creator]"
+        except NoTranscriptFound as e:
+            # Transcript not found in requested language
+            logger.warning(f"No transcript found for video ID {video_id} in language '{language}'")
+            return "[No transcript available in requested language]"
+        except (xml.etree.ElementTree.ParseError, xml.parsers.expat.ExpatError) as e:
+            # XML parsing error - usually indicates corrupted data
+            logger.warning(f"XML parsing error for video {video_id}: {e}")
+            return "[Transcript data corrupted or unavailable]"
         except CouldNotRetrieveTranscript as e:
-            logger.debug(f"Could not retrieve transcript list for video {video_id}: {e}")
+            # Network/API error - temporary issue
+            logger.warning(f"Could not retrieve transcript for video {video_id}: {e}")
             return "[Transcript temporarily unavailable]"
+        except requests.exceptions.ConnectionError as e:
+            # Connection error (DNS, timeout, etc.)
+            logger.error(f"Connection error while fetching transcript for video {video_id}: {e}")
+            return "[Connection error: Unable to reach YouTube]"
+        except requests.exceptions.Timeout as e:
+            # Request timeout
+            logger.warning(f"Timeout while fetching transcript for video {video_id}: {e}")
+            return "[Request timed out: Please try again later]"
+        except requests.exceptions.RequestException as e:
+            # Other HTTP request errors
+            logger.error(f"HTTP error while fetching transcript for video {video_id}: {e}")
+            return "[HTTP error: Unable to fetch transcript]"
         except Exception as e:
-            logger.debug(f"Error listing transcripts for video {video_id}: {e}")
-            return self._get_friendly_transcript_message(video_id, e)
+            # Catch any other unexpected errors
+            logger.exception(f"Unexpected error while fetching transcript for video {video_id}: {e}")
+            return "[Transcript unavailable due to unexpected error]"
 
         # Try to get transcript with fallback logic
         try:
@@ -402,24 +428,18 @@ class YouTubeSearcher:
             transcript_text = "\n".join(transcript_text_parts)
             logger.info(f"Successfully fetched transcript for video ID: {video_id}")
             return transcript_text
-
         except TranscriptsDisabled as e:
-            msg = f"Transcripts are disabled for video ID: {video_id}"
-            logger.warning(msg)
-            raise YouTubeTranscriptError(video_id=video_id, message=msg) from e
-
-        except NoTranscriptFound as e:
-            msg = (
-                f"No transcript found for video ID {video_id} in language '{language}'."
-            )
-            logger.warning(msg)
-            raise YouTubeTranscriptError(video_id=video_id, message=msg) from e
-
+            # Transcripts are disabled by creator
+            logger.warning(f"Transcripts disabled for video ID {video_id}")
+            return "[Transcripts disabled by creator]"
+        except requests.exceptions.RequestException as e:
+            # Handle other HTTP request errors
+            logger.error(f"HTTP error while fetching transcript for video {video_id}: {e}")
+            return "[HTTP error: Unable to fetch transcript]"
         except Exception as e:
-            msg = f"Could not retrieve transcript for video ID {video_id}: {e}"
-            logger.exception(msg)
-            raise YouTubeTranscriptError(video_id=video_id, message=msg) from e
-
+            # Catch any other unexpected errors
+            logger.exception(f"Unexpected error while fetching transcript for video {video_id}: {e}")
+            return "[Transcript unavailable due to unexpected error]"
 
 @lru_cache(maxsize=1)
 def get_youtube_searcher() -> YouTubeSearcher:
