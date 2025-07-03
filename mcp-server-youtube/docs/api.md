@@ -37,11 +37,23 @@ This API provides functionality to search YouTube videos and retrieve their tran
             "published_at": "string",
             "thumbnail": "string",
             "description": "string",
-            "transcript": "string"
+            "transcript": "string | status message",
+            "transcript_language": "string | null",
+            "has_transcript": boolean
         }
     ]
 }
 ```
+
+**Transcript Status Messages:**
+- When YouTube's anti-bot protection blocks transcript access, the response will include a status message instead of the transcript text.
+- Status messages indicate why the transcript couldn't be retrieved and include the language code if available.
+- Example status messages:
+  - "Transcript available in en but currently blocked by YouTube's anti-bot protection"
+  - "Transcripts disabled by video creator"
+  - "Video unavailable"
+  - "No transcripts available"
+  - "Error accessing transcript: [error message]"
 
 ### 2. Server-Sent Events (SSE)
 
@@ -107,47 +119,3 @@ The API supports the following languages for transcripts:
 - Input validation using Pydantic schemas
 - Rate limiting implemented
 - Secure handling of YouTube API credentials
-
-## Development Guidelines
-
-### Setup
-
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-2. Set environment variables:
-```
-YOUTUBE_API_KEY=your_api_key_here
-```
-
-3. Run the server:
-```bash
-python -m mcp_server_youtube
-```
-
-### Testing
-
-The API includes comprehensive unit tests for:
-- Input validation
-- Error handling
-- API endpoints
-- Transcript retrieval
-
-Run tests using:
-```bash
-pytest tests/
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-This project is proprietary and confidential. Unauthorized disclosure or distribution is strictly prohibited.

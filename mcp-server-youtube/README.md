@@ -50,6 +50,29 @@ The `youtube_search_and_transcript` endpoint expects the following request struc
 }
 ```
 
+### Response Format
+
+The API returns a response with video information and transcript data. When YouTube's anti-bot protection blocks transcript access, the response will include a status message instead of the transcript text.
+
+Example response with status message:
+```python
+{
+    "videos": [
+        {
+            "video_id": "string",
+            "title": "string",
+            "channel": "string",
+            "published_at": "string",
+            "thumbnail": "string",
+            "description": "string",
+            "transcript": "Transcript available in en but currently blocked by YouTube's anti-bot protection",
+            "transcript_language": "en",
+            "has_transcript": false
+        }
+    ]
+}
+```
+
 ### Field Validation Rules
 
 1. **Query**

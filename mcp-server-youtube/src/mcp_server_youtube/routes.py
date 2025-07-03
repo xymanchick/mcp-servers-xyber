@@ -4,7 +4,6 @@ import unittest.mock
 
 from fastapi import APIRouter, Request, Response, Depends, HTTPException
 from fastapi.responses import JSONResponse
-from fastapi import HTTPException
 from typing import Dict, Any, Optional
 import logging
 from datetime import datetime
@@ -12,11 +11,8 @@ from pydantic import ValidationError
 from sse_starlette.sse import EventSourceResponse
 from mcp_server_youtube.youtube.youtube_errors import (YouTubeApiError, YouTubeTranscriptError, YouTubeClientError)
 from mcp_server_youtube.youtube.models import YouTubeVideo
-from mcp_server_youtube.schemas import (
-    YouTubeSearchRequest,
-    YouTubeSearchResponse,
-    YouTubeVideo
-)
+from mcp_server_youtube.youtube.schemas import YouTubeSearchRequest
+from mcp_server_youtube.youtube.models import YouTubeSearchResponse
 from mcp_server_youtube.utils.data_utils import DataUtils
 from mcp_server_youtube.server import mcp_server
 from fastmcp.exceptions import ToolError
