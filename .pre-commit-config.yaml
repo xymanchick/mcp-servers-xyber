@@ -37,13 +37,3 @@ repos:
             --py38-plus,
             --add-import, 'from __future__ import annotations',
         ]
-- repo: https://github.com/PyCQA/autoflake
-  rev: v2.2.1  # You can use the latest stable version
-  hooks:
-    - id: autoflake
-      args: [
-        --remove-all-unused-imports,
-        --ignore-init-module-imports,
-        --recursive,
-        --expand-star-imports,
-      ]

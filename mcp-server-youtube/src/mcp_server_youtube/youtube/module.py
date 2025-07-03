@@ -1,37 +1,25 @@
-import json
+from __future__ import annotations
+
 import logging
 import xml
 from datetime import datetime
 from functools import lru_cache
-from typing import Optional, Tuple, List
+from typing import List
+from typing import Optional
+from typing import Tuple
 
-from googleapiclient.discovery import Resource, build
+from googleapiclient.discovery import build
+from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
-from youtube_transcript_api import (
-    NoTranscriptFound,
-    TranscriptsDisabled,
-    CouldNotRetrieveTranscript,
-    YouTubeTranscriptApi,
-    VideoUnavailable
-)
-import requests
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
-from mcp_server_youtube.youtube.config import YouTubeConfig
-from mcp_server_youtube.youtube.youtube_errors import (YouTubeApiError,
-                                                       YouTubeClientError,
-                                                       YouTubeTranscriptError)
 from mcp_server_youtube.utils.data_utils import DataUtils
+from mcp_server_youtube.youtube.config import YouTubeConfig
 from mcp_server_youtube.youtube.models import YouTubeVideo
-import requests
-
-from youtube_transcript_api import (
-    NoTranscriptFound,
-    TranscriptsDisabled,
-    CouldNotRetrieveTranscript,
-    YouTubeTranscriptApi,
-    VideoUnavailable
-)
+from mcp_server_youtube.youtube.youtube_errors import YouTubeApiError
+from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError
+from youtube_transcript_api import NoTranscriptFound
+from youtube_transcript_api import TranscriptsDisabled
+from youtube_transcript_api import VideoUnavailable
+from youtube_transcript_api import YouTubeTranscriptApi
 
 # --- Setup Logger ---
 logger = logging.getLogger(__name__)
@@ -71,11 +59,11 @@ class YouTubeSearcher:
         """
         try:
             # Build the YouTube Data API service object
-            service = build("youtube", "v3", developerKey=self.config.api_key)
-            logger.debug("YouTube Data API service initialized successfully.")
+            service = build('youtube', 'v3', developerKey=self.config.api_key)
+            logger.debug('YouTube Data API service initialized successfully.')
             return service
         except Exception as e:
-            msg = f"Failed to initialize YouTube Data API service: {e}"
+            msg = f'Failed to initialize YouTube Data API service: {e}'
             logger.exception(msg)
             raise YouTubeClientError(msg) from e
 
@@ -137,44 +125,44 @@ class YouTubeSearcher:
         Returns:
             True if the item is a valid YouTube video, False otherwise.
         """
-        return search_item.get("id", {}).get("kind") == "youtube#video"
+        return search_item.get('id', {}).get('kind') == 'youtube#video'
 
     def _create_video_from_search_item(self, search_item: dict, transcript: Optional[str], transcript_language: Optional[str]) -> YouTubeVideo:
         """
         Create a YouTubeVideo object from a search item and transcript.
-        
+
         Args:
             search_item: A search result item from YouTube Data API.
             transcript: The video's transcript text or status message.
             transcript_language: The language of the transcript.
-        
+
         Returns:
             A YouTubeVideo object containing video details and transcript.
         """
-        snippet = search_item.get("snippet", {})
-        
+        snippet = search_item.get('snippet', {})
+
         # Determine if we have a real transcript or just a status message
         has_real_transcript = False
         if transcript is not None:
             # Check if it's a real transcript (not a status message)
             status_indicators = [
-                "Transcript available in",
-                "Transcripts disabled",
-                "Video unavailable", 
-                "Error accessing transcript",
-                "No transcripts found",
-                "currently blocked by YouTube"
+                'Transcript available in',
+                'Transcripts disabled',
+                'Video unavailable',
+                'Error accessing transcript',
+                'No transcripts found',
+                'currently blocked by YouTube'
             ]
-            
+
             has_real_transcript = not any(indicator in transcript for indicator in status_indicators)
-        
+
         return YouTubeVideo(
-            video_id=search_item.get("id", {}).get("videoId", "N/A"),
-            title=snippet.get("title", "N/A"),
-            description=snippet.get("description", ""),
-            channel=snippet.get("channelTitle", "N/A"),
-            published_at=snippet.get("publishedAt", "N/A"),
-            thumbnail=snippet.get("thumbnails", {}).get("default", {}).get("url", "N/A"),
+            video_id=search_item.get('id', {}).get('videoId', 'N/A'),
+            title=snippet.get('title', 'N/A'),
+            description=snippet.get('description', ''),
+            channel=snippet.get('channelTitle', 'N/A'),
+            published_at=snippet.get('publishedAt', 'N/A'),
+            thumbnail=snippet.get('thumbnails', {}).get('default', {}).get('url', 'N/A'),
             transcript=transcript,
             transcript_language=transcript_language,
             has_transcript=has_real_transcript
@@ -186,32 +174,32 @@ class YouTubeSearcher:
         Returns: (transcript_text_or_status, language_code)
         """
         try:
-            logger.debug(f"Attempting to fetch transcript for video {video_id}")
-            
+            logger.debug(f'Attempting to fetch transcript for video {video_id}')
+
             # Get transcript list with error handling
             try:
                 transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-                logger.debug(f"Successfully got transcript list for video {video_id}")
+                logger.debug(f'Successfully got transcript list for video {video_id}')
             except TranscriptsDisabled:
-                logger.warning(f"Transcripts disabled for video {video_id}")
-                return "Transcripts disabled by video creator", None
+                logger.warning(f'Transcripts disabled for video {video_id}')
+                return 'Transcripts disabled by video creator', None
             except VideoUnavailable:
-                logger.warning(f"Video {video_id} is unavailable")
-                return "Video unavailable", None
+                logger.warning(f'Video {video_id} is unavailable')
+                return 'Video unavailable', None
             except Exception as e:
-                logger.error(f"Error getting transcript list for video {video_id}: {str(e)}")
-                return f"Error accessing transcript: {str(e)}", None
+                logger.error(f'Error getting transcript list for video {video_id}: {str(e)}')
+                return f'Error accessing transcript: {str(e)}', None
 
             # Try to get transcript in preferred language
             try:
                 transcript = transcript_list.find_transcript([language])
-                logger.info(f"Found transcript in {language} for video {video_id}")
+                logger.info(f'Found transcript in {language} for video {video_id}')
                 language_code = language
             except NoTranscriptFound:
                 # If preferred language not found, try English
                 try:
                     transcript = transcript_list.find_transcript(['en'])
-                    logger.info(f"Preferred language not found, using English transcript for video {video_id}")
+                    logger.info(f'Preferred language not found, using English transcript for video {video_id}')
                     language_code = 'en'
                 except NoTranscriptFound:
                     # If English not found, try any available transcript
@@ -220,22 +208,22 @@ class YouTubeSearcher:
                         if available_transcripts:
                             transcript = available_transcripts[0]
                             language_code = transcript.language_code
-                            logger.info(f"Using available transcript in {language_code} for video {video_id}")
+                            logger.info(f'Using available transcript in {language_code} for video {video_id}')
                         else:
                             raise NoTranscriptFound()
                     except NoTranscriptFound:
-                        logger.warning(f"No working transcripts found for video {video_id}")
-                        return "No transcripts available", None
+                        logger.warning(f'No working transcripts found for video {video_id}')
+                        return 'No transcripts available', None
 
             # Fetch and process transcript with enhanced error handling
             try:
                 # Get transcript entries
                 transcript_entries = transcript.fetch()
-                
+
                 # Validate transcript entries
                 if not transcript_entries or len(transcript_entries) == 0:
-                    logger.warning(f"Empty transcript entries for video {video_id}")
-                    return f"Transcript available in {language_code} but empty", language_code
+                    logger.warning(f'Empty transcript entries for video {video_id}')
+                    return f'Transcript available in {language_code} but empty', language_code
 
                 # Process transcript entries
                 transcript_text_parts = []
@@ -246,40 +234,40 @@ class YouTubeSearcher:
                             text = entry.get('text')
                         else:
                             text = getattr(entry, 'text', None)
-                        
+
                         if not text:
                             continue
-                        
+
                         # Clean and validate text
                         clean_text = str(text).strip()
                         if clean_text:
                             transcript_text_parts.append(clean_text)
                     except Exception as entry_error:
-                        logger.debug(f"Error processing transcript entry: {str(entry_error)}")
+                        logger.debug(f'Error processing transcript entry: {str(entry_error)}')
                         continue
 
                 # Validate final transcript
-                transcript_text = "\n".join(transcript_text_parts)
+                transcript_text = '\n'.join(transcript_text_parts)
                 if not transcript_text.strip():
-                    logger.warning(f"Empty transcript text after processing for video {video_id}")
-                    return f"Transcript available in {language_code} but empty", language_code
+                    logger.warning(f'Empty transcript text after processing for video {video_id}')
+                    return f'Transcript available in {language_code} but empty', language_code
 
-                logger.info(f"Successfully fetched transcript in {language_code} for video {video_id}")
+                logger.info(f'Successfully fetched transcript in {language_code} for video {video_id}')
                 return transcript_text, language_code
 
             except (xml.etree.ElementTree.ParseError, xml.parsers.expat.ExpatError) as e:
-                logger.warning(f"XML parsing error for video {video_id}: {str(e)}")
+                logger.warning(f'XML parsing error for video {video_id}: {str(e)}')
                 return f"Transcript available in {language_code} but currently blocked by YouTube's anti-bot protection", language_code
             except Exception as e:
-                if "no element found" in str(e).lower():
-                    logger.warning(f"Empty XML response for video {video_id}")
+                if 'no element found' in str(e).lower():
+                    logger.warning(f'Empty XML response for video {video_id}')
                     return f"Transcript available in {language_code} but currently blocked by YouTube's anti-bot protection", language_code
-                logger.error(f"Error processing transcript for video {video_id}: {str(e)}", exc_info=True)
-                return f"Error accessing transcript in {language_code}: {str(e)}", language_code
+                logger.error(f'Error processing transcript for video {video_id}: {str(e)}', exc_info=True)
+                return f'Error accessing transcript in {language_code}: {str(e)}', language_code
 
         except Exception as e:
-            logger.error(f"Unexpected error in transcript fetching for video {video_id}: {str(e)}", exc_info=True)
-            return f"Unexpected error: {str(e)}", None
+            logger.error(f'Unexpected error in transcript fetching for video {video_id}: {str(e)}', exc_info=True)
+            return f'Unexpected error: {str(e)}', None
 
     def search_videos(
             self,
@@ -333,7 +321,7 @@ class YouTubeSearcher:
 
                 video_id = item.get('id', {}).get('videoId')
                 if not video_id:
-                    logger.warning(f"Search item found without videoId: {item}")
+                    logger.warning(f'Search item found without videoId: {item}')
                     continue
 
                 # Fetch transcript and language
@@ -345,17 +333,17 @@ class YouTubeSearcher:
 
             # Log results
             videos_with_transcripts = len([v for v in videos if v.has_transcript])
-            logger.info(f"Found {len(videos)} videos, {videos_with_transcripts} with transcripts")
+            logger.info(f'Found {len(videos)} videos, {videos_with_transcripts} with transcripts')
 
             return videos
 
         except HttpError as e:
-            error_msg = f"YouTube API error: {e}"
+            error_msg = f'YouTube API error: {e}'
             logger.error(error_msg, exc_info=True)
             raise YouTubeApiError(error_msg) from e
         except Exception as e:
             # Catch-all for other unexpected errors during search/transcript process
-            msg = f"An unexpected error occurred during YouTube search: {e}"
+            msg = f'An unexpected error occurred during YouTube search: {e}'
             logger.error(msg, exc_info=True)
             raise YouTubeClientError(msg) from e
 
