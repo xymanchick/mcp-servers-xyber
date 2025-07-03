@@ -222,5 +222,55 @@ async def retweet_tweet(
         else:
             raise ToolError(f"Error retweeting {tweet_id}: {error_msg}")
 
+@mcp_server.tool()
+async def get_trends(
+    ctx: Context,
+    countries: List[str],
+    max_trends: int = 50
+) -> str:
+    """
+    Retrieve trending topics for each provided WOEID.
 
+    Args:
+        countries: List of countries.
+        max_trends: Maximum number of trends to return per WOEID (1-50).
+
+    Returns:
+        JSON string mapping each WOEID to a list of trending topic names
+        or an error message.
+    """
+    client = ctx.request_context.lifespan_context["twitter_client"]
+
+    try:
+        trends = await client.get_trends(countries=countries, max_trends=max_trends)
+        return json.dumps(trends, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Error retrieving trends: {str(e)}", exc_info=True)
+        raise ToolError(f"Error retrieving trends: {str(e)}")
+
+
+@mcp_server.tool()
+async def search_hashtag(
+    ctx: Context,
+    hashtag: str,
+    max_results: int = 10
+) -> str:
+    """
+    Search recent tweets containing a hashtag and return the most popular ones.
+
+    Args:
+        hashtag: Hashtag to search for (with or without the leading '#').
+        max_results: Maximum number of tweets to return (10-100).
+
+    Returns:
+        JSON string list with the texts of the most popular tweets.
+    """
+    client = ctx.request_context.lifespan_context["twitter_client"]
+
+    try:
+        tweets = await client.search_hashtag(hashtag=hashtag, max_results=max_results)
+        return json.dumps(tweets, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Error searching hashtag: {str(e)}", exc_info=True)
+        raise ToolError(f"Error searching hashtag: {str(e)}")
 
