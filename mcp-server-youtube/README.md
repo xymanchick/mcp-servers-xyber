@@ -114,6 +114,34 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+
+## Testing
+
+This project uses [`pytest`](https://docs.pytest.org/) for unit testing and [`pytest-cov`](https://pytest-cov.readthedocs.io/) for code coverage.
+
+### Run Tests
+
+```bash
+uv pip install -r requirements-dev.txt
+pytest tests/ --cov=src/ --cov-report=term-missing --cov-fail-under=70
+```
+
+### Optional Coverage Reports
+
+* **HTML (view in browser):**
+
+  ```bash
+  pytest tests/ --cov=src/ --cov-report=html
+  open htmlcov/index.html  # or use your browser manually
+  ```
+
+* **XML (for CI services like Codecov/Coveralls):**
+
+  ```bash
+  pytest tests/ --cov=src/ --cov-report=xml
+  ```
+
+
 ## Project Structure
 
 ```
@@ -128,6 +156,12 @@ mcp-server-youtube/
 │       ├── __main__.py
 │       ├── logging_config.py
 │       ├── server.py
+├── tests/
+│   ├── conftest.py
+│   ├── __init__.py
+│   ├── __pycache__
+│   ├── test_module.py
+│   └── test_server.py
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile
