@@ -214,7 +214,9 @@ class AsyncTwitterClient:
         except Exception as e:
             logger.error(f"Failed to follow user {user_id}: {e}", exc_info=True)
             raise
-        async def get_trends(self, countries: List[str], max_trends: int = 50) -> Dict[str, List[str]]:
+            
+    @retry_async_wrapper
+    async def get_trends(self, countries: List[str], max_trends: int = 50) -> Dict[str, List[str]]:
         """
         Retrieve trending topics for each provided WOEID.
 
@@ -325,6 +327,7 @@ class AsyncTwitterClient:
 
         return trends_result
 
+    @retry_async_wrapper
     async def search_hashtag(self, hashtag: str, max_results: int = 10) -> List[str]:
         """
         Search recent tweets containing a specific hashtag and return their texts,
