@@ -42,6 +42,7 @@ class YouTubeSearcher:
 
         Raises:
             YouTubeClientError: If the API service initialization fails.
+
         """
         self.config = config
         self.youtube_service: Resource = self._initialize_yt_service()
@@ -55,6 +56,7 @@ class YouTubeSearcher:
 
         Raises:
             YouTubeClientError: If the API service initialization fails.
+
         """
         try:
             service = build('youtube', 'v3', developerKey=self.config.api_key)

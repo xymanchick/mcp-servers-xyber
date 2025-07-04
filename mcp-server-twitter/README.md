@@ -46,7 +46,7 @@ Retweet an existing tweet on behalf of the authenticated user.
 **Returns:**
 - `str`: A success message confirming the retweet.
 
-### `get_trends` 
+### `get_trends`
 Retrieve trending topics for one or more countries.
 
 **Args**
@@ -58,11 +58,11 @@ Retrieve trending topics for one or more countries.
 
 **Returns**
 
-`dict` – Maps each countries to a list of trending topic names.  
+`dict` – Maps each countries to a list of trending topic names.
 If an error occurs for a country, the list contains a single error string.
 
 
-### `search_hashtag` 
+### `search_hashtag`
 Search recent tweets that contain a specific hashtag and return their texts, ordered by relevancy
 
 **Args**

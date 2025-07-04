@@ -113,7 +113,7 @@ mcp-server-wikipedia/
    uv venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    uv sync
-   
+
    # Or using pip + venv
    # python -m venv .venv
    # source .venv/bin/activate
@@ -207,7 +207,7 @@ from langchain_openai import ChatOpenAI
 async def main():
     # Initialize LLM
     model = ChatOpenAI(model="gpt-4")
-    
+
     # Connect to MCP server
     async with MultiServerMCPClient({
         "wikipedia": {
@@ -217,10 +217,10 @@ async def main():
     }) as client:
         # Get available tools
         tools = client.get_tools()
-        
+
         # Create ReAct agent
         agent = create_react_agent(model, tools)
-        
+
         # Example query
         response = await agent.ainvoke({
             "messages": [{
@@ -228,7 +228,7 @@ async def main():
                 "content": "Search for information about artificial intelligence and get a summary"
             }]
         })
-        
+
         print(response["messages"][-1].content)
 
 if __name__ == "__main__":

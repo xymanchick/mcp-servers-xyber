@@ -7,7 +7,7 @@
 
 This server demonstrates how to create a microservice that exposes Stable Diffusion image generation through the Model Context Protocol (MCP).
 
-## MCP Tools: 
+## MCP Tools:
 
 1. `generate_image`
     - **Description:** Generates an image from a text prompt using Stable Diffusion
@@ -111,9 +111,9 @@ if __name__ == "__main__":
 mcp-server-stable-diffusion/
 ├── src/
 │   └── mcp_server_calculator/
-│       └── stable_diffusion/ # Contains all the business logic 
-│           ├── __init__.py # Exposes all needed functionality to server.py  
-│           ├── config.py # Contains module env settings, custom Error classes 
+│       └── stable_diffusion/ # Contains all the business logic
+│           ├── __init__.py # Exposes all needed functionality to server.py
+│           ├── config.py # Contains module env settings, custom Error classes
 │           ├── client.py # Business module core logic
 │       ├── __init__.py
 │       ├── __main__.py # Contains uvicorn server setup logic

@@ -26,6 +26,7 @@ async def shared_lifespan(app: FastAPI):
         yield
 
 
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(

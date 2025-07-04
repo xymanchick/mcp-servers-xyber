@@ -1,25 +1,28 @@
 import logging
 import uuid
+from collections.abc import Sequence
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 
 from pydantic import BaseModel
 from qdrant_client import AsyncQdrantClient, models
 from qdrant_client.models import CollectionInfo
 
-from mcp_server_qdrant.qdrant.config import (EmbeddingProviderSettings,
-                                             PayloadIndexConfig,
-                                             PayloadIndexType, QdrantAPIError,
-                                             QdrantConfig)
+from mcp_server_qdrant.qdrant.config import (
+    EmbeddingProviderSettings,
+    PayloadIndexConfig,
+    PayloadIndexType,
+    QdrantAPIError,
+    QdrantConfig,
+)
 from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
-from mcp_server_qdrant.qdrant.embeddings.factory import \
-    create_embedding_provider
+from mcp_server_qdrant.qdrant.embeddings.factory import create_embedding_provider
 
 logger = logging.getLogger(__name__)
 
 # --- Type Definitions --- #
 
-Metadata = Dict[str, Any]
+Metadata = dict[str, Any]
 
 
 class Entry(BaseModel):
@@ -28,7 +31,7 @@ class Entry(BaseModel):
     """
 
     content: str
-    metadata: Optional[Metadata] = None
+    metadata: Metadata | None = None
 
     def __str__(self) -> str:
         """
@@ -56,6 +59,7 @@ class QdrantConnector:
         Args:
             config: The Qdrant configuration
             embedding_provider: The embedding provider to use
+
         """
         self._config = config
         self._embedding_provider = embedding_provider
@@ -66,12 +70,13 @@ class QdrantConnector:
             f"Initialized Qdrant connector: location={config.location or 'local'}"
         )
 
-    async def get_collection_names(self) -> List[str]:
+    async def get_collection_names(self) -> list[str]:
         """
         Get the names of all collections in the Qdrant server.
 
         Returns:
             A list of collection names
+
         """
         response = await self._client.get_collections()
         return [collection.name for collection in response.collections]
@@ -88,6 +93,7 @@ class QdrantConnector:
 
         Raises:
             QdrantAPIError: If the collection does not exist or an API error occurs.
+
         """
         try:
             collection_info = await self._client.get_collection(
@@ -123,6 +129,7 @@ class QdrantConnector:
 
         Raises:
             QdrantAPIError: If there's an issue storing the entry
+
         """
         try:
             # Create the collection if it doesn't exist (with configured settings)
@@ -157,7 +164,7 @@ class QdrantConnector:
         query: str,
         collection_name: str,
         limit: int = 10,
-        filters: Dict[str, Any] | None = None,
+        filters: dict[str, Any] | None = None,
         with_payload: bool | list[str] | models.PayloadSelector | None = True,
         with_vectors: bool | Sequence[str] | None = False,
     ) -> models.QueryResponse:
@@ -181,6 +188,7 @@ class QdrantConnector:
 
         Raises:
             QdrantAPIError: If there's an issue searching the entries.
+
         """
         try:
             collection_exists = await self._client.collection_exists(collection_name)
@@ -246,6 +254,7 @@ class QdrantConnector:
 
         Args:
             collection_name: The collection name to check/create
+
         """
         collection_exists = await self._client.collection_exists(collection_name)
         if not collection_exists:
@@ -262,8 +271,8 @@ class QdrantConnector:
 
         Raises:
             QdrantAPIError: If collection or payload index creation fails
-        """
 
+        """
         try:
             vector_size = self._embedding_provider.get_vector_size()
             vector_name = self._embedding_provider.get_vector_name()
@@ -313,6 +322,7 @@ class QdrantConnector:
 
         Raises:
             QdrantAPIError: If any payload index creation fails
+
         """
         for index_config in self._config.collection_config.payload_indexes:
             await self._create_payload_index(collection_name, index_config)
@@ -326,6 +336,7 @@ class QdrantConnector:
         Args:
             collection_name: The collection name
             index_config: The payload index configuration
+
         """
         try:
             # Map our config enum to Qdrant's PayloadSchemaType
@@ -384,6 +395,7 @@ def get_qdrant_connector() -> QdrantConnector:
 
     Returns:
         QdrantConnector instance
+
     """
     config = QdrantConfig()
     embedding_provider_settings = EmbeddingProviderSettings()

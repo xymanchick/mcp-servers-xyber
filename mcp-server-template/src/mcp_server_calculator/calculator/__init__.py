@@ -4,10 +4,11 @@
 # it is also likely to expose base error classes and configuration models
 
 
-from mcp_server_calculator.calculator.config import (CalculatorConfig,
-                                                     CalculatorError)
-from mcp_server_calculator.calculator.module import (CalculatorClient,
-                                                     get_calculator_client)
+from mcp_server_calculator.calculator.config import CalculatorConfig, CalculatorError
+from mcp_server_calculator.calculator.module import (
+    CalculatorClient,
+    get_calculator_client,
+)
 
 __all__ = [
     "CalculatorClient",

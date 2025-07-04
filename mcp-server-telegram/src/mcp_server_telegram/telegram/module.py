@@ -1,21 +1,20 @@
 # mcp_server_telegram/telegram/module.py
-import logging
-import requests
 import asyncio
-from typing import Any
+import logging
 from functools import lru_cache
+
+import requests
 
 from mcp_server_telegram.telegram.config import (
     TelegramConfig,
-    TelegramServiceError,
-    TelegramApiError,
-    TelegramConfigError
+    TelegramConfigError,
 )
 
 logger = logging.getLogger(__name__)
 
 # Telegram's max message length is 4096 chars
 MAX_MESSAGE_LENGTH = 4000  # Keep a buffer
+
 
 class _TelegramService:
     """Encapsulates Telegram client logic and configuration."""
@@ -26,7 +25,6 @@ class _TelegramService:
         if self.config.token:
             logger.info(f"Using Telegram channel: {self.config.channel}")
             logger.info(f"Telegram token ending with: ...{self.config.token[-4:]}")
-
 
     async def send_message(self, text: str) -> bool:
         """
@@ -40,15 +38,16 @@ class _TelegramService:
 
         Raises:
             TelegramConfigError: If configuration (token/channel) is invalid (checked at init).
-        """
-        logger.info(f"Attempting to send message to Telegram channel {self.config.channel}")
 
+        """
+        logger.info(
+            f"Attempting to send message to Telegram channel {self.config.channel}"
+        )
 
         if not self.config.token or not self.config.channel:
             msg = "Telegram token or channel is missing in configuration."
             logger.error(msg)
             raise TelegramConfigError(msg)
-
 
         # Ensure text is not too long
         if len(text) > MAX_MESSAGE_LENGTH:
@@ -61,7 +60,7 @@ class _TelegramService:
         payload = {
             "chat_id": self.config.channel,
             "text": text,
-            "parse_mode": "HTML"  # Default to HTML, consider making configurable via TelegramConfig
+            "parse_mode": "HTML",  # Default to HTML, consider making configurable via TelegramConfig
         }
         headers = {"Content-Type": "application/json"}
 
@@ -72,15 +71,19 @@ class _TelegramService:
 
             if response.status_code == 400:
                 error_json = response.json()
-                error_desc = error_json.get('description', '').lower()
-                if 'parse error' in error_desc or "can't parse entities" in error_desc:
-                    logger.warning("Got 400 error likely due to HTML parse mode, retrying without it.")
-                    payload["parse_mode"] = "" # Remove parse mode
+                error_desc = error_json.get("description", "").lower()
+                if "parse error" in error_desc or "can't parse entities" in error_desc:
+                    logger.warning(
+                        "Got 400 error likely due to HTML parse mode, retrying without it."
+                    )
+                    payload["parse_mode"] = ""  # Remove parse mode
                     response = await asyncio.to_thread(
                         requests.post, url, json=payload, headers=headers, timeout=10
                     )
                 else:
-                    logger.error(f"Failed to send message (400 Bad Request): {error_desc}, Details: {error_json}")
+                    logger.error(
+                        f"Failed to send message (400 Bad Request): {error_desc}, Details: {error_json}"
+                    )
                     return False
 
             response.raise_for_status()
@@ -99,7 +102,9 @@ class _TelegramService:
             err_msg = f"HTTP error sending message to Telegram: {http_err}"
             logger.error(err_msg, exc_info=True)
             return False
-        except requests.exceptions.RequestException as req_err: # Catches ConnectionError, Timeout, etc.
+        except (
+            requests.exceptions.RequestException
+        ) as req_err:  # Catches ConnectionError, Timeout, etc.
             err_msg = f"Request exception sending message to Telegram: {req_err}"
             logger.error(err_msg, exc_info=True)
             return False
@@ -107,6 +112,7 @@ class _TelegramService:
             err_msg = f"An unexpected error occurred sending message to Telegram: {e}"
             logger.error(err_msg, exc_info=True)
             return False
+
 
 @lru_cache(maxsize=128)
 def get_telegram_service(token: str, channel: str) -> _TelegramService:
@@ -117,8 +123,15 @@ def get_telegram_service(token: str, channel: str) -> _TelegramService:
     try:
         config = TelegramConfig(token=token, channel=channel)
         service = _TelegramService(config=config)
-        logger.info(f"Telegram service instance retrieved/created for channel {channel}.")
+        logger.info(
+            f"Telegram service instance retrieved/created for channel {channel}."
+        )
         return service
     except Exception as e:
-        logger.error(f"Failed to initialize TelegramConfig or _TelegramService: {e}", exc_info=True)
-        raise TelegramConfigError(f"Configuration error for Telegram service: {e}") from e
+        logger.error(
+            f"Failed to initialize TelegramConfig or _TelegramService: {e}",
+            exc_info=True,
+        )
+        raise TelegramConfigError(
+            f"Configuration error for Telegram service: {e}"
+        ) from e
