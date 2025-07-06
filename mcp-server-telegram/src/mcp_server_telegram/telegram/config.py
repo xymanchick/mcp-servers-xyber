@@ -1,22 +1,34 @@
 # mcp_server_telegram/telegram/config.py
 
-from typing import Optional, Any
+from typing import Any, Optional
+
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 # --- Configuration and Error Classes --- #
 
+
 class TelegramServiceError(Exception):
     """Base exception for Telegram client errors."""
+
     pass
+
 
 class TelegramConfigError(TelegramServiceError):
     """Configuration-related errors for Telegram client."""
+
     pass
+
 
 class TelegramApiError(TelegramServiceError):
     """Exception raised for errors during Telegram Bot API calls."""
-    def __init__(self, message: str, status_code: Optional[int] = None, details: Optional[Any] = None):
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        details: Optional[Any] = None,
+    ):
         super().__init__(message)
         self.status_code = status_code
         self.details = details
@@ -33,11 +45,14 @@ class TelegramConfig(BaseSettings):
     Configuration for connecting to the Telegram Bot API.
     This model holds the configuration but does not enforce loading from a .env file.
     """
+
     # <--- CHANGE: The model_config is removed to make it more flexible.
     # We no longer force reading from a specific env_file or using a prefix.
     # This allows us to create an instance by passing arguments directly.
 
     token: str = Field(..., description="The Telegram Bot API token.")
-    channel: str = Field(..., description="The Telegram channel ID (e.g., @channelname or chat_id).")
+    channel: str = Field(
+        ..., description="The Telegram channel ID (e.g., @channelname or chat_id)."
+    )
     # Optional: Add other relevant Telegram settings here if needed
     # e.g., parse_mode: str = Field(default="HTML", pattern="^(HTML|MarkdownV2|Markdown)$")

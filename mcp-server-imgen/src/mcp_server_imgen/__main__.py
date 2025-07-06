@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+
 import uvicorn
 from fastapi import FastAPI
 
@@ -10,25 +11,26 @@ from mcp_server_imgen.server import mcp_server
 configure_logging()
 logger = logging.getLogger(__name__)
 
+
 # --- Application Factory --- #
 def create_app() -> FastAPI:
     """Create a FastAPI application that can serve the provided mcp server."""
-    
     # Create the MCP ASGI app
     mcp_app = mcp_server.http_app(path="/mcp", transport="streamable-http")
-    
+
     # Create FastAPI app
     app = FastAPI(
         title="Image Generation MCP Server",
         description="MCP server for generating images using Google Vertex AI",
         version="1.0.0",
-        lifespan=mcp_app.router.lifespan_context
+        lifespan=mcp_app.router.lifespan_context,
     )
-    
+
     # Mount MCP server
     app.mount("/mcp-server", mcp_app)
-    
+
     return app
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Image Generation MCP server")
@@ -53,12 +55,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     logger.info(f"Starting Image Generation MCP server on {args.host}:{args.port}")
-    
+
     uvicorn.run(
         "mcp_server_imgen.__main__:create_app",
         host=args.host,
         port=args.port,
         reload=args.reload,
         log_level=logging_level.lower(),
-        factory=True
-    ) 
+        factory=True,
+    )

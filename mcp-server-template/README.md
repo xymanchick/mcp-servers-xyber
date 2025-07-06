@@ -7,7 +7,7 @@
 
 This template demonstrates how to create a microservice that exposes functionality through the Model Context Protocol (MCP). It includes a basic calculator service as an example implementation.
 
-## MCP Tools: 
+## MCP Tools:
 
 
 1. `calculate`
@@ -86,10 +86,10 @@ from langchain_openai import ChatOpenAI
 async def main():
     # Load environment variables from .env, should contain OPENAI_API_KEY
     load_dotenv()
-    
+
     # Initialize LLM
     model = ChatOpenAI(model="gpt-4")
-    
+
     # Connect to MCP server
     client = MultiServerMCPClient(
         {
@@ -98,8 +98,8 @@ async def main():
             "transport": "streamable_http",}
         }
     )
-            
-    # !! IMPORTANT : Get tools and modify them to have return_direct=True!!! 
+
+    # !! IMPORTANT : Get tools and modify them to have return_direct=True!!!
     # Otherwise langgraph agent could fall in an eternal loop,
     # ignoring tool results
     tools: list[StructuredTool] = await client.get_tools()
@@ -108,7 +108,7 @@ async def main():
 
     # Use case 1: Create agent with tools
     agent = create_react_agent(model, tools)
-    
+
     # Example query using the calculator
     response = await agent.ainvoke({
         "messages": [{
@@ -116,18 +116,18 @@ async def main():
             "content": "What is 15% of 850, rounded to 2 decimal places?"
         }]
     })
-    
+
     print(response["messages"][-1].content)
 
-    # Use case 2: Run tool directly: 
-    
-    
+    # Use case 2: Run tool directly:
+
+
     # !IMPORTANT
-    # Always set tool_call_id to some value: otherwise 
+    # Always set tool_call_id to some value: otherwise
     # tool cool would not return any artifacts beyond text
     # https://github.com/langchain-ai/langchain/issues/29874
-    result: ToolMessage = await tool.arun(parameters, 
-                                            response_format='content_and_artifact',  
+    result: ToolMessage = await tool.arun(parameters,
+                                            response_format='content_and_artifact',
                                             tool_call_id=uuid.uuid4())
     print("Tool result:", result)
 
@@ -141,9 +141,9 @@ if __name__ == "__main__":
 mcp-server-template/
 ├── src/
 │   └── mcp_server_calculator/
-        └── calculator/ # Contains all the business logic 
-            ├── __init__.py # Exposes all needed functionality to server.py  
-            ├── config.py # Contains module env settings, custom Error classes 
+        └── calculator/ # Contains all the business logic
+            ├── __init__.py # Exposes all needed functionality to server.py
+            ├── config.py # Contains module env settings, custom Error classes
             ├── module.py # Business module core logic
 │       ├── __init__.py
 │       ├── __main__.py # Contains uvicorn server setup logic

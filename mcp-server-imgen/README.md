@@ -1,7 +1,7 @@
 # MCP Image Generation Service
 
-> **Note:** This service is part of the unified `mcp-servers` repository. 
-> It is recommended to build and run this service using the top-level Dockerfile 
+> **Note:** This service is part of the unified `mcp-servers` repository.
+> It is recommended to build and run this service using the top-level Dockerfile
 > located in the root of the `mcp-servers` repository.
 > See the [main README](../../README.md) for instructions.
 
@@ -53,6 +53,6 @@ While Docker is the recommended method, you can run locally for development:
     ```bash
     # Note: This runs the service directly, bypassing the top-level CMD logic.
     # Ensure argparse default in __main__ is 8001 if running this way
-    python -m mcp_server_imgen --port 8001 
+    python -m mcp_server_imgen --port 8001
     ```
     *(The `--reload` flag is useful for development)*

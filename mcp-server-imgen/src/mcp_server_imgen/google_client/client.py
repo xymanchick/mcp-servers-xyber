@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from functools import lru_cache
-from typing import Any, Dict, List
+from typing import Any
 
 from google.auth.transport.requests import Request
 from google.cloud import aiplatform_v1
@@ -18,6 +18,8 @@ from mcp_server_imgen.google_client.config import (
 # --- Google Vertex AI Service Logic --- #
 
 logger = logging.getLogger(__name__)
+
+
 class _GoogleService:
     """Handles communication with the Google Vertex AI Prediction Service."""
 
@@ -54,9 +56,7 @@ class _GoogleService:
                 f"Credentials file not found at {self.config.credentials_path}"
             ) from e
         except Exception as e:
-            logger.error(
-                f"Failed to initialize Google credentials: {e}", exc_info=True
-            )
+            logger.error(f"Failed to initialize Google credentials: {e}", exc_info=True)
             raise GoogleConfigError(
                 f"Failed to initialize Google credentials: {e}"
             ) from e
@@ -68,9 +68,7 @@ class _GoogleService:
                 credentials=self._credentials,
                 client_options={"api_endpoint": self.config.api_endpoint},
             )
-            logger.info(
-                "Google PredictionServiceAsyncClient initialized successfully."
-            )
+            logger.info("Google PredictionServiceAsyncClient initialized successfully.")
             return client
         except Exception as e:
             logger.error(
@@ -84,7 +82,7 @@ class _GoogleService:
     def _initialize_endpoint(self) -> str:
         logger.info("Initializing Google endpoint path.")
         try:
-            endpoint : str = self._client.endpoint_path(
+            endpoint: str = self._client.endpoint_path(
                 project=self.config.project_id,
                 location=self.config.location,
                 endpoint=self.config.endpoint_id,
@@ -112,8 +110,8 @@ class _GoogleService:
         return True
 
     async def predict(
-        self, instances: List[Dict[str, Any]], parameters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, instances: list[dict[str, Any]], parameters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Sends prediction request, returns parsed JSON dict response."""
         if not await self._refresh_credentials():
             raise GoogleAPIError("Failed to refresh Google credentials")
@@ -127,9 +125,7 @@ class _GoogleService:
             ]
             params_proto = json_format.ParseDict(parameters, struct_pb2.Value())
 
-            logger.debug(
-                f"Sending prediction request to endpoint: {self._endpoint}"
-            )
+            logger.debug(f"Sending prediction request to endpoint: {self._endpoint}")
 
             response = await self._client.predict(
                 endpoint=self._endpoint,
@@ -142,7 +138,9 @@ class _GoogleService:
                 raise EmptyPredictionError("API endpoint returned empty prediction")
 
             result_dict = {}
-            for instance, prediction in zip(instances, response.predictions):
+            for instance, prediction in zip(
+                instances, response.predictions, strict=False
+            ):
                 result_dict[instance["prompt"]] = prediction
 
             logger.debug("Prediction request successful.")

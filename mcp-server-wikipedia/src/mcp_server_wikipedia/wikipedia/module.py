@@ -1,9 +1,10 @@
 import logging
 from functools import lru_cache
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 import wikipedia
 import wikipediaapi
+
 from mcp_server_wikipedia.wikipedia.config import WikipediaConfig
 from mcp_server_wikipedia.wikipedia.models import (
     ArticleNotFoundError,
@@ -13,6 +14,7 @@ from mcp_server_wikipedia.wikipedia.models import (
 
 logger = logging.getLogger(__name__)
 
+
 class _WikipediaService:
     """Encapsulates Wikipedia client logic and configuration."""
 
@@ -21,7 +23,7 @@ class _WikipediaService:
             self.wiki = wikipediaapi.Wikipedia(
                 user_agent=config.user_agent,
                 language=config.language,
-                extract_format=wikipediaapi.ExtractFormat.WIKI
+                extract_format=wikipediaapi.ExtractFormat.WIKI,
             )
             # Set up the wikipedia library for search functionality
             wikipedia.set_lang(config.language)
@@ -31,7 +33,9 @@ class _WikipediaService:
                 f"WikipediaService initialized for language '{config.language}'."
             )
         except Exception as e:
-            raise WikipediaConfigError(f"Failed to initialize Wikipedia API: {e}") from e
+            raise WikipediaConfigError(
+                f"Failed to initialize Wikipedia API: {e}"
+            ) from e
 
     def _get_page(self, title: str) -> wikipediaapi.WikipediaPage:
         """Fetches a page and raises an error if it doesn't exist."""
@@ -50,7 +54,9 @@ class _WikipediaService:
             results = wikipedia.search(query, results=limit)
             return results
         except Exception as e:
-            logger.error(f"Wikipedia search failed for query '{query}': {e}", exc_info=True)
+            logger.error(
+                f"Wikipedia search failed for query '{query}': {e}", exc_info=True
+            )
             raise WikipediaAPIError(f"Wikipedia search failed: {e}") from e
 
     async def get_article(self, title: str) -> Dict[str, Any]:
@@ -89,6 +95,7 @@ class _WikipediaService:
         logger.info(f"Fetching related topics for: '{title}'")
         page = self._get_page(title)
         return list(page.links.keys())[:limit]
+
 
 @lru_cache(maxsize=1)
 def get_wikipedia_service() -> _WikipediaService:

@@ -1,6 +1,5 @@
-from enum import Enum
-from typing import Literal, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class TwitterConfig(BaseSettings):
     model_config = SettingsConfigDict(

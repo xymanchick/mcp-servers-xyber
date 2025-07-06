@@ -1,18 +1,18 @@
 # MCP Server - Tavily Web Search
 
-> **General:** This repository provides an MCP (Model Context Protocol) server implementation 
+> **General:** This repository provides an MCP (Model Context Protocol) server implementation
 > for interacting with the Tavily AI web search API.
 
 ## Overview
 
 This project implements a microservice that exposes Tavily web search functionality through the Model Context Protocol (MCP). It uses the `langchain-tavily` library to interact with the Tavily Search API.
 
-## MCP Tools: 
+## MCP Tools:
 
 
 1. `tavily_web_search`
     - **Description:** Performs a web search using the Tavily API based on the provided query.
-    - **Input:** 
+    - **Input:**
         - query (str): The search query.
         - max_results (int, optional): Maximum number of results to return.
     - **Output:** A string containing formatted search results, including titles, URLs, and snippets of content. May also include raw JSON data depending on internal formatting.
@@ -33,7 +33,7 @@ This project implements a microservice that exposes Tavily web search functional
 2.  **Create `.env` File based on `.env.example`**:
     ```dotenv
    # Example environment variables
-   TAVILY_API_KEY=YourKey 
+   TAVILY_API_KEY=YourKey
    TAVILY_MAX_RESULTS=1000
    MCP_TAVILY_HOST="0.0.0.0"
    MCP_TAVILY_PORT=8000
@@ -42,7 +42,7 @@ This project implements a microservice that exposes Tavily web search functional
 
 3.  **Install Dependencies:**
     ```bash
-    uv sync . 
+    uv sync .
     ```
 
 ## Running the Server
@@ -89,7 +89,7 @@ async def main():
         logger.info("Starting the Tavily MCP client example")
 
         # --- LLM Setup  ---
-        llm_api_key = os.getenv('TOGETHER_API_KEY') 
+        llm_api_key = os.getenv('TOGETHER_API_KEY')
         if not llm_api_key:
              logger.warning("LLM API Key not found. Agent invocation will likely fail.")
              model = None
@@ -102,7 +102,7 @@ async def main():
 
         async with MultiServerMCPClient(
             {
-                "tavily_web_search": { 
+                "tavily_web_search": {
                     "url": tavily_server_url,
                     "transport": "sse"
                 }
@@ -123,22 +123,22 @@ async def main():
             # --- DIRECT RAW TESTING ---
             logger.info("--- DIRECT RAW TESTING ---")
             tavily_tool = next((t for t in tools if t.name == "tavily_web_search"), None)
-            
+
             if tavily_tool:
                 search_query = "What are the latest trends in artificial intelligence?"
-                
+
                 logger.info(f"Searching for: '{search_query}'")
                 try:
                     logger.info("1. Testing .ainvoke() method:")
                     raw_result_1 = await tavily_tool.ainvoke({"query": search_query, "max_results": 5})
-                    
+
                     # Print raw results
                     logger.info("RAW RESULT TYPE FROM .ainvoke(): " + str(type(raw_result_1)))
                     logger.info("RAW RESULT FROM .ainvoke():")
                     logger.info(raw_result_1)
                     print("Direct Console Output .ainvoke():")
                     print(raw_result_1)
-                    
+
                     # Extract raw JSON data if present
                     if isinstance(raw_result_1, str) and "ORIGINAL_RAW_DATA:" in raw_result_1:
                         try:
@@ -147,7 +147,7 @@ async def main():
                             logger.info("SUCCESSFULLY EXTRACTED RAW JSON DATA:")
                             logger.info(f"Query: {parsed_data.get('query', 'N/A')}")
                             logger.info(f"Result count: {len(parsed_data.get('results', []))}")
-                            
+
                             print("=== EXTRACTED SEARCH RESULTS ===")
                             for i, result in enumerate(parsed_data.get('results', []), 1):
                                 print(f"{i}. Title: {result.get('title', 'N/A')}")
@@ -155,7 +155,7 @@ async def main():
                                 print(f"   Content: {result.get('content', 'No content preview.')[:200]}...")
                         except Exception as e:
                             logger.error(f"Error parsing embedded JSON: {e}", exc_info=True)
-                    
+
                         # --- Example 2: Using a ReAct Agent (Optional) ---
                         if model:
                             logger.info("--- Example: Using ReAct Agent ---")
@@ -179,7 +179,7 @@ async def main():
                                 logger.error(f"Error invoking ReAct agent: {agent_err}", exc_info=True)
                         else:
                             logger.info("--- Skipping ReAct Agent Example (LLM not configured) ---")
-                    
+
                 except Exception as e:
                     logger.error(f"Search failed: {e}", exc_info=True)
             else:
@@ -202,9 +202,9 @@ if __name__ == "__main__":
 mcp-server-tavily/
 ├── src/
 │   └── mcp_server_tavily/
-│       └── tavily/           # Contains all the business logic 
+│       └── tavily/           # Contains all the business logic
 │           ├── __init__.py   # Exports Tavily client components
-│           ├── config.py     # Contains module env settings, custom Error classes 
+│           ├── config.py     # Contains module env settings, custom Error classes
 │           └── module.py     # Business module core logic (_TavilyService)
 │       ├── __init__.py       # Exports core Tavily components from sub-module
 │       ├── __main__.py       # Contains uvicorn server setup logic

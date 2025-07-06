@@ -1,20 +1,20 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from enum import StrEnum
-from typing import AsyncIterator, Any
-import logging
+from typing import Any
 
 from mcp.server import Server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 from pydantic import BaseModel, Field, ValidationError
 
 from mcp_server_postgres.postgres_client import (
+    Agent,
     PostgresServiceError,
     _PostgresService,
     get_postgres_service,
-    PostgresConfig,
-    Agent,
 )
 
 # Get module-level logger
@@ -22,12 +22,16 @@ logger = logging.getLogger(__name__)
 
 # --- Tool Input/Output Schemas --- #
 
+
 class GetCharacterByNameRequest(BaseModel):
     """Input schema for the get_character_by_name tool."""
+
     name: str = Field(..., description="The unique name of the character to retrieve.")
+
 
 class PostgresMCPServerTools(StrEnum):
     GET_CHARACTER_BY_NAME = "get_character_by_name"
+
 
 # --- Lifespan Management for MCP Server --- #
 @asynccontextmanager
@@ -39,7 +43,7 @@ async def server_lifespan(server_instance: Server) -> AsyncIterator[dict[str, An
     try:
         db_service = get_postgres_service()
         logger.info("MCP Lifespan: PostgreSQL service initialized successfully.")
-    
+
         yield {"db_service": db_service}
     except Exception as e:
         logger.error(f"FATAL: MCP Lifespan initialization failed: {e}", exc_info=True)
@@ -65,12 +69,15 @@ async def list_tools() -> list[Tool]:
         )
     ]
 
+
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     """Handles incoming tool calls."""
     logger.info(f"Received call_tool request for '{name}' with args: {arguments}")
 
-    db_service: _PostgresService = server.request_context.lifespan_context.get("db_service")
+    db_service: _PostgresService = server.request_context.lifespan_context.get(
+        "db_service"
+    )
 
     match name:
         case PostgresMCPServerTools.GET_CHARACTER_BY_NAME.value:
@@ -86,11 +93,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 # 3. Format Response
                 logger.info(f"Successfully retrieved character: {agent.name}")
                 result_content: list[TextContent] = []
-                
-                result_content.append(TextContent(
-                    type="text",
-                    text=f"{agent}"
-                ))
+
+                result_content.append(TextContent(type="text", text=f"{agent}"))
 
             except ValidationError as ve:
                 error_msg = f"Invalid arguments for tool '{name}': {ve}"
@@ -103,12 +107,12 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 return [TextContent(type="text", text=error_msg)]
 
             except Exception as e:
-                error_msg = f"An unexpected internal error occurred processing tool '{name}'."
+                error_msg = (
+                    f"An unexpected internal error occurred processing tool '{name}'."
+                )
                 logger.error(f"{error_msg} Details: {e}", exc_info=True)
                 return [TextContent(type="text", text=error_msg)]
 
         case _:
             logger.warning(f"Received call for unknown tool: {name}")
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
-        
-        

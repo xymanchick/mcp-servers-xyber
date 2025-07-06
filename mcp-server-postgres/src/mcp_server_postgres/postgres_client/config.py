@@ -2,10 +2,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # --- Configuration and Error Classes --- #
 
+
 class PostgresServiceError(Exception):
     """Base class for PostgreSQL service-related errors."""
 
     pass
+
 
 class PostgresConfigError(PostgresServiceError):
     """Configuration-related errors for PostgreSQL client."""

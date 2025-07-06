@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import List
 
 from fastembed import TextEmbedding
 from fastembed.common.model_description import DenseModelDescription
@@ -22,7 +21,7 @@ class FastEmbedProvider(EmbeddingProvider):
         logger.info(f"Initializing FastEmbedProvider with model {model_name}")
         self.embedding_model = TextEmbedding(model_name)
 
-    async def embed_documents(self, documents: List[str]) -> List[List[float]]:
+    async def embed_documents(self, documents: list[str]) -> list[list[float]]:
         """Embed a list of documents into vectors."""
         logger.debug(f"Embedding {len(documents)} documents")
         # Run in a thread pool since FastEmbed is synchronous
@@ -32,7 +31,7 @@ class FastEmbedProvider(EmbeddingProvider):
         )
         return [embedding.tolist() for embedding in embeddings]
 
-    async def embed_query(self, query: str) -> List[float]:
+    async def embed_query(self, query: str) -> list[float]:
         """Embed a query into a vector."""
         logger.debug(f"Embedding query: {query[:50]}...")
         # Run in a thread pool since FastEmbed is synchronous

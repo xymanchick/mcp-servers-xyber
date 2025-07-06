@@ -17,7 +17,7 @@ qdrant_find(query="machine learning", collection_name="docs")
 Search with payload filters, but no indexes configured.
 ```python
 qdrant_find(
-    query="machine learning", 
+    query="machine learning",
     collection_name="docs",
     filters={"metadata.category": "ai"}
 )
@@ -29,7 +29,7 @@ Search with filters on indexed fields.
 ```python
 qdrant_find(
     query="machine learning",
-    collection_name="docs", 
+    collection_name="docs",
     filters={"metadata.category": "ai", "metadata.priority": 10}
 )
 ```
@@ -59,7 +59,7 @@ Qdrant's query planner chooses different strategies based on filter selectivity:
 # High selectivity (restrictive filters):
 # → Uses payload index directly, then re-scores by similarity
 
-# Low selectivity (broad filters):  
+# Low selectivity (broad filters):
 # → Uses filterable HNSW with dynamic condition checking during search
 ```
 
@@ -158,4 +158,4 @@ info = await qdrant_get_collection_info("my_collection")
 print(info["payload_schema"])  # Shows your configured indexes
 ```
 
-**Note**: Configuration only applies to **new collections**. Delete existing collections to apply new settings. 
+**Note**: Configuration only applies to **new collections**. Delete existing collections to apply new settings.
