@@ -13,9 +13,34 @@ from mcp_server_youtube.youtube.config import (YouTubeApiError,
 from mcp_server_youtube.youtube.models import YouTubeVideo
 from youtube_transcript_api import (NoTranscriptFound, TranscriptsDisabled,
                                     YouTubeTranscriptApi)
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_sleep_log,
+)
 
 # --- Setup Logger ---
 logger = logging.getLogger(__name__)
+
+
+# --- Setup Retry Decorators ---
+retry_search = retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=0.5, max=10),
+    retry=retry_if_exception_type((YouTubeClientError, YouTubeApiError)),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
+
+retry_transcript_api = retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=0.5, min=0.5, max=5),
+    retry=retry_if_exception_type(YouTubeTranscriptError),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
 
 
 # --- YouTubeSearcher Class ---
@@ -60,6 +85,7 @@ class YouTubeSearcher:
             logger.exception(msg)
             raise YouTubeClientError(msg) from e
 
+    @retry_search
     def search_videos(
         self, query: str, max_results: int = 15, language: str = "en"
     ) -> list[YouTubeVideo]:
@@ -151,6 +177,7 @@ class YouTubeSearcher:
             logger.exception(msg)
             raise YouTubeClientError(msg) from e
 
+    @retry_transcript_api
     def _get_transcript_by_id(self, video_id: str, language: str) -> str:
         """
         Fetches the transcript for a given YouTube video ID.
