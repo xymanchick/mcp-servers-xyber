@@ -36,13 +36,13 @@ retry_search = retry(
     reraise=True,
 )
 
-retry_transcript_api = retry(
+retry_fetch_transcript = retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=0.5, min=0.5, max=5),
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
+    retry_error_callback=lambda retry_state: ('Transcript service temporarily unavailable', None, False)
 )
-
 
 # --- YouTubeSearcher Class ---
 @lru_cache(maxsize=1)
@@ -138,8 +138,8 @@ class YouTubeSearcher:
         """
         return search_item.get('id', {}).get('kind') == 'youtube#video'
 
-    @retry_transcript_api
     @lru_cache(maxsize=128)
+    @retry_fetch_transcript
     def _get_transcript_by_id(
             self, video_id: str, language: str = 'en'
     ) -> tuple[str | None, str | None, bool]:
@@ -152,30 +152,25 @@ class YouTubeSearcher:
         Returns:
             Tuple of (transcript_text_or_status, language_code, has_transcript)
         """
-        try:
-            logger.debug(f'Attempting to fetch transcript for video {video_id}')
+        logger.debug(f'Attempting to fetch transcript for video {video_id}')
 
-            # Use TranscriptFetcher for better handling
-            fetcher = TranscriptFetcher(video_id)
-            result = fetcher.fetch(language)
+        # Use TranscriptFetcher for better handling
+        fetcher = TranscriptFetcher(video_id)
+        result = fetcher.fetch(language)
 
-            if result.status == TranscriptStatus.SUCCESS:
-                return result.transcript, result.language, True
+        if result.status == TranscriptStatus.SUCCESS:
+            return result.transcript, result.language, True
 
-            # Create user-friendly status message
-            status_message = 'Transcript unavailable'
-            if result.available_languages:
-                langs = ', '.join(result.available_languages)
-                status_message = f'Available languages: {langs}'
+        # Create user-friendly status message
+        status_message = 'Transcript unavailable'
+        if result.available_languages:
+            langs = ', '.join(result.available_languages)
+            status_message = f'Available languages: {langs}'
 
-            if result.error_message:
-                status_message += f'\nError: {result.error_message}'
+        if result.error_message:
+            status_message += f'\nError: {result.error_message}'
 
-            return status_message, result.language if result.language else None, False
-
-        except Exception as e:
-            logger.error(f'Unexpected error getting transcript for {video_id}: {e!s}', exc_info=True)
-            return 'Transcript service temporarily unavailable', None, False
+        return status_message, result.language if result.language else None, False
 
     def _create_video_from_search_item(
             self,
@@ -276,10 +271,11 @@ class YouTubeSearcher:
 
             return videos
 
-        except HttpError as e:
+        except (HttpError) as e:
             error_msg = f'YouTube API error: {e}'
             logger.error(error_msg, exc_info=True)
             raise YouTubeApiError(error_msg) from e
+        
         except Exception as e:
             msg = f'An unexpected error occurred during YouTube search: {e}'
             logger.error(msg, exc_info=True)
