@@ -2,6 +2,7 @@
 
 <!--![MCP Servers Collection](image_placeholder) -->
 
+
 # 🔌 MCP Servers Collection
 
 *Production-ready [Model Context Protocol](https://modelcontextprotocol.io/introduction) servers with standardized architecture*
@@ -9,51 +10,51 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://docker.com)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io)
 [![Python](https://img.shields.io/badge/Python-3.12+-yellow?logo=python)](https://python.org)
+[![Cursor](https://img.shields.io/badge/CursorIDE-Compatible-blue)](https://www.cursor.com/)
+[![Claude Desktop](https://img.shields.io/badge/ClaudeDesktop-Compatible-orange)](https://claude.ai/)
+[![LangChain](https://img.shields.io/badge/LangChain-Compatible-green)](https://www.langchain.com/)
+
 
 </div>
 
 ## 🎯 **Why Choose Our MCP Servers?**
 
-**Skip the learning curve** - Once you understand one server, you can instantly work with any of them. **Standardized architecture** across all the services states consistent patterns, predictable deployment, and maintainable code.
+### 🚨 **Community MCP problems**
 
-### 💡 **Built for Modern Development**
+If you've tried working with community MCP servers, you've probably encountered these common pain points:
 
-🏗️ **Self-contained** → Each server manages its own dependencies and configuration
+- **Inconsistent Architecture**: Every server has a different file structure, making it impossible to maintain a unified codebase
+- **Missing Features**: Some servers only support SSE, others only stdio - forcing you to choose between functionality and compatibility
+- **Abandoned Projects**: Many servers haven't been updated since MCP's early days, leaving you stranded with outdated implementations
+- **No Standards**: Lack of best practices means you're constantly reinventing the wheel for each new server
 
-🚀 **Production-ready** → Multi-stage Docker builds with optimized layer caching
+### 💡 **We've Solved These Problems**
 
-⚡ **Full protocol support** → streamable_http, sse and stdio transports for maximum flexibility
+This repository was built from the ground up to eliminate these frustrations:
 
-📐 **Best practices built-in** → Comprehensive testing, linting, and error handling
+- **🏗️ Standardized Architecture**: Every server follows the same proven structure, which enforces all servers to:
+- **🔧 Have Full Protocol Support**: support SSE, streamable http, stdio transports, giving you maximum flexibility
+- **⚡ Be Modern & Maintained**: built with the latest MCP/FastMCP specifications and actively maintained
+- **📋 Have Best Practices Built-In**: implement industry-standard patterns - no more guessing 
+- **🛠️ Be Production-Ready**: fully tested, documented, monitored, securely configured, and quality-checked with automated linting, type-checking, and environment validation
+- **🐳 Effortless Deployed**: implement multi-stage Docker builds, Docker Compose integration and optimized images for production or local dev
+- **📚 Convinient for developers**: have template-based rapid prototyping, hot-reload support, and clear documentation/examples
+- **🔒 Secure & Reliable**: inlcude environment-based credential management, health monitoring, and robust error handling
 
-### 🎯 **Perfect For**
+### 🎯 **Why This Matters for You**
 
-**Teams** → Maintain consistency across your entire MCP infrastructure
+**For Developers**: Skip the learning curve - once you understand one of our servers, you can instantly work with any of them. Perfect integration with CursorIDE, Claude Desktop and Langgraph
 
-**Developers** → Focus on business logic, not boilerplate setup
+**For Teams**: Maintain consistency across your entire MCP infrastructure with our standardized approach
 
-**Production** → Deploy with confidence using proven patterns
+**For Production**: Deploy with confidence knowing each server follows proven patterns and includes comprehensive testing
 
-**Custom development** → Use our template to create new servers in minutes
+**For Custom Development**: Use our `mcp-server-template` to create your own servers in minutes, not hours
 
 
 ## 🛠️ Available Servers
 
-| Service | Description | Use Case |
-|---------|-------------|----------|
-| 📚 **arxiv** | Searches and retrieves academic papers | Research & academia |
-| 🎙️ **cartesia** | Text-to-speech using Cartesia API | Voice synthesis |
-| 🎨 **imgen** | Image generation via Google Vertex AI | Creative content |
-| 🗄️ **postgres** | Database operations with PostgreSQL | Data storage |
-| 🔍 **qdrant** | Vector database operations | Semantic search |
-| 🎭 **stability** | Image generation via Stability AI SDXL | AI artwork |
-| 🌐 **tavily** | Web search using Tavily API | Information gathering |
-| 💬 **telegram** | Posts messages to Telegram channels | Messaging & notifications |
-| 🐦 **twitter** | Twitter/X API interactions | Social media |
-| 📖 **wikipedia** | Wikipedia article search & retrieval | Knowledge base |
-| 📺 **youtube** | YouTube video transcript extraction | Content analysis |
-
-
+Please check the latest [Release Doc](https://github.com/Xyber-Labs/mcp-servers/releases) to see the full list of available MCP-servers
 
 ## 🚀 Quick Start
 
@@ -75,11 +76,37 @@ docker build -t mcp-server-youtube .
 docker run -p 8000:8000 --env-file .env mcp-server-youtube
 ```
 
----
+## 📚 Documentation & Resources
+
+- **[Contributing Guidelines](CONTRIBUTING.md)** - Development setup and workflow
+- **[Individual Service READMEs](mcp-server-template/README.md)** - Service-specific documentation
+- **[FastMCP Official Documentation](https://fastmcp.readthedocs.io/)** – FastMCP server and protocol reference
+- **[Anthropic MCP Protocol Specification](https://modelcontextprotocol.io/introduction)** – Anthropic's MCP protocol docs
+- **[Anthropic Official MCP servers repository](https://github.com/modelcontextprotocol/servers)** 
+- **[License](./LICENSE)**
+
 
 ## 🤝 Contributing
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for detailed development guidelines.
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for:
+
+- **Development setup** and environment configuration
+- **Code standards** and quality requirements
+- **Adding new services** using our template system
+- **Testing guidelines** and best practices
+- **Pull request workflow** and review process
+
+## 🙏 Acknowledgments
+
+Special thanks to:
+- The **Model Context Protocol** community for the excellent specification
+- **OpenAI** and **Anthropic** for pioneering MCP adoption
+- All contributors and early adopters who provided feedback
+- The open-source community for the amazing tools that make this possible
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 <div align="center">
 
