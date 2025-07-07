@@ -1,20 +1,21 @@
 import logging
 from collections.abc import AsyncIterator
-from typing import Any, Dict, List
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 
 from mcp_server_wikipedia.wikipedia import (
-    _WikipediaService,
     ArticleNotFoundError,
     WikipediaAPIError,
     WikipediaServiceError,
+    _WikipediaService,
     get_wikipedia_service,
 )
 
 logger = logging.getLogger(__name__)
+
 
 # --- Lifespan Management ---
 @asynccontextmanager
@@ -26,7 +27,9 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
         logger.info("Lifespan: Wikipedia service initialized successfully")
         yield {"wiki_service": wiki_service}
     except WikipediaServiceError as init_err:
-        logger.error(f"FATAL: Lifespan initialization failed: {init_err}", exc_info=True)
+        logger.error(
+            f"FATAL: Lifespan initialization failed: {init_err}", exc_info=True
+        )
         raise init_err
     finally:
         logger.info("Lifespan: Shutdown cleanup completed")
@@ -106,9 +109,7 @@ async def get_links(ctx: Context, title: str) -> List[str]:
 
 
 @mcp_server.tool()
-async def get_related_topics(
-    ctx: Context, title: str, limit: int = 20
-) -> List[str]:
+async def get_related_topics(ctx: Context, title: str, limit: int = 20) -> List[str]:
     """Get topics related to a Wikipedia article based on its internal links."""
     try:
         topics = await _get_service(ctx).get_related_topics(title, limit)

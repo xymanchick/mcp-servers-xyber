@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -76,7 +76,7 @@ class HnswConfig(BaseModel):
     ef_construct: int = Field(
         default=200, ge=4, description="Size of the dynamic candidate list"
     )
-    payload_m: Optional[int] = Field(
+    payload_m: int | None = Field(
         default=None,
         ge=0,
         description="HNSW connections for tenant partitions (when m=0)",
@@ -195,12 +195,12 @@ class QdrantConfig(BaseSettings):
             annotation = getattr(field, "annotation", None)
             if annotation is None:
                 continue
-                
+
             # Check if it's a union type that includes None
             has_none_type = False
             if hasattr(annotation, "__args__"):
                 has_none_type = type(None) in annotation.__args__
-            
+
             # If field can be None and current value is empty string, convert to None
             if has_none_type:
                 value = getattr(self, field_name, None)

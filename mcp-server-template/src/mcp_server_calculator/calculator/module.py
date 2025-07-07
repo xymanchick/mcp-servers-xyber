@@ -6,9 +6,11 @@ import logging
 from functools import lru_cache
 from typing import Literal
 
-from mcp_server_calculator.calculator.config import (CalculatorConfig,
-                                                     DivisionByZeroError,
-                                                     InvalidOperationError)
+from mcp_server_calculator.calculator.config import (
+    CalculatorConfig,
+    DivisionByZeroError,
+    InvalidOperationError,
+)
 
 # --- Logger Setup --- #
 

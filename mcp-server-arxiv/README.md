@@ -63,7 +63,7 @@ mcp-server-arxiv/
    uv pip install -e .[dev]
    # Or using pip + venv
    # python -m venv .venv
-   # source .venv/bin/activate 
+   # source .venv/bin/activate
    # pip install -e .[dev]
    ```
 

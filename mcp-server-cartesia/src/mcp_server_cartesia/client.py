@@ -16,21 +16,23 @@ Requirements:
     - ffmpeg installed locally if you want automatic playback (optional)
 """
 
-import os
 import asyncio
 import logging
-import sys
-from dotenv import load_dotenv
+import os
 import subprocess
-import shlex # For safer command splitting if needed
+import sys
+
+from dotenv import load_dotenv
 
 # MCP and agent-related imports
 try:
-    from langchain_mcp_adapters.client import MultiServerMCPClient
-    from langgraph.prebuilt import create_react_agent
-    from langchain_together import ChatTogether
+    from langchain_core.messages import (
+        HumanMessage,  # ToolMessage might not be needed if using .arun
+    )
     from langchain_core.tools import StructuredTool
-    from langchain_core.messages import HumanMessage # ToolMessage might not be needed if using .arun
+    from langchain_mcp_adapters.client import MultiServerMCPClient
+    from langchain_together import ChatTogether
+    from langgraph.prebuilt import create_react_agent
 except ImportError as e:
     # Provide more specific installation instructions
     logging.getLogger(__name__).error(
@@ -42,10 +44,10 @@ except ImportError as e:
 # --- Logging Setup ---
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.StreamHandler(sys.stdout) # Log only to console for simplicity
-    ]
+        logging.StreamHandler(sys.stdout)  # Log only to console for simplicity
+    ],
 )
 logger = logging.getLogger("cartesia-mcp-client")
 
@@ -56,6 +58,7 @@ if env_path:
     logger.info(f"Loaded environment variables from: {env_path}")
 else:
     logger.warning("No .env file found. Relying on system environment variables.")
+
 
 # --- Main Function ---
 async def main():
@@ -68,14 +71,19 @@ async def main():
         logger.info("--- Starting Cartesia MCP Client Example ---")
 
         # --- LLM Setup (Optional - for Agent Example) ---
-        llm_api_key = os.getenv('TOGETHER_API_KEY')
+        llm_api_key = os.getenv("TOGETHER_API_KEY")
         model = None
         if not llm_api_key:
-            logger.warning("LLM API Key (TOGETHER_API_KEY) not found. Agent example will be skipped.")
+            logger.warning(
+                "LLM API Key (TOGETHER_API_KEY) not found. Agent example will be skipped."
+            )
         else:
             try:
                 # Specify model potentially requiring fewer resources for testing
-                model = ChatTogether(model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", api_key=llm_api_key)
+                model = ChatTogether(
+                    model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+                    api_key=llm_api_key,
+                )
                 logger.info(f"LLM Model initialized: {model.model}")
             except Exception as llm_err:
                 logger.error(f"Failed to initialize LLM: {llm_err}", exc_info=True)
@@ -83,33 +91,44 @@ async def main():
                 model = None
 
         # --- Cartesia Configuration Check ---
-        cartesia_api_key = os.getenv('CARTESIA_API_KEY')
+        cartesia_api_key = os.getenv("CARTESIA_API_KEY")
         if not cartesia_api_key:
             logger.error("FATAL: CARTESIA_API_KEY not found in environment variables.")
-            logger.error("Please create a .env file in the 'mcp-server-cartesia' directory or set the environment variable.")
-            logger.error("Example .env content: CARTESIA_API_KEY=your_actual_api_key_here")
+            logger.error(
+                "Please create a .env file in the 'mcp-server-cartesia' directory or set the environment variable."
+            )
+            logger.error(
+                "Example .env content: CARTESIA_API_KEY=your_actual_api_key_here"
+            )
             return
 
         # Simple check for placeholder value
-        if "your_cartesia_api_key_here" in cartesia_api_key or len(cartesia_api_key) < 10:
+        if (
+            "your_cartesia_api_key_here" in cartesia_api_key
+            or len(cartesia_api_key) < 10
+        ):
             logger.error("FATAL: Invalid or placeholder CARTESIA_API_KEY detected.")
-            logger.error("Please provide your actual Cartesia API key in the .env file or environment.")
+            logger.error(
+                "Please provide your actual Cartesia API key in the .env file or environment."
+            )
             return
 
         logger.info("Cartesia API Key found.")
 
         # --- MCP Server Connection ---
-        cartesia_port = os.getenv('MCP_CARTESIA_PORT', '8003')
-        cartesia_host = "localhost" 
+        cartesia_port = os.getenv("MCP_CARTESIA_PORT", "8003")
+        cartesia_host = "localhost"
         cartesia_server_url = f"http://{cartesia_host}:{cartesia_port}/sse"
-        logger.info(f"Attempting to connect to MCP Cartesia server at {cartesia_server_url}...")
+        logger.info(
+            f"Attempting to connect to MCP Cartesia server at {cartesia_server_url}..."
+        )
 
         try:
             async with MultiServerMCPClient(
                 {
-                    "cartesia_generator": { # Identifier for this connection
+                    "cartesia_generator": {  # Identifier for this connection
                         "url": cartesia_server_url,
-                        "transport": "sse"
+                        "transport": "sse",
                     }
                 }
             ) as client:
@@ -120,75 +139,119 @@ async def main():
                 tools: list[StructuredTool] = client.get_tools()
 
                 if not tools:
-                    logger.error(f"No tools found from server at {cartesia_server_url}. Exiting.")
+                    logger.error(
+                        f"No tools found from server at {cartesia_server_url}. Exiting."
+                    )
                     return
 
                 logger.info(f"Available tool names: {[tool.name for tool in tools]}")
-                cartesia_tool = next((t for t in tools if t.name == "generate_cartesia_tts"), None)
+                cartesia_tool = next(
+                    (t for t in tools if t.name == "generate_cartesia_tts"), None
+                )
 
                 if not cartesia_tool:
-                    logger.error("The required 'generate_cartesia_tts' tool was not found. Exiting.")
+                    logger.error(
+                        "The required 'generate_cartesia_tts' tool was not found. Exiting."
+                    )
                     return
 
-                logger.info(f"Found Tool: Name='{cartesia_tool.name}', Description='{cartesia_tool.description}'")
+                logger.info(
+                    f"Found Tool: Name='{cartesia_tool.name}', Description='{cartesia_tool.description}'"
+                )
                 # logger.debug(f"Tool Args Schema: {cartesia_tool.args_schema}") # Optional debug
 
                 # --- Example 1: Using a ReAct Agent (Optional) ---
-                if model: # Check if LLM model was successfully initialized
+                if model:  # Check if LLM model was successfully initialized
                     logger.info("\n--- Running ReAct Agent Example ---")
                     try:
                         agent = create_react_agent(model, [cartesia_tool])
-                        agent_prompt = (
-                            "Generate speech for this: 'Testing agent integration with Cartesia TTS.'"
+                        agent_prompt = "Generate speech for this: 'Testing agent integration with Cartesia TTS.'"
+                        logger.info(f'Invoking agent with prompt: "{agent_prompt}"')
+                        agent_response = await agent.ainvoke(
+                            {"messages": [HumanMessage(content=agent_prompt)]}
                         )
-                        logger.info(f"Invoking agent with prompt: \"{agent_prompt}\"")
-                        agent_response = await agent.ainvoke({"messages": [HumanMessage(content=agent_prompt)]})
                         logger.info("Agent finished processing.")
                         final_message = agent_response["messages"][-1]
-                        logger.info(f"Agent Final Response Type: {type(final_message).__name__}")
-                        logger.info(f"Agent Final Response Content: {final_message.content}")
+                        logger.info(
+                            f"Agent Final Response Type: {type(final_message).__name__}"
+                        )
+                        logger.info(
+                            f"Agent Final Response Content: {final_message.content}"
+                        )
                     except Exception as agent_err:
-                        logger.error(f"Error invoking ReAct agent: {agent_err}", exc_info=True)
+                        logger.error(
+                            f"Error invoking ReAct agent: {agent_err}", exc_info=True
+                        )
                 else:
-                    logger.info("\n--- Skipping ReAct Agent Example (LLM not configured) ---")
+                    logger.info(
+                        "\n--- Skipping ReAct Agent Example (LLM not configured) ---"
+                    )
 
                 # --- Example 2: Directly Calling the Tool ---
                 logger.info("\n--- Running Direct Tool Call Example ---")
-                text_to_synthesize = "This is a direct call. Speech synthesis is fascinating."
+                text_to_synthesize = (
+                    "This is a direct call. Speech synthesis is fascinating."
+                )
                 tool_input = {
                     "text": text_to_synthesize,
                     "voice": {"id": "a38e4e85-e815-43ab-acf1-907c4688dd6c"},
-                    "model_id": "sonic-2"
+                    "model_id": "sonic-2",
                 }
 
-                logger.info(f"Directly calling tool '{cartesia_tool.name}' with text: '{text_to_synthesize}'")
+                logger.info(
+                    f"Directly calling tool '{cartesia_tool.name}' with text: '{text_to_synthesize}'"
+                )
                 try:
-                    result_str: str = await cartesia_tool.arun(tool_input) # Use .arun for simple string result
+                    result_str: str = await cartesia_tool.arun(
+                        tool_input
+                    )  # Use .arun for simple string result
 
                     logger.info(f"Server raw response: {result_str}")
 
                     # --- Process Server Response ---
-                    if result_str.startswith("Successfully generated speech and saved to: "):
+                    if result_str.startswith(
+                        "Successfully generated speech and saved to: "
+                    ):
                         try:
-                            container_path = result_str.split("saved to: ", 1)[1].strip()
-                            container_path = container_path.replace('"', '') # Clean potential quotes
+                            container_path = result_str.split("saved to: ", 1)[
+                                1
+                            ].strip()
+                            container_path = container_path.replace(
+                                '"', ""
+                            )  # Clean potential quotes
                             filename = os.path.basename(container_path)
                         except IndexError:
                             container_path = "Unknown path"
                             filename = None
-                            logger.warning("Could not parse container file path from server response.")
+                            logger.warning(
+                                "Could not parse container file path from server response."
+                            )
 
-                        logger.info(f"Success! Audio generated inside container at: {container_path}")
+                        logger.info(
+                            f"Success! Audio generated inside container at: {container_path}"
+                        )
                         logger.info("-" * 70)
                         logger.info(">>> How to Access the Audio File <<<")
-                        logger.info(" The server (running in Docker) saved the file inside the container.")
-                        logger.info(" To access it from your host machine (where this script is running),")
-                        logger.info(" you need to use a Docker 'volume mount' when starting the container.")
+                        logger.info(
+                            " The server (running in Docker) saved the file inside the container."
+                        )
+                        logger.info(
+                            " To access it from your host machine (where this script is running),"
+                        )
+                        logger.info(
+                            " you need to use a Docker 'volume mount' when starting the container."
+                        )
                         logger.info(" Example 'docker run' command:")
-                        logger.info("   docker run ... -v \"/path/on/your/host:/app/audio_outputs\" mcp-server-cartesia")
-                        logger.info("   (Replace '/path/on/your/host' with an actual directory on your computer, e.g., './host_audio')")
+                        logger.info(
+                            '   docker run ... -v "/path/on/your/host:/app/audio_outputs" mcp-server-cartesia'
+                        )
+                        logger.info(
+                            "   (Replace '/path/on/your/host' with an actual directory on your computer, e.g., './host_audio')"
+                        )
                         if filename:
-                             logger.info(f" The file '{filename}' should now be present in your mapped host directory.")
+                            logger.info(
+                                f" The file '{filename}' should now be present in your mapped host directory."
+                            )
                         logger.info("-" * 70)
 
                         # Optional: Construct expected host path IF a standard mapping is assumed
@@ -204,30 +267,43 @@ async def main():
                         # else:
                         #      logger.info("Cannot check host path (directory './host_audio' not found or filename unknown).")
 
-
                     else:
                         # Assume the result string is an error message from the server
-                        logger.error(f"Server returned an error or unexpected message: {result_str}")
+                        logger.error(
+                            f"Server returned an error or unexpected message: {result_str}"
+                        )
 
                 except Exception as tool_call_err:
-                    logger.error(f"Error during direct tool call '{cartesia_tool.name}': {tool_call_err}", exc_info=True)
-
+                    logger.error(
+                        f"Error during direct tool call '{cartesia_tool.name}': {tool_call_err}",
+                        exc_info=True,
+                    )
 
         except ConnectionRefusedError:
-            logger.error(f"Connection refused. Is the MCP Cartesia server running and accessible at {cartesia_server_url}?")
-            logger.error("Ensure the Docker container is running and the port mapping is correct.")
+            logger.error(
+                f"Connection refused. Is the MCP Cartesia server running and accessible at {cartesia_server_url}?"
+            )
+            logger.error(
+                "Ensure the Docker container is running and the port mapping is correct."
+            )
         except Exception as client_err:
-            logger.error(f"Error during MCP client operation: {client_err}", exc_info=True)
+            logger.error(
+                f"Error during MCP client operation: {client_err}", exc_info=True
+            )
 
     except Exception as e:
-        logger.error(f"An unexpected error occurred in the main client function: {str(e)}", exc_info=True)
+        logger.error(
+            f"An unexpected error occurred in the main client function: {str(e)}",
+            exc_info=True,
+        )
+
 
 # --- Optional Helper Function for Playback ---
 def try_play_audio(file_path: str):
     """Attempts to play an audio file using ffplay."""
     if not os.path.exists(file_path):
-         logger.warning(f"Cannot play audio: File not found at {file_path}")
-         return
+        logger.warning(f"Cannot play audio: File not found at {file_path}")
+        return
 
     try:
         logger.info(f"Attempting to play audio file: {file_path}")
@@ -237,20 +313,22 @@ def try_play_audio(file_path: str):
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
-            text=True # Decode stderr as text
+            text=True,  # Decode stderr as text
         )
         logger.info("Audio playback finished.")
     except FileNotFoundError:
-        logger.warning("`ffplay` command not found. Please install `ffmpeg` for audio playback.")
+        logger.warning(
+            "`ffplay` command not found. Please install `ffmpeg` for audio playback."
+        )
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error during audio playback with ffplay.")
+        logger.error("Error during audio playback with ffplay.")
         # Log stderr from ffplay if available
         if e.stderr:
             logger.error(f"ffplay error output:\n{e.stderr.strip()}")
         else:
             logger.error(f"ffplay returned non-zero exit code: {e.returncode}")
     except Exception as e:
-         logger.error(f"Unexpected error during playback attempt: {e}", exc_info=True)
+        logger.error(f"Unexpected error during playback attempt: {e}", exc_info=True)
 
 
 # --- Run Main Function ---

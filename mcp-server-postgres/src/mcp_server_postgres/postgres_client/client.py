@@ -4,9 +4,9 @@ PostgreSQL client interface providing access to database entities.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from functools import lru_cache
-from typing import AsyncIterator, Callable
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,6 +35,7 @@ class _PostgresService:
         Args:
             config: PostgreSQL connection configuration
             session_factory: Factory function that returns a new database session
+
         """
         self.config = config
         self.session_factory = session_factory
@@ -48,6 +49,7 @@ class _PostgresService:
 
         Yields:
             AsyncSession: Database session
+
         """
         session = self.session_factory()
         try:
@@ -71,6 +73,7 @@ class _PostgresService:
 
         Raises:
             PostgresAPIError: If there is an error during database query.
+
         """
         try:
             async with self.session() as session:
@@ -95,6 +98,7 @@ class _PostgresService:
 
         Raises:
             PostgresAPIError: If there is an error during database query.
+
         """
         try:
             async with self.session() as session:
@@ -120,6 +124,7 @@ class _PostgresService:
 
         Raises:
             PostgresAPIError: If there is an error during database query.
+
         """
         try:
             async with self.session() as session:
@@ -145,6 +150,7 @@ def get_postgres_service() -> _PostgresService:
 
     Raises:
         PostgresConfigError: If there is an error initializing the client or its configuration.
+
     """
     try:
         config = PostgresConfig()

@@ -9,7 +9,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "mcp>=1.8.0,<2.0.0",
-    "pydantic-settings>=2.0",  
+    "pydantic-settings>=2.0",
     "uvicorn[standard]",
     "pydantic (>=2.0.0)",
     "fastmcp>=2.3.4",
@@ -21,11 +21,11 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest",
-    "httpx", 
+    "httpx",
     "ruff",
     "black",
     "isort",
-    
+
 ]
 debug = [
     "debugpy>=1.8.14",

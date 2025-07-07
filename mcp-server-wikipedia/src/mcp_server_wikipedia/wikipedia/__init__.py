@@ -7,7 +7,10 @@ from mcp_server_wikipedia.wikipedia.models import (
     WikipediaConfigError,
     WikipediaServiceError,
 )
-from mcp_server_wikipedia.wikipedia.module import _WikipediaService, get_wikipedia_service
+from mcp_server_wikipedia.wikipedia.module import (
+    _WikipediaService,
+    get_wikipedia_service,
+)
 
 __all__ = [
     "_WikipediaService",
@@ -17,4 +20,4 @@ __all__ = [
     "WikipediaConfigError",
     "WikipediaAPIError",
     "ArticleNotFoundError",
-] 
+]

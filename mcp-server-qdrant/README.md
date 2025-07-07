@@ -62,14 +62,14 @@ This MCP server exposes Qdrant vector database functionality through the Model C
    # Advanced: Multi-Tenant with Payload Indexes
    QDRANT_COLLECTION_CONFIG__HNSW_CONFIG__M=0
    QDRANT_COLLECTION_CONFIG__HNSW_CONFIG__PAYLOAD_M=16
-   
+
    QDRANT_COLLECTION_CONFIG__PAYLOAD_INDEXES__0__FIELD_NAME=metadata.tenant_id
    QDRANT_COLLECTION_CONFIG__PAYLOAD_INDEXES__0__INDEX_TYPE=keyword
    QDRANT_COLLECTION_CONFIG__PAYLOAD_INDEXES__0__IS_TENANT=true
-   
+
    QDRANT_COLLECTION_CONFIG__PAYLOAD_INDEXES__1__FIELD_NAME=metadata.user_id
    QDRANT_COLLECTION_CONFIG__PAYLOAD_INDEXES__1__INDEX_TYPE=keyword
-   
+
    # Embedding Configuration
    EMBEDDING_PROVIDER=fastembed
    EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
@@ -162,7 +162,7 @@ from langchain_openai import ChatOpenAI
 async def main():
     # Initialize LLM
     model = ChatOpenAI(model="gpt-4")
-    
+
     # Connect to MCP server
     client = MultiServerMCPClient({
         "qdrant": {
@@ -170,7 +170,7 @@ async def main():
             "transport": "streamable_http"
         }
     })
-    
+
     # Get tools and modify them to have return_direct=True
     tools = await client.get_tools()
     for tool in tools:
@@ -178,15 +178,15 @@ async def main():
 
     # Create agent with tools
     agent = create_react_agent(model, tools)
-    
+
     # Example: Store and search documents
     response = await agent.ainvoke({
         "messages": [{
-            "role": "user", 
+            "role": "user",
             "content": "Store information about machine learning and then search for it"
         }]
     })
-    
+
     print(response["messages"][-1].content)
 
 if __name__ == "__main__":
@@ -235,4 +235,3 @@ mcp-server-qdrant/
 ## License
 
 Apache License 2.0
-

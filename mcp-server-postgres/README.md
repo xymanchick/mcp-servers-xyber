@@ -38,7 +38,7 @@ This service provides an MCP-compliant server interface with tools to interact w
     # source .venv/bin/activate # or .venv\Scripts\activate on Windows
     # pip install -e .[dev]
     ```
-    *Note: The `-e .` command installs the current project (`mcp-server-postgres`) in editable mode. Due to the `pyproject.toml` configuration (`tool.hatch.build.sources`), this makes both the `mcp_server_postgres` package (containing `server.py`) and the `postgres_client` package (containing database logic) available for import.* 
+    *Note: The `-e .` command installs the current project (`mcp-server-postgres`) in editable mode. Due to the `pyproject.toml` configuration (`tool.hatch.build.sources`), this makes both the `mcp_server_postgres` package (containing `server.py`) and the `postgres_client` package (containing database logic) available for import.*
 
 3.  **Run the Server:**
     Ensure your virtual environment is activated.
