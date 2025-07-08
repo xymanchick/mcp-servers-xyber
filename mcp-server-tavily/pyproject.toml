@@ -24,6 +24,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest",
+    "pytest-mock",
+    "pytest-asyncio",
     "httpx",
     "ruff",
     "black",
