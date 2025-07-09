@@ -2,6 +2,10 @@ import logging
 from functools import lru_cache
 from typing import Any
 
+import re
+
+import asyncio
+import aiohttp
 from langchain_tavily import TavilySearch
 
 from mcp_server_tavily.tavily.config import (
@@ -9,8 +13,42 @@ from mcp_server_tavily.tavily.config import (
     TavilyConfigError,
 )
 from mcp_server_tavily.tavily.models import TavilySearchResult
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    retry_if_exception,
+    before_sleep_log,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def is_retryable_tavily_error(error: BaseException) -> bool:
+    http_status_match = re.match(r"Error (\d+):", str(error))
+    if http_status_match is None:
+        return False
+
+    http_status = int(http_status_match.group(1))
+    if 500 <= http_status < 600:
+        return True
+    if http_status == 429:
+        return True
+    return False
+
+
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(min=0.5),
+    retry=retry_if_exception_type(aiohttp.ClientError)
+    | retry_if_exception_type(asyncio.TimeoutError)
+    | retry_if_exception(is_retryable_tavily_error),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
+async def _ainvoke_with_retry(tool: TavilySearch, query: str) -> dict[str, Any]:
+    return await tool.ainvoke(query)
 
 
 class _TavilyService:
@@ -68,7 +106,7 @@ class _TavilyService:
             tool = self._create_tavily_tool(max_results=max_results)
 
             # Perform search
-            results = await tool.ainvoke(query)
+            results = await _ainvoke_with_retry(tool, query)
 
             logger.debug(f"Tavily raw response type: {type(results)}")
             logger.debug(f"Tavily raw response: {results}")
@@ -125,7 +163,7 @@ class _TavilyService:
                 processed_results = []
                 for i, result in enumerate(search_results):
                     if isinstance(result, dict):
-                        title = result.get("title", f"Search Result {i+1}")
+                        title = result.get("title", f"Search Result {i + 1}")
                         url = result.get("url", "#")
                         content = result.get("content", result.get("snippet", ""))
                         processed_results.append(
@@ -134,7 +172,7 @@ class _TavilyService:
                     else:
                         processed_results.append(
                             TavilySearchResult(
-                                title=f"Search Result {i+1}",
+                                title=f"Search Result {i + 1}",
                                 url="#",
                                 content=str(result),
                             )
@@ -153,7 +191,7 @@ class _TavilyService:
                         # If result is a string, create a TavilySearchResult with the string as content
                         processed_results.append(
                             TavilySearchResult(
-                                title=f"Search Result {i+1}", url="#", content=result
+                                title=f"Search Result {i + 1}", url="#", content=result
                             )
                         )
                     elif (
@@ -176,7 +214,7 @@ class _TavilyService:
                         metadata = result.metadata or {}
                         processed_results.append(
                             TavilySearchResult(
-                                title=metadata.get("title", f"Search Result {i+1}"),
+                                title=metadata.get("title", f"Search Result {i + 1}"),
                                 url=metadata.get("source", "#"),
                                 content=result.page_content,
                             )
@@ -185,7 +223,7 @@ class _TavilyService:
                         # Fallback for unknown result types
                         processed_results.append(
                             TavilySearchResult(
-                                title=f"Search Result {i+1}",
+                                title=f"Search Result {i + 1}",
                                 url="#",
                                 content=str(result),
                             )
