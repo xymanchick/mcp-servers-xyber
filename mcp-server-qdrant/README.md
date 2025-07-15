@@ -12,18 +12,20 @@ This MCP server exposes Qdrant vector database functionality through the Model C
 1. `qdrant_store`
     - **Description:** Store information with metadata in Qdrant collections
     - **Input:**
-        - information (string): The information to store
-        - collection_name (string): The name of the collection
-        - metadata (dict, optional): JSON metadata to store with the information
+      - request (dict): The request object containing:
+          - information (string): The information to store
+          - collection_name (string): The name of the collection
+          - metadata (dict, optional): JSON metadata to store with the information
     - **Output:** A confirmation string with storage details
 
 2. `qdrant_find`
     - **Description:** Search documents with semantic similarity and optional filtering
     - **Input:**
-        - query (string): The search query
-        - collection_name (string): The name of the collection to search
-        - search_limit (int, default: 10): Maximum number of results
-        - filters (dict, optional): Optional filters as field_path -> value pairs
+      - request (dict): The request object containing:
+          - query (string): The search query
+          - collection_name (string): The name of the collection to search
+          - search_limit (int, default: 10): Maximum number of results
+          - filters (dict, optional): Optional filters as field_path -> value pairs
     - **Output:** List of scored points with content and metadata
 
 3. `qdrant_get_collections`
@@ -34,7 +36,8 @@ This MCP server exposes Qdrant vector database functionality through the Model C
 4. `qdrant_get_collection_info`
     - **Description:** Get detailed collection configuration including payload schema
     - **Input:**
-        - collection_name (string): The name of the collection
+      - request (dict): The request object containing:
+          - collection_name (string): The name of the collection
     - **Output:** Collection information with configuration details
 
 ## Requirements
@@ -209,10 +212,18 @@ mcp-server-qdrant/
 │               ├── factory.py
 │               ├── fastembed.py
 │               └── types.py
+│       └── tests/ # Contains all the tests
+│           ├── __init__.py
+│           ├── conftest.py # Contains pytest fixtures
+│           ├── test_middlewares.py # Contains tests for middlewares
+│           └── test_validations.py # Contains tests for validations
 │       ├── __init__.py
 │       ├── __main__.py # Contains uvicorn server setup logic
+│       ├── exceptions.py # Contains custom exceptions
 │       ├── logging_config.py # Contains shared logging configuration
-│       └── server.py # Contains tool schemas/definitions, sets MCP server up
+│       ├── middlewares.py # Contains custom middlewares
+│       ├── server.py # Contains tool schemas/definitions, sets MCP server up
+│       └── schemas.py # Contains Pydantic schemas for request/response validation
 ├── CONFIGURATION.md # Detailed configuration guide
 ├── .env.example
 ├── .gitignore
