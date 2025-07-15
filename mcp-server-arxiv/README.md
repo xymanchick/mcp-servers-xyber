@@ -27,6 +27,10 @@ mcp-server-arxiv/
 │       ├── module.py     # Core logic for searching, downloading, extracting
 │       ├── models.py     # Data models (e.g., ArxivSearchResult)
 │       └── config.py     # Configuration and error classes
+├── tests/                # Unit tests for server and module
+│   ├── conftest.py       # Pytest configuration and fixtures
+│   ├── test_server.py    # Tests for the MCP server functionality
+│   └── test_module.py    # Tests for the arxiv module functionality
 ├── pyproject.toml        # Dependencies and build config
 ├── Dockerfile            # Containerization support
 ├── LICENSE               # MIT License
@@ -93,6 +97,21 @@ docker run --rm -it -p 8006:8006 --env-file .env mcp-server-arxiv
 
 ---
 
+## Running Tests and Coverage
+The project includes a comprehensive suite of unit tests covering core functionality in module.py and server.py.
+
+Tests mock external dependencies to ensure reliability and speed.
+
+To run all tests with coverage and see detailed reports:
+```bash
+cd mcp-server-arxiv
+pytest -v --color=yes --cov=mcp_server_arxiv --cov-report=term-missing --cov-fail-under=70
+
+```
+- This will fail if coverage is below 70%.
+- Coverage reports show which lines are uncovered.
+
+---
 ## API Usage
 
 The server provides the following MCP tool:
