@@ -18,11 +18,16 @@ dependencies = [
     "arxiv>=2.0.0",
     "PyPDF2>=3.0.0",
     "PyMuPDF>=1.23.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.2.1",
+    "pytest-asyncio>=1.0.0",
+    "pytest-mock>=3.14.1",
 ]
 
 [dependency-groups]
 dev = [
     "pytest",
+    "pytest-asyncio",
     "httpx",
     "ruff",
     "black",
