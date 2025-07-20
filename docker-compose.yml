@@ -133,13 +133,13 @@ services:
       - ./mcp-server-postgres/.env
     restart: unless-stopped
 
-  mcp_server_calculator:
+  mcp_server_weather:
     build:
       context: ./mcp-server-template
       dockerfile: Dockerfile
-    image: mcp_server_calculator
-    container_name: mcp_server_calculator
-    command: ["python", "-m", "mcp_server_calculator", "--port", "8000"]
+    image: mcp_server_weather
+    container_name: mcp_server_weather
+    command: ["python", "-m", "mcp_server_weather", "--port", "8000"]
     ports:
       - "8006:8000"
     env_file:

@@ -1,28 +1,27 @@
-# MCP Template Server
+# MCP Weather Server
 
 > **General:** This repository serves as a template for creating new MCP (Model Context Protocol) servers.
-> It provides a basic structure and examples for implementing MCP-compatible microservices.
+> It provides a weather service implementation with best practices for MCP-compatible microservices.
 
 ## Overview
 
-This template demonstrates how to create a microservice that exposes functionality through the Model Context Protocol (MCP). It includes a basic calculator service as an example implementation.
+This template demonstrates how to create a microservice that exposes functionality through the Model Context Protocol (MCP). It includes a weather service that retrieves data from the OpenWeatherMap API.
 
 ## MCP Tools:
 
-
-1. `calculate`
-    - **Description:** Performs basic arithmetic calculations
+1. `get_weather`
+    - **Description:** Retrieves current weather information for a location
     - **Input:**
-        - Operand (Literal["add", "subtract", "multiply", "divide"])
-        - Variable 1 (float)
-        - Variable 2 (float)
-    - **Output:** A string containing the calculated result
-
+        - latitude (optional): Location latitude
+        - longitude (optional): Location longitude
+        - units (optional): Unit system (metric or imperial)
+    - **Output:** A dictionary containing weather state, temperature, and humidity
 
 ## Requirements
 
 - Python 3.12+
 - UV (for dependency management)
+- OpenWeatherMap API key
 - Docker (optional, for containerization)
 
 ## Setup
@@ -30,20 +29,27 @@ This template demonstrates how to create a microservice that exposes functionali
 1. **Clone the Repository**:
    ```bash
    git clone <repository-url>
-   cd mcp-server-template
+   cd mcp-server-weather
    ```
 
 2. **Create `.env` File based on `.env.example`**:
    ```dotenv
-   # Example environment variables
-   MCP_CALCULATOR_HOST="0.0.0.0"
-   MCP_CALCULATOR_PORT=8000
-   LOGGING_LEVEL="info"
+   # Required environment variables
+   WEATHER_API_KEY="your_openweathermap_api_key"
+   
+   # Optional environment variables
+   WEATHER_TIMEOUT_SECONDS=10
+   WEATHER_ENABLE_CACHING=true
+   WEATHER_CACHE_TTL_SECONDS=300
    ```
 
 3. **Install Dependencies**:
    ```bash
-   uv sync .
+   # Using UV (recommended)
+   uv sync
+   
+   # Or install for development
+   uv sync --group dev
    ```
 
 ## Running the Server
@@ -52,28 +58,45 @@ This template demonstrates how to create a microservice that exposes functionali
 
 ```bash
 # Basic run
-python -m mcp_server_calculator
+uv run python -m mcp_server_weather
 
-# Custom port and host
-python -m mcp_server_calculator --host 0.0.0.0 --port 8000
+# Or with custom port and host
+uv run python -m mcp_server_weather --port 8000 --reload
 ```
 
 ### Using Docker
 
 ```bash
 # Build the image
-docker build -t mcp-server-calculator .
+docker build -t mcp-server-weather .
 
 # Run the container
-docker run --rm -it -p 8000:8000 --env-file .env mcp-server-calculator
+docker run --rm -it -p 8000:8000 --env-file .env mcp-server-weather
+```
+
+## Testing
+
+Run the test suite using UV:
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+
+# Run specific test files
+uv run pytest tests/test_module.py tests/test_server.py
+
+# Run with coverage
+uv run pytest --cov=mcp_server_weather
 ```
 
 ## Example Client
-When server startup is completed, any MCP client
-can utilize connection to it
 
+When server startup is completed, any MCP client can utilize connection to it.
 
-This example shows how to use the calculator service with a LangGraph ReAct agent:
+This example shows how to use the weather service with a LangGraph ReAct agent:
 
 ```python
 import os
@@ -93,7 +116,7 @@ async def main():
     # Connect to MCP server
     client = MultiServerMCPClient(
         {
-        "image-generation": {
+        "weather-service": {
             "url": "https://localhost:8000",
             "transport": "streamable_http",}
         }
@@ -109,27 +132,15 @@ async def main():
     # Use case 1: Create agent with tools
     agent = create_react_agent(model, tools)
 
-    # Example query using the calculator
+    # Example query using the weather service
     response = await agent.ainvoke({
         "messages": [{
             "role": "user",
-            "content": "What is 15% of 850, rounded to 2 decimal places?"
+            "content": "What's the current weather in London?"
         }]
     })
 
     print(response["messages"][-1].content)
-
-    # Use case 2: Run tool directly:
-
-
-    # !IMPORTANT
-    # Always set tool_call_id to some value: otherwise
-    # tool cool would not return any artifacts beyond text
-    # https://github.com/langchain-ai/langchain/issues/29874
-    result: ToolMessage = await tool.arun(parameters,
-                                            response_format='content_and_artifact',
-                                            tool_call_id=uuid.uuid4())
-    print("Tool result:", result)
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -138,17 +149,23 @@ if __name__ == "__main__":
 ## Project Structure
 
 ```
-mcp-server-template/
+mcp-server-weather/
 ├── src/
-│   └── mcp_server_calculator/
-        └── calculator/ # Contains all the business logic
+│   └── mcp_server_weather/
+        └── weather/ # Contains all the business logic
             ├── __init__.py # Exposes all needed functionality to server.py
             ├── config.py # Contains module env settings, custom Error classes
+            ├── models.py # Data models for weather information
             ├── module.py # Business module core logic
 │       ├── __init__.py
 │       ├── __main__.py # Contains uvicorn server setup logic
 │       ├── logging_config.py # Contains shared logging configuration
 │       ├── server.py # Contains tool schemas/definitions, sets MCP server up
+├── tests/
+│   ├── conftest.py # Common test fixtures
+│   ├── test_module.py # Tests for the weather client
+│   ├── test_retry_logic.py # Tests for retry mechanism
+│   └── test_server.py # Tests for MCP server
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile
