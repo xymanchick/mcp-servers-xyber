@@ -85,13 +85,36 @@ mcp_server = FastMCP("weather-server", lifespan=app_lifespan)
 # --- Tool Definitions --- #
 # Feel free to add more tools here!
 
-async def _get_weather_impl(
+@mcp_server.tool()
+async def get_weather(
     ctx: Context,
-    latitude: str,
-    longitude: str, 
-    units: Literal['metric', 'imperial'] | None = None,
+    latitude: Annotated[
+        str, Field(description="Location latitude")
+    ],
+    longitude: Annotated[
+        str, Field(description="Location longitude")
+    ], 
+    units: Annotated[
+        Literal['metric', 'imperial'] | None,
+        Field(
+            default=None,
+            description="Unit system (metric or imperial, defaults to configuration)"
+        )
+    ] = None,
 ) -> dict[str, str]:
-    """Implementation of get_weather tool logic."""
+    """Get current weather data for a location.
+    
+    Args:
+        latitude: Location latitude 
+        longitude: Location longitude
+        units: Unit system (metric or imperial, defaults to configuration)
+        
+    Returns:
+        Dictionary with weather state, temperature, and humidity
+        
+    Raises:
+        ToolError: If weather retrieval fails
+    """
     weather_client = ctx.request_context.lifespan_context["weather_client"]
 
     try:
@@ -125,35 +148,3 @@ async def _get_weather_impl(
         raise ToolError(
             "An unexpected error occurred processing weather request"
         ) from e
-
-@mcp_server.tool()
-async def get_weather(
-    ctx: Context,
-    latitude: Annotated[
-        str, Field(description="Location latitude")
-    ],
-    longitude: Annotated[
-        str, Field(description="Location longitude")
-    ], 
-    units: Annotated[
-        Literal['metric', 'imperial'] | None,
-        Field(
-            default=None,
-            description="Unit system (metric or imperial, defaults to configuration)"
-        )
-    ] = None,
-) -> dict[str, str]:
-    """Get current weather data for a location.
-    
-    Args:
-        latitude: Location latitude 
-        longitude: Location longitude
-        units: Unit system (metric or imperial, defaults to configuration)
-        
-    Returns:
-        Dictionary with weather state, temperature, and humidity
-        
-    Raises:
-        ToolError: If weather retrieval fails
-    """
-    return await _get_weather_impl(ctx, latitude, longitude, units)
