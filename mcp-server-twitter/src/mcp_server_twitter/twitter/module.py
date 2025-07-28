@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import io
+import os
 import logging
 import ssl
 
@@ -244,8 +245,8 @@ class AsyncTwitterClient:
 
     @retry_async_wrapper
     async def get_trends(
-        self, countries: List[str], max_trends: int = 50
-    ) -> Dict[str, List[str]]:
+        self, countries: list[str], max_trends: int = 50
+    ) -> dict[str, list[str]]:
         """
         Retrieve trending topics for each provided WOEID.
 
@@ -258,7 +259,7 @@ class AsyncTwitterClient:
             If an error occurs for a WOEID, the list contains a single error string.
 
         """
-        trends_result: Dict[str, List[str]] = {}
+        trends_result: dict[str, list[str]] = {}
         woeid_by_country = {
             "Worldwide": 1,
             "Algeria": 23424740,
@@ -365,7 +366,7 @@ class AsyncTwitterClient:
         return trends_result
 
     @retry_async_wrapper
-    async def search_hashtag(self, hashtag: str, max_results: int = 10) -> List[str]:
+    async def search_hashtag(self, hashtag: str, max_results: int = 10) -> list[str]:
         """
         Search recent tweets containing a specific hashtag and return their texts,
         ordered by popularity (likes + retweets).
