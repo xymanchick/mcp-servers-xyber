@@ -13,7 +13,7 @@ from mcp_server_deepresearcher.deepresearcher.utils import (
     setup_spare_llm, 
     load_mcp_servers_config
 )
-from mcp_server_deepresearcher.deepresearcher.config import LLM_Config, SearchMCP_Config
+from mcp_server_deepresearcher.deepresearcher.config import SearchMCP_Config, LLM_Config
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
     """Manage server startup/shutdown. Initializes the Deep Researcher agent."""
     logger.info("Lifespan: Initializing Deep Researcher agent...")
     
+    agent = None  # Initialize agent as None
     try:
         # Load configurations
         llm_config = LLM_Config()
@@ -41,22 +42,32 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
             mcp_arxiv_url=search_mcp_config.MCP_ARXIV_URL
         )
         
+        # --- FIX: REMOVED THE 'async with' CONTEXT MANAGER ---
+        # The library was updated and this is no longer supported.
+        # We now create the client and use it directly as the error message suggests.
+        
         client = MultiServerMCPClient(mcp_servers_config)
+        
+        logger.info("Connecting to dependent MCPs to fetch tools...")
         mcp_tools = await client.get_tools()
-        logger.info(f"Fetched {len(mcp_tools)} tools for the agent.")
+        logger.info(f"Successfully fetched {len(mcp_tools)} tools for the agent to use.")
 
         # Instantiate the DeepResearcher agent
         agent = DeepResearcher(llm_with_fallbacks, tools=mcp_tools)
         logger.info("Deep Researcher agent initialized successfully.")
 
+        # --- END OF FIX ---
+
+        # Yield the agent to the server context
         yield {"deep_researcher_agent": agent}
-    
+
     except Exception as startup_err:
         logger.error(f"FATAL: Unexpected error during lifespan initialization: {startup_err}", exc_info=True)
+        # Re-raise the error to prevent the server from starting in a bad state
         raise startup_err
     
     finally:
-        logger.info("Lifespan: Shutdown cleanup completed")
+        logger.info("Lifespan: Shutdown cleanup completed.")
 
 # --- MCP Server Initialization --- #
 mcp_server = FastMCP(
@@ -76,20 +87,16 @@ async def deep_research(
     agent = ctx.request_context.lifespan_context.get("deep_researcher_agent")
 
     if not agent:
-        raise ToolError("Deep Researcher agent is not available.")
+        raise ToolError("Deep Researcher agent is not available. The server may have failed to initialize properly.")
 
     try:
-        # Set up the configuration for the LangGraph invocation
         config = {"configurable": {"max_web_research_loops": max_web_research_loops}}
-        
-        # Invoke the agent's graph
         result_dict = await agent.graph.ainvoke({"research_topic": research_topic}, config=config)
         
-        # Return the final report as a JSON string
         final_report = json.dumps(result_dict.get('running_summary', {}), indent=2)
         logger.info("Successfully completed deep research.")
         return final_report
 
     except Exception as e:
         logger.error(f"An unexpected error occurred during deep research: {e}", exc_info=True)
-        raise ToolError(f"An unexpected error occurred: {e}") from e
+        raise ToolError(f"An unexpected error occurred during research: {e}") from e
