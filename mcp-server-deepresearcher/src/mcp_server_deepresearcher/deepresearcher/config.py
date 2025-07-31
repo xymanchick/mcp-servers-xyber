@@ -20,3 +20,4 @@ class SearchMCP_Config(BaseModel):
     MCP_TAVILY_URL: str = os.getenv("MCP_TAVILY_URL")
     MCP_ARXIV_URL: str = os.getenv("MCP_ARXIV_URL")
     APIFY_TOKEN: str = os.getenv("APIFY_TOKEN")
+    

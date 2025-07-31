@@ -2,7 +2,7 @@ from langchain_together import ChatTogether
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_mistralai.chat_models import ChatMistralAI
 from typing import Dict, Any, Optional, List
-from mcp_server_deep_researcher.deep_researcher.config import LLM_Config
+from mcp_server_deepresearcher.deepresearcher.config import LLM_Config
 import re
 import logging
 
