@@ -61,7 +61,6 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
 # --- MCP Server Initialization --- #
 mcp_server = FastMCP(
     name="deep_researcher",
-    description="An MCP server that performs in-depth research on a given topic.",
     lifespan=app_lifespan
 )
 

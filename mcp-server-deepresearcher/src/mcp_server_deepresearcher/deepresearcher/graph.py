@@ -7,6 +7,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import START, END, StateGraph
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.tools import Tool, StructuredTool
+from typing import List, Union
 
 
 from mcp_server_deepresearcher.deepresearcher.state import SummaryState, SummaryStateInput, SummaryStateOutput
