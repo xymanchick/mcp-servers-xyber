@@ -1,0 +1,42 @@
+[project]
+name = "mcp-server-deep-researcher"
+version = "0.1.0"
+description = "MCP Server for performing deep research using a LangGraph-based agent."
+authors = [
+    { name = "XyAgent", email = "agent@xyber.inc" },
+]
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    # MCP Server Dependencies
+    "mcp>=1.8.0,<2.0.0",
+    "fastmcp>=2.3.4",
+    "fastapi>=0.115.12",
+    "uvicorn[standard]",
+    "pydantic-settings>=2.0",
+    
+    # Deep Researcher Core Dependencies
+    "langgraph>=0.2.55",
+    "langchain-community>=0.3.9",
+    "tavily-python>=0.5.0",
+    "langchain-ollama>=0.2.1",
+    "duckduckgo-search>=7.3.0",
+    "langchain-openai>=0.1.1",
+    "openai>=1.12.0",
+    "langchain_openai>=0.3.9",
+    "httpx>=0.28.1",
+    "markdownify>=0.11.0",
+    "python-dotenv==1.0.1",
+    "langchain-together",
+    "langchain-google-genai",
+    "langchain-mistralai",
+    "langchain-mcp-adapters"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_server_deep_researcher"]
