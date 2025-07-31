@@ -202,10 +202,8 @@ def load_mcp_servers_config(
     try:
         if mcp_telegram_url and telegram_token and telegram_channel:
             mcp_servers_config["telegram"] = {
-                "name": "telegram",
                 "url": mcp_telegram_url,
                 "transport": "streamable_http",
-                "description": "MCP server for Telegram messaging",
                 "headers": {
                     "X-Telegram-Token": telegram_token,
                     "X-Telegram-Channel": telegram_channel
@@ -221,10 +219,8 @@ def load_mcp_servers_config(
     try:
         if mcp_youtube_url and mcp_youtube_url != "":
             mcp_servers_config["youtube"] = {
-                "name": "youtube", 
                 "url": mcp_youtube_url,
-                "transport": "streamable_http",
-                "description": "MCP server for YouTube video search and transcripts"
+                "transport": "streamable_http"
             }
             logger.info("YouTube MCP server configured")
         else:
@@ -236,10 +232,8 @@ def load_mcp_servers_config(
     try:
         if mcp_tavily_url and mcp_tavily_url != "":
             mcp_servers_config["tavily"] = {
-                "name": "tavily",
                 "url": mcp_tavily_url,
-                "transport": "streamable_http", 
-                "description": "MCP server for Tavily web search"
+                "transport": "streamable_http"
             }
             logger.info("Tavily MCP server configured")
         else:
@@ -251,10 +245,8 @@ def load_mcp_servers_config(
     try:
         if mcp_arxiv_url and mcp_arxiv_url != "":
             mcp_servers_config["arxiv"] = {
-                "name": "arxiv",
                 "url": mcp_arxiv_url,
-                "transport": "streamable_http",
-                "description": "MCP server for searching arXiv papers"
+                "transport": "streamable_http"
             }
             logger.info("Arxiv MCP server configured")
         else:
@@ -266,10 +258,8 @@ def load_mcp_servers_config(
     try:
         if mcp_twitter_url and mcp_twitter_url != "":
             mcp_servers_config["twitter"] = {
-                "name": "twitter",
                 "url": mcp_twitter_url,
-                "transport": "streamable_http",
-                "description": "MCP server for Twitter integration"
+                "transport": "streamable_http"
             }
             logger.info("Twitter MCP server configured")
         else:

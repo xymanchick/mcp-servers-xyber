@@ -41,15 +41,15 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
             mcp_arxiv_url=search_mcp_config.MCP_ARXIV_URL
         )
         
-        async with MultiServerMCPClient(mcp_servers_config) as client:
-            mcp_tools = await client.get_tools()
-            logger.info(f"Fetched {len(mcp_tools)} tools for the agent.")
+        client = MultiServerMCPClient(mcp_servers_config)
+        mcp_tools = await client.get_tools()
+        logger.info(f"Fetched {len(mcp_tools)} tools for the agent.")
 
-            # Instantiate the DeepResearcher agent
-            agent = DeepResearcher(llm_with_fallbacks, tools=mcp_tools)
-            logger.info("Deep Researcher agent initialized successfully.")
+        # Instantiate the DeepResearcher agent
+        agent = DeepResearcher(llm_with_fallbacks, tools=mcp_tools)
+        logger.info("Deep Researcher agent initialized successfully.")
 
-            yield {"deep_researcher_agent": agent}
+        yield {"deep_researcher_agent": agent}
     
     except Exception as startup_err:
         logger.error(f"FATAL: Unexpected error during lifespan initialization: {startup_err}", exc_info=True)

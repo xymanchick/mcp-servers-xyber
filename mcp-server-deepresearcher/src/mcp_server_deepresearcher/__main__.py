@@ -54,7 +54,7 @@ if __name__ == "__main__":
     logger.info(f"Starting Deep Researcher MCP server on {args.host}:{args.port}")
 
     uvicorn.run(
-        "mcp_server_deep_researcher.__main__:create_app",
+        "mcp_server_deepresearcher.__main__:create_app",
         host=args.host,
         port=args.port,
         reload=args.reload,

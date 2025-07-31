@@ -51,4 +51,4 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8000
 
-CMD ["python", "-m", "mcp_server_deepresearcher", "--port", "$PORT"]
+CMD python -m mcp_server_deepresearcher --host 0.0.0.0 --port ${PORT:-8000}
