@@ -3,13 +3,33 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
+from pydantic import ValidationError as PydanticValidationError
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 
+
 from .twitter import AsyncTwitterClient, get_twitter_client
 
+from .schemas import (
+    CreateTweetRequest,
+    GetUserTweetsRequest,
+    FollowUserRequest,
+    RetweetTweetRequest,
+    GetTrendsRequest,
+    SearchHashtagRequest,
+)
+
 logger = logging.getLogger(__name__)
+
+
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        super().__init__(message, code=code)
+        self.status_code = 400
 
 
 # --- Lifespan Management --- #
@@ -52,34 +72,18 @@ async def create_tweet(
     in_reply_to_tweet_id: str | None = None,
     quote_tweet_id: str | None = None,
 ) -> str:
-    """
-    Create a new tweet with optional media, polls, replies or quotes.
-
-    Args:
-        text: The text content of the tweet. Will be truncated to the configured maximum tweet length if necessary.
-        image_content_str: A Base64-encoded string of image data to attach as media. Optional, pass null for no image. Requires media uploads to be enabled in config.
-        poll_options: A list of 2 to 4 options to include in a poll. Optional, pass null for no poll.
-        poll_duration: Duration of the poll in minutes (must be between 5 and 10080). Optional, pass null for no poll.
-        in_reply_to_tweet_id: The ID of an existing tweet to reply to. Optional, pass null for no reply. Note: Your text must include "@username" of the tweet's author.
-        quote_tweet_id: The ID of an existing tweet to quote. Optional, pass null for no quote. The quoted tweet will appear inline, with your text shown above it.
-
-    Returns:
-        Success message with tweet ID or error message.
-
-    """
     client = ctx.request_context.lifespan_context["twitter_client"]
 
     try:
-        # Validate inputs
-        if poll_options and (len(poll_options) < 2 or len(poll_options) > 4):
-            raise ToolError("Poll must have 2-4 options")
-
-        if (
-            poll_options
-            and poll_duration
-            and (poll_duration < 5 or poll_duration > 10080)
-        ):
-            raise ToolError("Poll duration must be 5-10080 minutes")
+        # Validate input
+        CreateTweetRequest(
+            text=text,
+            image_content_str=image_content_str,
+            poll_options=poll_options,
+            poll_duration=poll_duration,
+            in_reply_to_tweet_id=in_reply_to_tweet_id,
+            quote_tweet_id=quote_tweet_id,
+        )
 
         # Create tweet
         result = await client.create_tweet(
@@ -97,6 +101,12 @@ async def create_tweet(
         else:
             return f"Tweet created successfully with ID: {result}"
 
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
     except ToolError:
         raise
     except Exception as e:
@@ -119,20 +129,15 @@ async def create_tweet(
 async def get_user_tweets(
     ctx: Context, user_ids: list[str], max_results: int = 10
 ) -> str:
-    """
-    Retrieve recent tweets posted by a list of users.
-
-    Args:
-        user_ids: The IDs of the users whose tweets to fetch.
-        max_results: The maximum number of tweets to return per user. Must be between 1 and 100.
-
-    Returns:
-        JSON string mapping user IDs to lists of tweet texts or error messages.
-
-    """
     client = ctx.request_context.lifespan_context["twitter_client"]
 
     try:
+        # Validate input
+        GetUserTweetsRequest(
+            user_ids=user_ids,
+            max_results=max_results,
+        )
+
         tweets_dict: dict[str, list[str]] = {}
 
         for uid in user_ids:
@@ -169,6 +174,12 @@ async def get_user_tweets(
 
         return json.dumps(tweets_dict, ensure_ascii=False, indent=2)
 
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
     except Exception as e:
         logger.error(f"Unexpected error in get_user_tweets: {str(e)}", exc_info=True)
         raise ToolError(f"Error retrieving tweets: {str(e)}")
@@ -176,22 +187,22 @@ async def get_user_tweets(
 
 @mcp_server.tool()
 async def follow_user(ctx: Context, user_id: str) -> str:
-    """
-    Follow another Twitter user by their user ID.
-
-    Args:
-        user_id: The ID of the user to follow.
-
-    Returns:
-        Success message confirming the follow.
-
-    """
     client = ctx.request_context.lifespan_context["twitter_client"]
 
     try:
+        # Validate input
+        FollowUserRequest(user_id=user_id)
+
+        # Follow another Twitter user by their user ID.
         response = await client.follow_user(user_id)
         return f"Following user: {response}"
 
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
     except Exception as follow_error:
         error_msg = str(follow_error)
         if "404" in error_msg or "Not Found" in error_msg:
@@ -210,22 +221,22 @@ async def follow_user(ctx: Context, user_id: str) -> str:
 
 @mcp_server.tool()
 async def retweet_tweet(ctx: Context, tweet_id: str) -> str:
-    """
-    Retweet an existing tweet on behalf of the authenticated user.
-
-    Args:
-        tweet_id: The ID of the tweet to retweet.
-
-    Returns:
-        Success message confirming the retweet.
-
-    """
     client = ctx.request_context.lifespan_context["twitter_client"]
 
     try:
+        # Validate input
+        RetweetTweetRequest(tweet_id=tweet_id)
+
+        # Retweet an existing tweet on behalf of the authenticated user.
         response = await client.retweet_tweet(tweet_id)
         return f"Retweeting tweet: {response}"
 
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
     except Exception as retweet_error:
         error_msg = str(retweet_error)
         if "404" in error_msg or "Not Found" in error_msg:
@@ -244,23 +255,24 @@ async def retweet_tweet(ctx: Context, tweet_id: str) -> str:
 
 @mcp_server.tool()
 async def get_trends(ctx: Context, countries: list[str], max_trends: int = 50) -> str:
-    """
-    Retrieve trending topics for each provided WOEID.
-
-    Args:
-        countries: List of countries.
-        max_trends: Maximum number of trends to return per WOEID (1-50).
-
-    Returns:
-        JSON string mapping each WOEID to a list of trending topic names
-        or an error message.
-
-    """
     client = ctx.request_context.lifespan_context["twitter_client"]
 
     try:
+        # Validate input
+        GetTrendsRequest(
+            countries=countries,
+            max_trends=max_trends,
+        )
+
+        # Retrieve trending topics for each provided WOEID.
         trends = await client.get_trends(countries=countries, max_trends=max_trends)
         return json.dumps(trends, ensure_ascii=False, indent=2)
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
     except Exception as e:
         logger.error(f"Error retrieving trends: {str(e)}", exc_info=True)
         raise ToolError(f"Error retrieving trends: {str(e)}")
@@ -268,22 +280,24 @@ async def get_trends(ctx: Context, countries: list[str], max_trends: int = 50) -
 
 @mcp_server.tool()
 async def search_hashtag(ctx: Context, hashtag: str, max_results: int = 10) -> str:
-    """
-    Search recent tweets containing a hashtag and return the most popular ones.
-
-    Args:
-        hashtag: Hashtag to search for (with or without the leading '#').
-        max_results: Maximum number of tweets to return (10-100).
-
-    Returns:
-        JSON string list with the texts of the most popular tweets.
-
-    """
     client = ctx.request_context.lifespan_context["twitter_client"]
 
     try:
+        # Validate input
+        SearchHashtagRequest(
+            hashtag=hashtag,
+            max_results=max_results,
+        )
+
+        # Search recent tweets containing a hashtag and return the most popular ones.
         tweets = await client.search_hashtag(hashtag=hashtag, max_results=max_results)
         return json.dumps(tweets, ensure_ascii=False, indent=2)
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
     except Exception as e:
         logger.error(f"Error searching hashtag: {str(e)}", exc_info=True)
         raise ToolError(f"Error searching hashtag: {str(e)}")
