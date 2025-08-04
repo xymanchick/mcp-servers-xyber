@@ -1,7 +1,9 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Optional
+
+from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -16,6 +18,36 @@ from mcp_server_arxiv.arxiv import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        super().__init__(message, code=code)
+        self.status_code = 400
+
+# --- Input Schema Definition --- #
+
+class ArxivSearchRequest(BaseModel):
+    """Input schema for the arxiv_search tool."""
+
+    query: str = Field(
+        ..., max_length=512, description="The search query string for ArXiv"
+    )
+    max_results: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=50,
+        description="Optional override for the maximum number of results to fetch and process (1-50)",
+    )
+    max_text_length: Optional[int] = Field(
+        default=None,
+        ge=100,
+        description="Optional max characters of full text per paper (minimum 100 characters)",
+    )
+
 
 
 # --- Lifespan Management --- #
@@ -66,6 +98,14 @@ async def arxiv_search(
     arxiv_service = ctx.request_context.lifespan_context["arxiv_service"]
 
     try:
+        
+        # Validate input parameters
+        ArxivSearchRequest(
+            query=query,
+            max_results=max_results,
+            max_text_length=max_text_length,
+        )
+        
         # Execute core logic
         search_results: list[ArxivSearchResult] = await arxiv_service.search(
             query=query,
@@ -94,6 +134,12 @@ async def arxiv_search(
     except ValueError as val_err:
         logger.warning(f"Input validation error: {val_err}")
         raise ToolError(f"Input validation error: {val_err}") from val_err
+    
+    except PydanticValidationError as ve:
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
 
     except ArxivApiError as api_err:
         logger.error(f"ArXiv API error: {api_err}", exc_info=True)
