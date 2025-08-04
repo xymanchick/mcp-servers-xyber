@@ -4,8 +4,9 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-
+from fastapi.middleware.cors import CORSMiddleware
 from mcp_server_qdrant.logging_config import configure_logging, logging_level
+from mcp_server_qdrant.middleware import PayloadSizeMiddleware
 from mcp_server_qdrant.server import mcp_server
 
 configure_logging()
@@ -26,6 +27,18 @@ def create_app() -> FastAPI:
         version="1.0.0",
         lifespan=mcp_app.router.lifespan_context,
     )
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=['*'],
+        allow_credentials=True,
+        allow_methods=['*'],
+        allow_headers=['*'],
+    )
+
+    # Add custom middleware for payload size limit
+    app.add_middleware(PayloadSizeMiddleware)
 
     # Mount MCP server
     app.mount("/mcp-server", mcp_app)

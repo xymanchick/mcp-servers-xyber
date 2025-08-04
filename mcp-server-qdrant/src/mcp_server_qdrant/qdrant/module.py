@@ -4,10 +4,6 @@ from collections.abc import Sequence
 from functools import lru_cache
 from typing import Any
 
-from pydantic import BaseModel
-from qdrant_client import AsyncQdrantClient, models
-from qdrant_client.models import CollectionInfo
-
 from mcp_server_qdrant.qdrant.config import (
     EmbeddingProviderSettings,
     PayloadIndexConfig,
@@ -17,6 +13,9 @@ from mcp_server_qdrant.qdrant.config import (
 )
 from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
 from mcp_server_qdrant.qdrant.embeddings.factory import create_embedding_provider
+from pydantic import BaseModel
+from qdrant_client import AsyncQdrantClient, models
+from qdrant_client.models import CollectionInfo
 
 logger = logging.getLogger(__name__)
 
