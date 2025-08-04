@@ -4,6 +4,12 @@
 
 This MCP server provides an agent-based deep research capability using LangGraph. It integrates with other MCP services like Tavily for web search and Arxiv for academic papers to perform comprehensive research on given topics.
 
+## Graph Visualization
+
+![Deep Researcher Graph](./deep_researcher_graph.png)
+
+This graph illustrates the workflow of the research process, including query generation, web research, summarization, reflection, and finalization.
+
 ## MCP Tools
 
 1. `deep_research`
@@ -233,11 +239,7 @@ If you prefer to run the server locally instead of using Docker:
    uv run python -m mcp_server_deepresearcher
    ```
 
-## Graph Visualization
 
-![Deep Researcher Graph](./deep_researcher_graph.png)
-
-This graph illustrates the workflow of the research process, including query generation, web research, summarization, reflection, and finalization.
 
 ## License
 
