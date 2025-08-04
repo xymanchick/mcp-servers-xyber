@@ -20,10 +20,12 @@ logger = logging.getLogger(__name__)
 # --- Lifespan Management --- #
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
-    """Manage server startup/shutdown. Initializes the Deep Researcher agent."""
-    logger.info("Lifespan: Initializing Deep Researcher agent...")
+    """
+    Manage server startup/shutdown.
+    Initializes shared resources like LLMs and MCP tools once at startup.
+    """
+    logger.info("Lifespan: Initializing shared resources...")
     
-    agent = None  # Initialize agent as None
     try:
         # Load configurations
         llm_config = LLM_Config()
@@ -41,25 +43,22 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
             mcp_tavily_url=search_mcp_config.MCP_TAVILY_URL,
             mcp_arxiv_url=search_mcp_config.MCP_ARXIV_URL
         )
-
-
+        
         client = MultiServerMCPClient(mcp_servers_config)
         
         logger.info("Connecting to dependent MCPs to fetch tools...")
         mcp_tools = await client.get_tools()
         logger.info(f"Successfully fetched {len(mcp_tools)} tools for the agent to use.")
 
-        # Instantiate the DeepResearcher agent
-        agent = DeepResearcher(llm_with_fallbacks, tools=mcp_tools)
-        logger.info("Deep Researcher agent initialized successfully.")
-
- 
-
-        # Yield the agent to the server context
-        yield {"deep_researcher_agent": agent}
+        # Yield shared resources to the server context
+        yield {
+            "llm": llm_with_fallbacks,
+            "mcp_tools": mcp_tools,
+        }
 
     except Exception as startup_err:
         logger.error(f"FATAL: Unexpected error during lifespan initialization: {startup_err}", exc_info=True)
+        # Re-raise the error to prevent the server from starting in a bad state
         raise startup_err
     
     finally:
@@ -80,10 +79,18 @@ async def deep_research(
 ) -> str:
     """Performs deep research on a topic and returns a structured report."""
     logger.info(f"Received request for deep_research on topic: '{research_topic}'")
-    agent = ctx.request_context.lifespan_context.get("deep_researcher_agent")
+    
+    # Retrieve shared resources from lifespan context
+    lifespan_ctx = ctx.request_context.lifespan_context
+    llm = lifespan_ctx.get("llm")
+    mcp_tools = lifespan_ctx.get("mcp_tools")
 
-    if not agent:
-        raise ToolError("Deep Researcher agent is not available. The server may have failed to initialize properly.")
+    if not llm or not mcp_tools:
+        raise ToolError("Shared resources (LLM, tools) not available. The server may have failed to initialize properly.")
+
+    # Create a new, stateless agent for each request
+    agent = DeepResearcher(llm, tools=mcp_tools)
+    logger.info("Created new stateless agent for this request.")
 
     try:
         config = {"configurable": {"max_web_research_loops": max_web_research_loops}}
