@@ -10,11 +10,16 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
+from pydantic import ValidationError as PydanticValidationError
 
 from qdrant_client.models import CollectionInfo, ScoredPoint
 
 from mcp_server_qdrant.qdrant import Entry, QdrantConnector, get_qdrant_connector
+from mcp_server_qdrant.schemas import (
+    QdrantStoreRequest,
+    QdrantFindRequest,
+    QdrantGetCollectionRequest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,35 +32,8 @@ class ValidationError(ToolError):
         self.status_code = 400
 
 
-# --- Tool Input/Output Schemas --- #
-
-
-class QdrantStoreRequest(BaseModel):
-    """Input schema for the qdrant-store tool."""
-
-    information: str = Field(..., description="The information to store.")
-    collection_name: str = Field(
-        ..., description="The name of the collection to store the information in."
-    )
-    metadata: dict[str, Any] | None = Field(
-        None, description="JSON metadata to store with the information, optional."
-    )
-
-
-class QdrantFindRequest(BaseModel):
-    """Input schema for the qdrant-find tool."""
-
-    query: str = Field(..., description="The query to use for the search.")
-    collection_name: str = Field(
-        ..., description="The name of the collection to search in."
-    )
-    search_limit: int = Field(
-        10, description="The maximum number of results to return."
-    )
-
 
 # --- Tool Name Enums --- #
-
 
 class ToolNames(StrEnum):
     QDRANT_STORE = "qdrant-store"
@@ -63,7 +41,6 @@ class ToolNames(StrEnum):
 
 
 # --- Lifespan Management for MCP Server --- #
-
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
@@ -197,11 +174,25 @@ async def qdrant_get_collection_info(
     qdrant_connector = ctx.request_context.lifespan_context["qdrant_connector"]
 
     try:
+        
+        # Validate input
+        QdrantGetCollectionRequest(
+            collection_name=collection_name,
+        )
+        
         collection_details = await qdrant_connector.get_collection_details(
             collection_name
         )
         logger.info(f"Successfully retrieved details for collection {collection_name}")
         return collection_details
+    
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
+    
     except Exception as e:
         logger.error(
             f"Error getting info for collection '{collection_name}': {e}", exc_info=True
