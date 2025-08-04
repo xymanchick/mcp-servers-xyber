@@ -1,4 +1,5 @@
-ValidationError as PydanticValidationError
+from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
+
 
 
 
@@ -16,10 +17,9 @@ class ValidationError(ToolError):
  # Validate input payload against the request schema
         payload = ArxivSearchRequest(**payload)
 
-
-
-
+    
     except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
         error_details = "; ".join(
             f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
         )

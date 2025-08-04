@@ -10,12 +10,22 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
+
 from qdrant_client.models import CollectionInfo, ScoredPoint
 
 from mcp_server_qdrant.qdrant import Entry, QdrantConnector, get_qdrant_connector
 
 logger = logging.getLogger(__name__)
+
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        super().__init__(message, code=code)
+        self.status_code = 400
+
 
 # --- Tool Input/Output Schemas --- #
 
@@ -98,6 +108,14 @@ async def qdrant_store(
     qdrant_connector = ctx.request_context.lifespan_context["qdrant_connector"]
 
     try:
+        
+        # Validate input
+        QdrantStoreRequest(
+            information=information,
+            collection_name=collection_name,
+            metadata=metadata,
+        )
+        
         # Execute core logic
         entry = Entry(content=information, metadata=metadata)
         await qdrant_connector.store(entry, collection_name=collection_name)
@@ -105,6 +123,13 @@ async def qdrant_store(
         logger.info(f"Successfully stored information in collection {collection_name}")
         return f"Remembered: {information} in collection {collection_name}"
 
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
+    
     except Exception as e:
         logger.error(f"Error storing information: {e}", exc_info=True)
         raise ToolError(f"Error storing information: {e}") from e
@@ -127,6 +152,12 @@ async def qdrant_find(
     qdrant_connector = ctx.request_context.lifespan_context["qdrant_connector"]
 
     try:
+        # Validate input
+        QdrantFindRequest(
+            query=query,
+            collection_name=collection_name,
+            search_limit=search_limit,
+        )
         # Execute core logic
         search_results = await qdrant_connector.search(
             query, collection_name=collection_name, limit=search_limit, filters=filters
@@ -141,7 +172,13 @@ async def qdrant_find(
             f"Successfully searched Qdrant with {len(search_results.points)} results"
         )
         return search_results.points
-
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
+    
     except Exception as e:
         logger.error(f"Error searching Qdrant: {e}", exc_info=True)
         raise ToolError(f"Error searching Qdrant: {e}") from e
