@@ -5,7 +5,8 @@ from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import Field
+from pydantic import ValidationError as PydanticValidationError
+
 
 from mcp_server_imgen.google_client import (
     GoogleServiceError,
@@ -17,9 +18,17 @@ from mcp_server_imgen.utils import (
     _ImageGenerationService,
     get_image_generation_service,
 )
+from mcp_server_imgen.schemas import GenerateImageRequest
 
 logger = logging.getLogger(__name__)
 
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        super().__init__(message, code=code)
+        self.status_code = 400
 
 # --- Lifespan Management --- #
 @asynccontextmanager
@@ -62,48 +71,30 @@ mcp_server = FastMCP(name="imgen", lifespan=app_lifespan)
 @mcp_server.tool()
 async def generate_image(
     ctx: Context,
-    prompt: Annotated[
-        str,
-        Field(description="Text prompt describing the desired image", max_length=100),
-    ],
-    width: Annotated[
-        int,
-        Field(
-            512,
-            description="Image width in pixels (128-1024, divisible by 8)",
-            ge=128,
-            le=1024,
-            multiple_of=8,
-        ),
-    ] = 512,
-    height: Annotated[
-        int,
-        Field(
-            512,
-            description="Image height in pixels (128-1024, divisible by 8)",
-            ge=128,
-            le=1024,
-            multiple_of=8,
-        ),
-    ] = 512,
-    num_images: Annotated[
-        int, Field(1, description="Number of images to generate (1-4)", ge=1, le=4)
-    ] = 1,
-    seed: Annotated[
-        int | None, Field(None, description="Seed for reproducible generation")
-    ] = None,
-    guidance_scale: Annotated[
-        float,
-        Field(7.5, description="Prompt guidance scale (1.0-20.0)", ge=1.0, le=20.0),
-    ] = 7.5,
-    num_inference_steps: Annotated[
-        int, Field(50, description="Number of denoising steps (10-100)", ge=10, le=100)
-    ] = 50,
+    prompt: str,
+    width: int,
+    height: int,
+    num_images: int,
+    seed: int,
+    guidance_scale: float,
+    num_inference_steps: int,
 ) -> str:
     """Generate images from text using Google Vertex AI Stable Diffusion."""
     image_generator = ctx.request_context.lifespan_context["image_generator"]
 
     try:
+        
+        # Validate input parameters
+        GenerateImageRequest(
+            prompt=prompt,
+            width=width,
+            height=height,
+            num_images=num_images,
+            seed=seed,
+            guidance_scale=guidance_scale,
+            num_inference_steps=num_inference_steps,
+        )
+        
         # Generate images
         image_base64_list = await image_generator.generate_images(
             prompt=prompt,
@@ -117,6 +108,13 @@ async def generate_image(
 
         logger.info(f"Successfully generated image for prompt: '{prompt}'")
         return image_base64_list[0]
+    
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
 
     except (GoogleServiceError, ImageGenerationServiceError) as service_err:
         logger.error(f"Service error during image generation: {service_err}")
