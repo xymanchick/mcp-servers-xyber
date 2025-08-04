@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastmcp.exceptions import ToolError
 from fastmcp.server import FastMCP
+from mcp_server_youtube.middleware import PerformanceMetricsMiddleware, get_metrics_response
 from mcp_server_youtube.routes import router
 from mcp_server_youtube.youtube.models import YouTubeSearchRequest
 from mcp_server_youtube.youtube.models import YouTubeSearchResponse
@@ -70,6 +71,7 @@ app = FastAPI(
     - Search YouTube videos using various filters
     - Retrieve video transcripts in multiple languages
     - Get video metadata including thumbnails and descriptions
+    - Monitor performance metrics via /metrics endpoint
     """,
     version='1.0.0',
     contact={
@@ -82,6 +84,10 @@ app = FastAPI(
     }
 )
 
+# Add Performance Metrics Middleware (FIRST - to capture all requests)
+app.add_middleware(PerformanceMetricsMiddleware, include_query_params=True)
+logger.info('Performance metrics middleware added to FastAPI application')
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -91,6 +97,18 @@ app.add_middleware(
     allow_headers=['*'],
 )
 logger.debug('CORS middleware configured to allow all origins, methods, and headers')
+
+# Add metrics endpoint
+@app.get('/metrics')
+async def metrics():
+    """Prometheus metrics endpoint for monitoring and alerting."""
+    return get_metrics_response()
+
+# Add health check endpoint
+@app.get('/health')
+async def health():
+    """Health check endpoint."""
+    return {'status': 'healthy', 'service': 'youtube-mcp-server'}
 
 # Initialize MCP server
 mcp_server = FastMCP(

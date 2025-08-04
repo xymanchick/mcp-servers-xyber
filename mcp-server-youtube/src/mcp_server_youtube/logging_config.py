@@ -4,7 +4,7 @@ import os
 from logging.config import dictConfig
 
 """
-Configures logging for the YouTube MCP server with proper granularity.
+Configures logging for the YouTube MCP server with proper granularity and metrics correlation.
 
 Environment Variables:
 - LOG_LEVEL: Controls the overall logging verbosity (DEBUG, INFO, WARNING, ERROR)
@@ -15,6 +15,11 @@ Log Levels:
 - INFO: Lifecycle events (server start, successful operations, search results)
 - WARNING: Unexpected but recoverable situations (missing video IDs, fallback actions)
 - ERROR: Failures, exceptions, and unrecoverable errors
+
+Features:
+- Request correlation via request_id
+- Structured logging for metrics correlation
+- Performance metrics integration
 """
 
 # Support both LOG_LEVEL (preferred) and LOGGING_LEVEL (backward compatibility)
@@ -36,6 +41,10 @@ LOGGING_CONFIG = {
         },
         'detailed': {
             'format': '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'metrics_correlated': {
+            'format': '%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] - %(message)s',
             'datefmt': '%Y-%m-%d %H:%M:%S',
         }
     },
@@ -62,12 +71,26 @@ LOGGING_CONFIG = {
             'backupCount': 3,
             'level': 'ERROR',
         },
+        'metrics_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'metrics_correlated',
+            'filename': 'metrics_correlation.log',
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 3,
+            'level': 'INFO',
+        },
     },
     'loggers': {
         # YouTube MCP specific loggers
         'mcp_server_youtube': {
             'level': log_level,
             'handlers': ['console', 'file','error_file'],
+            'propagate': False,
+        },
+        # Performance metrics logger
+        'mcp_server_youtube.middleware.performance_metrics': {
+            'level': 'INFO',
+            'handlers': ['console', 'metrics_file'],
             'propagate': False,
         },
         # External library loggers with controlled verbosity
@@ -91,6 +114,12 @@ LOGGING_CONFIG = {
             'handlers': ['console', 'file'],
             'propagate': False,
         },
+        # Prometheus client (reduce noise)
+        'prometheus_client': {
+            'level': 'WARNING',
+            'handlers': ['console', 'file'],
+            'propagate': False,
+        },
     },
     'root': {
         'handlers': ['console', 'error_file'] if log_level in ['WARNING', 'ERROR'] else ['console', 'file'],
@@ -101,13 +130,15 @@ LOGGING_CONFIG = {
 
 def configure_logging():
     """
-    Apply logging configuration with proper granularity.
+    Apply logging configuration with proper granularity and metrics correlation.
     
-    This function sets up logging with different verbosity levels:
+    This function sets up logging with different verbosity levels and special handling
+    for metrics correlation:
     - DEBUG: Shows all internal operations, API calls, and detailed tracing
     - INFO: Shows normal operations, startup/shutdown, and search results
     - WARNING: Shows unexpected but recoverable situations
     - ERROR: Shows only failures and critical issues
+    - Metrics correlation: Special log formatting for request tracking
     """
     try:
         dictConfig(LOGGING_CONFIG)
@@ -116,6 +147,7 @@ def configure_logging():
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"Logging configured with level: {log_level}")
+        logger.info("Performance metrics correlation logging enabled")
         
         if log_level == 'DEBUG':
             logger.debug("Debug logging enabled - detailed internal operations will be logged")
