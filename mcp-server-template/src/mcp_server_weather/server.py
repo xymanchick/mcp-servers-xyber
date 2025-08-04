@@ -10,7 +10,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import Field
+from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
 
 from mcp_server_weather.weather import (
     WeatherClient,
@@ -21,6 +21,35 @@ from mcp_server_weather.weather import (
 )
 
 logger = logging.getLogger(__name__)
+
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        super().__init__(message, code=code)
+        self.status_code = 400
+        
+        
+# --- Input Validation Schemas --- #
+
+class LocationRequest(BaseModel):
+    """Input schema for location-based queries with unit preferences."""
+
+    latitude: str = Field(
+        ...,
+        regex=r"^-?\d{1,2}\.\d+$",
+        description="Location latitude as a string, e.g., '37.7749'. Format: decimal degrees with optional negative sign",
+    )
+    longitude: str = Field(
+        ...,
+        regex=r"^-?\d{1,3}\.\d+$",
+        description="Location longitude as a string, e.g., '-122.4194'. Format: decimal degrees with optional negative sign",
+    )
+    units: Literal["metric", "imperial"] | None = Field(
+        default=None,
+        description="Unit system for temperature and other measures: 'metric' or 'imperial'. Defaults to configuration.",
+    )
 
 
 # --- Lifespan Management for MCP Server --- #
@@ -88,19 +117,9 @@ mcp_server = FastMCP("weather-server", lifespan=app_lifespan)
 @mcp_server.tool()
 async def get_weather(
     ctx: Context,
-    latitude: Annotated[
-        str, Field(description="Location latitude")
-    ],
-    longitude: Annotated[
-        str, Field(description="Location longitude")
-    ], 
-    units: Annotated[
-        Literal['metric', 'imperial'] | None,
-        Field(
-            default=None,
-            description="Unit system (metric or imperial, defaults to configuration)"
-        )
-    ] = None,
+    latitude: str,
+    longitude: str, 
+    units: str | None = None,
 ) -> dict[str, str]:
     """Get current weather data for a location.
     
@@ -118,6 +137,13 @@ async def get_weather(
     weather_client = ctx.request_context.lifespan_context["weather_client"]
 
     try:
+        # Validate input payload against the request schema
+        LocationRequest(
+            latitude=latitude,
+            longitude=longitude,
+            units=units
+        )
+        
         # Get weather data from client
         weather_data = await weather_client.get_weather(
             latitude=latitude,
@@ -135,6 +161,13 @@ async def get_weather(
         logger.info(f"Successfully retrieved weather data: {result}")
         return result
 
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
+    
     except WeatherApiError as api_err:
         logger.error(f"Weather API error: {api_err}")
         raise ToolError(f"Weather API error: {api_err}") from api_err
