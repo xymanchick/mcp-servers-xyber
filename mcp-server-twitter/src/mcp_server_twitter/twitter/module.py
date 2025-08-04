@@ -19,6 +19,8 @@ from tenacity import (
 from tweepy import API, OAuth1UserHandler
 from tweepy.asynchronous import AsyncClient
 from tweepy.errors import TweepyException
+from typing import List, Dict
+
 
 logger = logging.getLogger(__name__)
 

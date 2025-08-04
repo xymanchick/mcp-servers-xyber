@@ -10,6 +10,7 @@ Create a new tweet with optional media, polls, replies or quotes.
 **Args:**
 - `text` (str): The text content of the tweet. Will be truncated to the configured maximum tweet length if necessary.
 - `image_content` (optional, str): A Base64-encoded string of image data to attach as media. Requires media uploads to be enabled in config.
+  **Note:** The decoded image must not exceed **5MB**. Otherwise, a `413 Payload Too Large` error will be returned.
 - `poll_options` (optional, list[str]): A list of 2 to 4 options to include in a poll.
 - `poll_duration` (optional, int): Duration of the poll in minutes (must be between 5 and 10080).
 - `in_reply_to_tweet_id` (optional, str): The ID of an existing tweet to reply to. Your text must include the author’s `@username`.
@@ -166,3 +167,31 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
+---
+
+## 🔒 Input Validation
+
+All tools in this MCP server validate their input arguments using [Pydantic](https://docs.pydantic.dev/). This ensures strict data integrity, type safety, and clear error reporting.
+
+If invalid input is received, the server returns:
+- `400 Bad Request` with a structured list of validation errors
+- `413 Payload Too Large`: The image_content_str exceeds 5MB (after decoding).
+- Each error includes the field name, type of error, and human-readable message
+
+### Example Validation Rules
+
+#### `create_tweet`
+| Field               | Type        | Constraints                            |
+|--------------------|-------------|----------------------------------------|
+| `text`             | `str`       | Required, 1–280 characters             |
+| `poll_options`     | `list[str]` | Optional, must contain 2–4 items       |
+| `poll_duration`    | `int`       | Optional, 5–10080 (minutes)            |
+
+#### `get_user_tweets`
+| Field         | Type         | Constraints             |
+|---------------|--------------|-------------------------|
+| `user_ids`    | `list[str]`  | Required, at least 1 ID |
+| `max_results` | `int`        | Optional, 1–100         |
+
+(And similar validation rules apply for other tools.)
