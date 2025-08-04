@@ -41,11 +41,8 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
             mcp_tavily_url=search_mcp_config.MCP_TAVILY_URL,
             mcp_arxiv_url=search_mcp_config.MCP_ARXIV_URL
         )
-        
-        # --- FIX: REMOVED THE 'async with' CONTEXT MANAGER ---
-        # The library was updated and this is no longer supported.
-        # We now create the client and use it directly as the error message suggests.
-        
+
+
         client = MultiServerMCPClient(mcp_servers_config)
         
         logger.info("Connecting to dependent MCPs to fetch tools...")
@@ -56,14 +53,13 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
         agent = DeepResearcher(llm_with_fallbacks, tools=mcp_tools)
         logger.info("Deep Researcher agent initialized successfully.")
 
-        # --- END OF FIX ---
+ 
 
         # Yield the agent to the server context
         yield {"deep_researcher_agent": agent}
 
     except Exception as startup_err:
         logger.error(f"FATAL: Unexpected error during lifespan initialization: {startup_err}", exc_info=True)
-        # Re-raise the error to prevent the server from starting in a bad state
         raise startup_err
     
     finally:
