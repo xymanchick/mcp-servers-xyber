@@ -30,8 +30,10 @@ class ValidationError(ToolError):
     """Custom exception for input validation failures."""
 
     def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
-        super().__init__(message, code=code)
+        self.message = message
+        self.code = code
         self.status_code = 400
+        super().__init__(message)
 
 # --- MCP Server Initialization (NO LIFESPAN) --- #
 # CHANGE: The lifespan is removed. The server is now stateless at startup.

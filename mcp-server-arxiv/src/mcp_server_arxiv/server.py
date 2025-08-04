@@ -20,19 +20,22 @@ from mcp_server_arxiv.arxiv import (
 logger = logging.getLogger(__name__)
 
 
+
 # --- Custom Exceptions --- #
 class ValidationError(ToolError):
     """Custom exception for input validation failures."""
 
     def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
-        super().__init__(message, code=code)
+        self.message = message
+        self.code = code
         self.status_code = 400
+        super().__init__(message)
 
 # --- Input Schema Definition --- #
 
 class ArxivSearchRequest(BaseModel):
     """Input schema for the arxiv_search tool."""
-
+    
     query: str = Field(
         ..., max_length=512, description="The search query string for ArXiv"
     )
@@ -131,15 +134,13 @@ async def arxiv_search(
 
         return formatted_response
 
-    except ValueError as val_err:
-        logger.warning(f"Input validation error: {val_err}")
-        raise ToolError(f"Input validation error: {val_err}") from val_err
     
     except PydanticValidationError as ve:
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
 
     except ArxivApiError as api_err:
         logger.error(f"ArXiv API error: {api_err}", exc_info=True)

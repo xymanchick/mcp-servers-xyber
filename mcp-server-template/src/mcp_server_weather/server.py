@@ -27,8 +27,10 @@ class ValidationError(ToolError):
     """Custom exception for input validation failures."""
 
     def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
-        super().__init__(message, code=code)
+        self.message = message
+        self.code = code
         self.status_code = 400
+        super().__init__(message)
         
         
 # --- Input Validation Schemas --- #
