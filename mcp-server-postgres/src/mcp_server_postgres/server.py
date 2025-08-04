@@ -8,7 +8,8 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.types import TextContent, Tool
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
+from fastmcp.exceptions import ToolError
 
 from mcp_server_postgres.postgres_client import (
     Agent,
@@ -19,6 +20,15 @@ from mcp_server_postgres.postgres_client import (
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
+
+
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        super().__init__(message, code=code)
+        self.status_code = 400
 
 # --- Tool Input/Output Schemas --- #
 
@@ -96,10 +106,12 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
                 result_content.append(TextContent(type="text", text=f"{agent}"))
 
-            except ValidationError as ve:
-                error_msg = f"Invalid arguments for tool '{name}': {ve}"
-                logger.warning(error_msg)
-                return [TextContent(type="text", text=error_msg)]
+            except PydanticValidationError as ve:
+                logger.warning(f"Validation error: {ve}")
+                error_details = "; ".join(
+                    f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+                )
+                raise ValidationError(f"Invalid parameters: {error_details}")
 
             except PostgresServiceError as db_err:
                 error_msg = f"Database error processing tool '{name}': {db_err}"
