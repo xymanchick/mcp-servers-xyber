@@ -1,10 +1,11 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Optional
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
 
 from mcp_server_tavily.tavily import (
     TavilySearchResult,
@@ -14,6 +15,35 @@ from mcp_server_tavily.tavily import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        super().__init__(message, code=code)
+        self.status_code = 400
+
+
+
+# --- Request Schema Definition --- #
+class TavilySearchRequest(BaseModel):
+    """Input schema for Tavily search tool."""
+
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=512,
+        description="The search query string for Tavily",
+    )
+    max_results: Optional[int] = Field(
+        None,
+        ge=1,
+        le=50,
+        description="Optional override for the maximum number of search results (min 1, max 50)",
+    )
+
 
 
 # --- Lifespan Management --- #
@@ -62,6 +92,11 @@ async def tavily_web_search(
     tavily_service = ctx.request_context.lifespan_context["tavily_service"]
 
     try:
+        # Validate input parameters
+        TavilySearchRequest(
+            query=query,
+            max_results=max_results,
+        )
         # Execute core logic
         search_results: list[TavilySearchResult] = await tavily_service.search(
             query=query, max_results=max_results
@@ -78,6 +113,13 @@ async def tavily_web_search(
     except ValueError as val_err:
         logger.warning(f"Input validation error: {val_err}")
         raise ToolError(f"Input validation error: {val_err}") from val_err
+
+    except PydanticValidationError as ve:
+        logger.warning(f"Validation error: {ve}")
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters: {error_details}")
 
     except TavilyServiceError as service_err:
         logger.error(f"Tavily service error: {service_err}", exc_info=True)
