@@ -35,23 +35,29 @@ class ValidationError(ToolError):
 @asynccontextmanager
 async def app_lifespan(app: FastAPI) -> AsyncIterator[dict[str, object]]:
     """Manage application lifecycle events."""
-    logger.info('Initializing YouTube services...')
+    logger.info('Starting YouTube MCP server initialization...')
+    logger.debug('Checking environment configuration and API keys')
 
     try:
         youtube_searcher: YouTubeSearcher = get_youtube_searcher()
-        logger.info('Services initialized successfully')
+        logger.info('YouTube services initialized successfully')
+        logger.debug(f'YouTube searcher configured with API key: {"✓ Present" if youtube_searcher.config.api_key else "✗ Missing"}')
+        
         yield {'youtube_searcher': youtube_searcher}
 
     except YouTubeClientError as init_err:
-        logger.error('Lifespan initialization failed', exc_info=True)
+        logger.error('YouTube service initialization failed', exc_info=True)
+        logger.error(f'Configuration error details: {init_err}')
         raise ToolError(f'Service initialization failed: {init_err}') from init_err
 
     except Exception as unexpected_err:
-        logger.error('Unexpected initialization error', exc_info=True)
+        logger.error('Unexpected error during YouTube service initialization', exc_info=True)
+        logger.debug(f'Unexpected error type: {type(unexpected_err).__name__}')
         raise ToolError('Unexpected startup error') from unexpected_err
 
     finally:
-        logger.info('Shutdown cleanup completed')
+        logger.info('YouTube MCP server shutdown cleanup completed')
+        logger.debug('All resources and connections cleaned up')
 
 
 # Initialize FastAPI app with documentation
@@ -84,6 +90,7 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+logger.debug('CORS middleware configured to allow all origins, methods, and headers')
 
 # Initialize MCP server
 mcp_server = FastMCP(
@@ -92,16 +99,20 @@ mcp_server = FastMCP(
 # Add routes
 
 app.include_router(router)
+logger.debug('YouTube search routes included in the FastAPI application')
 
 
 # --- Regular HTTP Endpoint --- #
 @mcp_server.tool()
 async def youtube_search_and_transcript(ctx, request):
     """Search YouTube videos and retrieve transcripts."""
+    logger.debug(f'Received MCP tool request: {request}')
     youtube_searcher = ctx.lifespan_context['youtube_searcher']
 
     try:
         validated_request = YouTubeSearchRequest(**request)
+        logger.debug(f'Request validated successfully: query="{validated_request.query}", max_results={validated_request.max_results}')
+        
         search_result = await youtube_searcher.search_videos(
             query=validated_request.query,
             max_results=validated_request.max_results,
@@ -124,14 +135,21 @@ async def youtube_search_and_transcript(ctx, request):
             total_results=len(search_result)
         )
 
+        logger.info(f'Successfully processed YouTube search request: {len(search_result)} videos found')
+        logger.debug(f'Response prepared with {response.total_results} videos')
         return response.model_dump_json()
 
     except PydanticValidationError as ve:
         error_details = '; '.join(f"{err['loc'][0]}: {err['msg']}" for err in ve.errors())
+        logger.warning(f'Request validation failed: {error_details}')
+        logger.debug(f'Raw validation errors: {ve.errors()}')
         raise ValidationError(f'Invalid parameters: {error_details}')
 
     except YouTubeClientError as yt_err:
+        logger.error(f'YouTube API error occurred: {str(yt_err)}', exc_info=True)
         raise ToolError(f'YouTube API error: {str(yt_err)}', code='YOUTUBE_API_ERROR')
 
     except Exception as e:
+        logger.error(f'Unexpected error in youtube_search_and_transcript: {str(e)}', exc_info=True)
+        logger.debug(f'Error type: {type(e).__name__}, Request: {request}')
         raise ToolError(f'Internal error: {str(e)}', code='INTERNAL_ERROR')
