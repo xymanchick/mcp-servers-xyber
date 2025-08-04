@@ -16,7 +16,6 @@ from mcp_server_tavily.tavily import (
 
 logger = logging.getLogger(__name__)
 
-
 # --- Custom Exceptions --- #
 class ValidationError(ToolError):
     """Custom exception for input validation failures."""
@@ -112,16 +111,18 @@ async def tavily_web_search(
 
         return formatted_response
 
+   
+
+    except PydanticValidationError as ve:
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
+    
     except ValueError as val_err:
         logger.warning(f"Input validation error: {val_err}")
         raise ToolError(f"Input validation error: {val_err}") from val_err
-
-    except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
-        )
-        raise ValidationError(f"Invalid parameters: {error_details}")
 
     except TavilyServiceError as service_err:
         logger.error(f"Tavily service error: {service_err}", exc_info=True)

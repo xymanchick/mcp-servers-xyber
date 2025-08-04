@@ -164,11 +164,11 @@ async def get_weather(
         return result
 
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     
     except WeatherApiError as api_err:
         logger.error(f"Weather API error: {api_err}")

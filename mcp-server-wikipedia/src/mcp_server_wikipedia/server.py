@@ -2,7 +2,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List
-from pydantic import ValidationError as PydanticValidationError
+from pydantic import Field, ValidationError as PydanticValidationError
 
 
 from fastmcp import Context, FastMCP
@@ -35,8 +35,8 @@ class ValidationError(ToolError):
 
     def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
         self.message = message
-        self.code = code
-        self.status_code = 400
+        self.code = 400
+        self.error_code = code
         super().__init__(message)
 
 
@@ -85,11 +85,12 @@ async def search_wikipedia(ctx: Context, query: str, limit: int = 10) -> List[st
         results = await _get_service(ctx).search(query, limit=limit)
         return results
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
+
     except ValueError as e:
         raise ToolError(f"Input validation error: {e}") from e
     except WikipediaAPIError as e:
@@ -108,11 +109,11 @@ async def get_article(ctx: Context, title: str) -> Dict[str, Any]:
         article = await _get_service(ctx).get_article(title)
         return article
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except ArticleNotFoundError as e:
         raise ToolError(str(e)) from e
     except WikipediaAPIError as e:
@@ -131,11 +132,11 @@ async def get_summary(ctx: Context, title: str) -> str:
         summary = await _get_service(ctx).get_summary(title)
         return summary
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except ArticleNotFoundError as e:
         raise ToolError(str(e)) from e
     except WikipediaAPIError as e:
@@ -154,11 +155,11 @@ async def get_sections(ctx: Context, title: str) -> List[str]:
         sections = await _get_service(ctx).get_sections(title)
         return sections
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except ArticleNotFoundError as e:
         raise ToolError(str(e)) from e
     except WikipediaAPIError as e:
@@ -177,11 +178,11 @@ async def get_links(ctx: Context, title: str) -> List[str]:
         links = await _get_service(ctx).get_links(title)
         return links
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except ArticleNotFoundError as e:
         raise ToolError(str(e)) from e
     except WikipediaAPIError as e:
@@ -201,12 +202,15 @@ async def get_related_topics(ctx: Context, title: str, limit: int = 20) -> List[
         topics = await _get_service(ctx).get_related_topics(title, limit)
         return topics
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except ArticleNotFoundError as e:
         raise ToolError(str(e)) from e
     except WikipediaAPIError as e:
         raise ToolError(f"Wikipedia API error: {e}") from e
+
+
+# mcp_server.add_middleware(CustomErrorMiddleware)

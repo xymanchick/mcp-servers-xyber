@@ -59,11 +59,11 @@ async def post_to_telegram(
         # Validate the input message against the schema
         PostToTelegramRequest(message=message)
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     
     except Exception as e:
         logger.error(f"Unexpected error during message validation: {e}", exc_info=True)

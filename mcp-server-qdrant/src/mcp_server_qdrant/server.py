@@ -103,11 +103,11 @@ async def qdrant_store(
         return f"Remembered: {information} in collection {collection_name}"
 
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     
     except Exception as e:
         logger.error(f"Error storing information: {e}", exc_info=True)
@@ -152,11 +152,11 @@ async def qdrant_find(
         )
         return search_results.points
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     
     except Exception as e:
         logger.error(f"Error searching Qdrant: {e}", exc_info=True)
@@ -189,11 +189,11 @@ async def qdrant_get_collection_info(
         return collection_details
     
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     
     except Exception as e:
         logger.error(

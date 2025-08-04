@@ -104,11 +104,11 @@ async def create_tweet(
             return f"Tweet created successfully with ID: {result}"
 
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except ToolError:
         raise
     except Exception as e:
@@ -177,11 +177,11 @@ async def get_user_tweets(
         return json.dumps(tweets_dict, ensure_ascii=False, indent=2)
 
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except Exception as e:
         logger.error(f"Unexpected error in get_user_tweets: {str(e)}", exc_info=True)
         raise ToolError(f"Error retrieving tweets: {str(e)}")
@@ -200,11 +200,11 @@ async def follow_user(ctx: Context, user_id: str) -> str:
         return f"Following user: {response}"
 
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except Exception as follow_error:
         error_msg = str(follow_error)
         if "404" in error_msg or "Not Found" in error_msg:
@@ -234,11 +234,11 @@ async def retweet_tweet(ctx: Context, tweet_id: str) -> str:
         return f"Retweeting tweet: {response}"
 
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except Exception as retweet_error:
         error_msg = str(retweet_error)
         if "404" in error_msg or "Not Found" in error_msg:
@@ -270,11 +270,11 @@ async def get_trends(ctx: Context, countries: list[str], max_trends: int = 50) -
         trends = await client.get_trends(countries=countries, max_trends=max_trends)
         return json.dumps(trends, ensure_ascii=False, indent=2)
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except Exception as e:
         logger.error(f"Error retrieving trends: {str(e)}", exc_info=True)
         raise ToolError(f"Error retrieving trends: {str(e)}")
@@ -295,11 +295,11 @@ async def search_hashtag(ctx: Context, hashtag: str, max_results: int = 10) -> s
         tweets = await client.search_hashtag(hashtag=hashtag, max_results=max_results)
         return json.dumps(tweets, ensure_ascii=False, indent=2)
     except PydanticValidationError as ve:
-        logger.warning(f"Validation error: {ve}")
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
         )
-        raise ValidationError(f"Invalid parameters: {error_details}")
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
     except Exception as e:
         logger.error(f"Error searching hashtag: {str(e)}", exc_info=True)
         raise ToolError(f"Error searching hashtag: {str(e)}")
