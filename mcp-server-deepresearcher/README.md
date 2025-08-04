@@ -16,55 +16,157 @@ This MCP server provides an agent-based deep research capability using LangGraph
 ## Requirements
 
 - Python 3.12+
-- UV (for dependency management)
+- UV (for dependency management) - Install with: `curl -LsSf https://astral.sh/uv/install.sh | sh` or `pip install uv`
 - API keys for integrated services (Tavily, Arxiv, APIFY, LLM providers)
 
-## Setup
 
-1. **Clone the Repository**:
-   ```bash
-   git clone <repository-url>
-   cd mcp-server-deepresearcher
-   ```
+## Docker Compose Setup
 
-2. **Create `.env` File**:
-   Create a `.env` file in the root directory with the following variables (adjust based on your configuration):
-   ```
-   # LLM Configuration
-   LLM_PROVIDER=google
-   LLM_MODEL=gemini-2.5-flash
-   LLM_API_KEY=your_keys
+This guide explains how to run the Deep Researcher MCP server alongside other MCP servers using Docker Compose, with proper inter-service communication.
 
+### Prerequisites
 
-   # Spare LLM Configuration (optional)
-   SPARE_LLM_PROVIDER=together
-   SPARE_LLM_MODEL=deepseekV3
-   SPARE_LLM_API_KEY=your_api_key
+- Docker and Docker Compose installed
+- API keys for the services you want to use (Google AI, Together AI, Mistral AI, Tavily, Apify)
 
+### Step-by-Step Setup
 
-   # Search MCP Configuration
-   APIFY_TOKEN=your_apify_token
-   MCP_TAVILY_URL=http://localhost:8001
-   MCP_ARXIV_URL=http://localhost:8002
-   other mcp servers
-   ```
+#### 1. Add Deep Researcher to docker-compose.yml
 
-3. **Install Dependencies**:
-   ```bash
-   uv sync
-   ```
+Add this service definition to your main `docker-compose.yml` file:
 
-## Running the Server
-
-### Locally
-```bash
-uv run python -m mcp_server_deepresearcher
+```yaml
+  mcp_server_deepresearcher:
+    build:
+      context: ./mcp-server-deepresearcher
+      dockerfile: Dockerfile
+    container_name: mcp_server_deepresearcher
+    ports:
+      - "8011:8000"
+    env_file:
+      - ./mcp-server-deepresearcher/.env
+    command: [
+      "python", "-m", "mcp_server_deepresearcher", "--port", "8000"
+    ]
+    restart: unless-stopped
 ```
 
-### Using Docker
+**Important Notes:**
+- Do NOT add `network_mode: bridge` - this will break inter-service communication
+- The service will automatically join the default Docker Compose network
+- Use a unique external port (8011 in this example)
+
+#### 2. Create the Environment File
+
+Create `mcp-server-deepresearcher/.env` with the following content:
+
+```env
+# LLM Configuration
+TOGETHER_API_KEY=your_together_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here
+MISTRAL_API_KEY=your_mistral_api_key_here
+MODEL_PROVIDER=google
+MODEL_NAME=gemini-2.5-flash
+MODEL_PROVIDER_SPARE=together
+MODEL_NAME_SPARE=deepseek-ai/DeepSeek-V2
+
+# MCP Service URLs - CRITICAL: Use the correct paths!
+MCP_TAVILY_URL=http://mcp_server_tavily:8000/mcp-server/mcp
+MCP_ARXIV_URL=http://mcp_server_arxiv:8000/mcp-server/mcp
+
+# Optional: Apify for Twitter/social media scraping
+APIFY_TOKEN=your_apify_token_here
+```
+
+#### 3. Understanding MCP Service URLs
+
+The URL format for MCP services follows this pattern:
+```
+http://[service_name]:[port]/[mount_path]/[mcp_path]
+```
+
+For FastMCP-based services (like tavily and arxiv):
+- **Service name**: The container name from docker-compose (e.g., `mcp_server_tavily`)
+- **Port**: Internal container port (usually 8000)
+- **Mount path**: Where the MCP app is mounted (usually `/mcp-server`)
+- **MCP path**: The internal MCP endpoint (usually `/mcp`)
+
+**Complete URL**: `http://mcp_server_tavily:8000/mcp-server/mcp`
+
+#### 4. Build and Start Services
+
 ```bash
-docker build -t mcp-server-deepresearcher .
-docker run -p 8000:8000 --env-file .env mcp-server-deepresearcher
+# Build and start all services
+docker-compose up --build -d
+
+# Check that all services are running
+docker-compose ps
+
+# View logs for deep researcher
+docker-compose logs -f mcp_server_deepresearcher
+```
+
+#### 5. Verify Successful Startup
+
+Look for these log messages in the Deep Researcher logs:
+
+```
+✅ SUCCESS INDICATORS:
+- "LLMs initialized successfully"
+- "Tavily MCP server configured" 
+- "Arxiv MCP server configured"
+- "Successfully fetched X tools for the agent to use"
+- "Deep Researcher agent initialized successfully"
+
+❌ ERROR INDICATORS:
+- "404 Not Found" - Wrong URL path
+- "Name or service not known" - Network configuration issue
+- "Connection refused" - Target service not running
+- "Session terminated" - MCP protocol issue
+```
+
+### Troubleshooting
+
+#### Common Issues and Solutions
+
+##### 1. "404 Not Found" Error
+**Problem**: Wrong URL path in `.env` file
+**Solution**: Verify the exact path by checking the target service's `__main__.py` file
+
+##### 2. "Name or service not known"
+**Problem**: Network configuration issue
+**Solution**: 
+- Remove any `network_mode: bridge` from the service definition
+- Ensure all services are in the same docker-compose file or network
+
+##### 3. "Connection refused"
+**Problem**: Target service not running
+**Solution**: Check that dependent services (tavily, arxiv) are running:
+```bash
+docker-compose ps
+docker-compose logs mcp_server_tavily
+docker-compose logs mcp_server_arxiv
+```
+
+##### 4. Service crashes on startup
+**Problem**: Missing or invalid API keys
+**Solution**: Verify all required API keys are set in the `.env` file
+
+#### Finding MCP Paths for Other Services
+
+To find the correct path for any MCP service:
+
+1. Look at the service's `__main__.py` file
+2. Find the `http_app()` call - note the `path` parameter
+3. Find the `app.mount()` call - note the mount path
+4. Combine them: `[mount_path][mcp_path]`
+
+Example from tavily service:
+```python
+# In mcp-server-tavily/src/mcp_server_tavily/__main__.py
+mcp_app = mcp_server.http_app(path="/mcp", transport="streamable-http")
+app.mount("/mcp-server", mcp_app)
+# Result: /mcp-server/mcp
 ```
 
 ## Project Structure
@@ -93,55 +195,50 @@ mcp-server-deepresearcher/
 └── uv.lock
 ```
 
-## License
+## Setup (Local Development)
 
-MIT
+If you prefer to run the server locally instead of using Docker:
 
+1. **Clone the Repository**:
+   ```bash
+   git clone <repository-url>
+   cd mcp-server-deepresearcher
+   ```
 
-# Deep Researcher
+2. **Create `.env` File**:
+   Create a `.env` file in the root directory with the following variables:
+   ```env
+   # LLM Configuration
+   TOGETHER_API_KEY=your_together_api_key
+   GOOGLE_API_KEY=your_google_api_key
+   MISTRAL_API_KEY=your_mistral_api_key
+   MODEL_PROVIDER=google
+   MODEL_NAME=gemini-2.5-pro
+   MODEL_PROVIDER_SPARE=together
+   MODEL_NAME_SPARE=deepseek-ai/DeepSeek-V2
 
-## Description
+   # MCP URLs for local development
+   MCP_TAVILY_URL=http://localhost:8005/mcp-server/mcp
+   MCP_ARXIV_URL=http://localhost:8006/mcp-server/mcp
+   APIFY_TOKEN=your_apify_token
+   ```
 
-Deep Researcher is an AI-powered research agent built with LangGraph. It uses large language models (LLMs) and multi-server MCP tools to perform in-depth web research on given topics, generating structured summaries and reports.
+3. **Install Dependencies**:
+   ```bash
+   uv sync
+   ```
+
+4. **Run the Server**:
+   ```bash
+   uv run python -m mcp_server_deepresearcher
+   ```
 
 ## Graph Visualization
 
-![Deep Researcher Graph](./src/deep_researcher_graph.png)
+![Deep Researcher Graph](./deep_researcher_graph.png)
 
 This graph illustrates the workflow of the research process, including query generation, web research, summarization, reflection, and finalization.
 
-## Installation
+## License
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-repo/deep-researcher.git
-   cd deep-researcher
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Set up environment variables (e.g., API keys for MCP servers) in a `.env` file.
-
-## Usage
-
-Run the main script with a research topic:
-
-```bash
-python src/main.py
-```
-
-The script will output the research results and save them to `final_research.json` and `final_research.py`.
-
-You can customize the research topic in `src/main.py`.
-
-## Features
-- Parallel web research using multiple MCP servers
-- Iterative summarization and reflection for deeper insights
-- Structured JSON output with title, executive summary, key findings, and sources
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
+MIT
