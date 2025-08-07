@@ -12,6 +12,7 @@ from mcp_server_youtube.server import mcp_server
 
 # Configure logging first thing
 configure_logging()
+logger = logging.getLogger(__name__)
 
 
 class State:
