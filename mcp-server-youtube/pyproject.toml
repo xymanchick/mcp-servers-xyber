@@ -22,7 +22,7 @@ dependencies = [
     # Additional dependencies for transcript handling
     "xmltodict>=0.13.0",
     # Prometheus metrics
-    "prometheus_client>=0.20.0",
+    "prometheus-client>=0.20.0",
 ]
 
 [dependency-groups]
