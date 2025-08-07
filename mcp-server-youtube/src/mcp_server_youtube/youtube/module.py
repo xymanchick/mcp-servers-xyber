@@ -14,8 +14,13 @@ from mcp_server_youtube.youtube.config import YouTubeConfig
 from mcp_server_youtube.youtube.models import TranscriptStatus
 from mcp_server_youtube.youtube.models import YouTubeVideo
 from mcp_server_youtube.youtube.transcript import TranscriptFetcher
-from mcp_server_youtube.youtube.youtube_errors import YouTubeApiError
-from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError
+from mcp_server_youtube.youtube.youtube_errors import (
+    YouTubeApiError,
+    YouTubeClientError,
+    ServiceUnavailableError,
+    InvalidResponseError,
+    QuotaExceededError,
+)
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -289,13 +294,24 @@ class YouTubeSearcher:
             return videos
 
         except (HttpError) as e:
-            error_msg = f'YouTube API error: {e}'
-            logger.error(error_msg, exc_info=True)
+            logger.error(f"YouTube API error: {e}", exc_info=True)
             logger.debug(f"API error details: status={e.resp.status}, reason={e.resp.reason}")
-            raise YouTubeApiError(error_msg) from e
+            
+            # Handle specific HTTP error codes with appropriate exceptions
+            if e.resp.status == 403:
+                if 'quotaExceeded' in str(e) or 'quota' in str(e).lower():
+                    raise QuotaExceededError(f"YouTube API quota exceeded: {e.resp.reason}")
+                else:
+                    raise YouTubeApiError(f"YouTube API access forbidden: {e.resp.reason}")
+            elif e.resp.status == 400:
+                raise InvalidResponseError(f"Invalid request to YouTube API: {e.resp.reason}")
+            elif e.resp.status >= 500:
+                raise ServiceUnavailableError(f"YouTube API service unavailable: {e.resp.reason}")
+            else:
+                raise YouTubeApiError(f"YouTube API error ({e.resp.status}): {e.resp.reason}")
         
         except Exception as e:
             msg = f'An unexpected error occurred during YouTube search: {e}'
             logger.error(msg, exc_info=True)
             logger.debug(f"Error type: {type(e).__name__}, Query: '{query}'")
-            raise YouTubeClientError(msg) from e
+            raise ServiceUnavailableError(msg) from e

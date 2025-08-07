@@ -42,12 +42,6 @@ youtube_mcp_error_count = Counter(
     ['method', 'path', 'error_type']
 )
 
-youtube_mcp_error_count_total = Counter(
-    'youtube_mcp_error_count_total',
-    'Total number of errors across all types',
-    ['method', 'path']
-)
-
 
 class PerformanceMetricsMiddleware(BaseHTTPMiddleware):
     """
@@ -270,11 +264,6 @@ class PerformanceMetricsMiddleware(BaseHTTPMiddleware):
                     method=method,
                     path=path,
                     error_type=error_type
-                ).inc()
-                
-                youtube_mcp_error_count_total.labels(
-                    method=method,
-                    path=path
                 ).inc()
 
         except Exception as e:

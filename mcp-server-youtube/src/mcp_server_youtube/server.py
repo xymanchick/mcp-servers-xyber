@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,19 +15,12 @@ from mcp_server_youtube.youtube.models import YouTubeSearchResponse
 from mcp_server_youtube.youtube.models import YouTubeVideo
 from mcp_server_youtube.youtube.module import get_youtube_searcher
 from mcp_server_youtube.youtube.module import YouTubeSearcher
-from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError
+from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError, ValidationError as YouTubeValidationError
+from mcp_server_youtube.utils.exception_handler import youtube_exception_handler, generic_exception_handler
 from pydantic import ValidationError as PydanticValidationError
 
 
 logger = logging.getLogger(__name__)
-
-
-class ValidationError(ToolError):
-    """Custom exception for input validation failures."""
-
-    def __init__(self, message: str, code: str = 'VALIDATION_ERROR'):
-        super().__init__(message, code=code)
-        self.status_code = 400
 
 
 # --- Lifespan Management --- #
@@ -119,6 +110,11 @@ mcp_server = FastMCP(
 app.include_router(router)
 logger.debug('YouTube search routes included in the FastAPI application')
 
+# Register global exception handlers
+app.add_exception_handler(YouTubeClientError, youtube_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
+logger.info('Global exception handlers registered for structured error responses')
+
 
 # --- Regular HTTP Endpoint --- #
 @mcp_server.tool()
@@ -138,7 +134,7 @@ async def youtube_search_and_transcript(ctx, request):
         )
 
         response = YouTubeSearchResponse(
-            results=[
+            videos=[
                 YouTubeVideo(
                     video_id=video.video_id,
                     title=video.title,
@@ -150,7 +146,8 @@ async def youtube_search_and_transcript(ctx, request):
                 )
                 for video in search_result
             ],
-            total_results=len(search_result)
+            total_results=len(search_result),
+            next_page_token=search_result.next_page_token if hasattr(search_result, 'next_page_token') else None
         )
 
         logger.info(f'Successfully processed YouTube search request: {len(search_result)} videos found')
@@ -161,7 +158,7 @@ async def youtube_search_and_transcript(ctx, request):
         error_details = '; '.join(f"{err['loc'][0]}: {err['msg']}" for err in ve.errors())
         logger.warning(f'Request validation failed: {error_details}')
         logger.debug(f'Raw validation errors: {ve.errors()}')
-        raise ValidationError(f'Invalid parameters: {error_details}')
+        raise YouTubeValidationError(f'Invalid parameters: {error_details}')
 
     except YouTubeClientError as yt_err:
         logger.error(f'YouTube API error occurred: {str(yt_err)}', exc_info=True)
