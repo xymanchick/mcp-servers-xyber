@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from functools import lru_cache
+from typing import Dict, Tuple
 
 from googleapiclient.discovery import build
 from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
-from mcp_server_youtube.utils.data_utils import DataUtils
 from mcp_server_youtube.youtube.config import get_youtube_config
 from mcp_server_youtube.youtube.config import YouTubeConfig
 from mcp_server_youtube.youtube.models import TranscriptStatus
@@ -26,10 +27,130 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
-    before_sleep_log,
+    RetryCallState,
 )
 
 logger = logging.getLogger(__name__)
+
+# Rate limiting for retry logs to prevent flooding
+# Track last log time per function to prevent excessive logging
+_retry_log_tracker: Dict[str, Tuple[float, int]] = {}
+_LOG_RATE_LIMIT_WINDOW = 30  # seconds
+_MAX_LOGS_PER_WINDOW = 5  # max logs per function per window
+
+
+def _should_log_retry(function_name: str) -> bool:
+    """Check if retry should be logged based on rate limiting.
+    
+    Args:
+        function_name: Name of the function being retried
+        
+    Returns:
+        True if logging is allowed, False if rate limited
+    """
+    current_time = time.time()
+    
+    if function_name not in _retry_log_tracker:
+        _retry_log_tracker[function_name] = (current_time, 1)
+        return True
+    
+    last_window_start, log_count = _retry_log_tracker[function_name]
+    
+    # Check if we're in a new window
+    if current_time - last_window_start >= _LOG_RATE_LIMIT_WINDOW:
+        # Reset for new window
+        _retry_log_tracker[function_name] = (current_time, 1)
+        return True
+    
+    # Within the same window, check if we've exceeded the limit
+    if log_count >= _MAX_LOGS_PER_WINDOW:
+        return False
+    
+    # Increment count and allow logging
+    _retry_log_tracker[function_name] = (last_window_start, log_count + 1)
+    return True
+
+
+def log_retry_attempt(retry_state: RetryCallState) -> None:
+    """Log detailed retry attempt information with rate limiting.
+    
+    Args:
+        retry_state: The current retry state containing attempt information
+    """
+    if retry_state.outcome is None:
+        return
+    
+    attempt_number = retry_state.attempt_number
+    exception = retry_state.outcome.exception()
+    
+    # Extract exception type and message
+    exception_type = type(exception).__name__ if exception else "Unknown"
+    exception_message = str(exception) if exception else "Unknown error"
+    
+    # Calculate approximate wait time based on exponential backoff
+    # For search: multiplier=0.5, max=10, so roughly 0.5 * (2^(attempt-1))
+    # For transcript: multiplier=0.5, min=0.5, max=5
+    base_wait = 0.5 * (2 ** (attempt_number - 1))
+    estimated_wait = min(base_wait, 10)  # Assuming max wait of 10 for search
+    
+    if estimated_wait < 1:
+        wait_time = f"{estimated_wait:.2f} seconds"
+    elif estimated_wait < 60:
+        wait_time = f"{estimated_wait:.1f} seconds"
+    else:
+        wait_time = f"{estimated_wait/60:.1f} minutes"
+    
+    # Get function name safely
+    function_name = getattr(retry_state.fn, '__name__', 'unknown_function') if retry_state.fn else 'unknown_function'
+    
+    # Apply rate limiting to prevent log flooding
+    if not _should_log_retry(function_name):
+        # Silently skip logging to prevent flooding
+        return
+    
+    # Log retry attempt with detailed context
+    logger.warning(
+        f"Retry attempt {attempt_number} for function '{function_name}' - "
+        f"Reason: {exception_type}({exception_message}) - "
+        f"Estimated wait: ~{wait_time}"
+    )
+
+
+def handle_final_retry_failure(retry_state: RetryCallState) -> None:
+    """Handle final failure after all retry attempts are exhausted.
+    
+    Args:
+        retry_state: The final retry state after all attempts
+        
+    Raises:
+        ServiceUnavailableError: With detailed context about the failure
+    """
+    attempt_number = retry_state.attempt_number
+    final_exception = retry_state.outcome.exception() if retry_state.outcome else None
+    function_name = getattr(retry_state.fn, '__name__', 'unknown_function') if retry_state.fn else 'unknown_function'
+    
+    # Extract the root cause
+    if final_exception:
+        exception_type = type(final_exception).__name__
+        exception_message = str(final_exception)
+    else:
+        exception_type = "Unknown"
+        exception_message = "Unknown error occurred"
+    
+    # Create comprehensive error message
+    error_message = (
+        f"Operation '{function_name}' failed after {attempt_number} attempts. "
+        f"Final error: {exception_type}({exception_message})"
+    )
+    
+    # Always log final failures (not rate limited) as they are critical
+    logger.error(
+        f"Max retries exhausted for '{function_name}' after {attempt_number} attempts. "
+        f"Final failure: {exception_type}({exception_message})"
+    )
+    
+    # Raise a clear exception with context
+    raise ServiceUnavailableError(error_message) from final_exception
 
 
 # --- Setup Retry Decorators ---
@@ -37,16 +158,17 @@ retry_search = retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=0.5, max=10),   
     retry=retry_if_exception_type((YouTubeClientError, YouTubeApiError)),
-    before_sleep=before_sleep_log(logger, logging.WARNING),
-    reraise=True,
+    before_sleep=log_retry_attempt,
+    retry_error_callback=handle_final_retry_failure,
+    reraise=False,  # We handle the final exception in retry_error_callback
 )
 
 retry_fetch_transcript = retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=0.5, min=0.5, max=5),
-    before_sleep=before_sleep_log(logger, logging.WARNING),
-    reraise=True,
-    retry_error_callback=lambda retry_state: ('Transcript service temporarily unavailable', None, False)
+    before_sleep=log_retry_attempt,
+    retry_error_callback=lambda retry_state: handle_final_retry_failure(retry_state) or ('Transcript service temporarily unavailable', None, False),
+    reraise=False,  # We handle the final exception in retry_error_callback
 )
 
 # --- YouTubeSearcher Class ---
@@ -172,8 +294,11 @@ class YouTubeSearcher:
         # Create user-friendly status message
         status_message = 'Transcript unavailable'
         if result.available_languages:
-            langs = ', '.join(result.available_languages)
-            status_message = f'Available languages: {langs}'
+            # Filter out None values and join the valid language codes
+            valid_langs = [lang for lang in result.available_languages if lang is not None]
+            if valid_langs:
+                langs = ', '.join(valid_langs)
+                status_message = f'Available languages: {langs}'
 
         if result.error_message:
             status_message += f'\nError: {result.error_message}'
@@ -247,8 +372,8 @@ class YouTubeSearcher:
                 query,
                 max_results,
                 order_by=order_by,
-                published_after=DataUtils.format_iso_datetime(published_after) if published_after else None,
-                published_before=DataUtils.format_iso_datetime(published_before) if published_before else None,
+                published_after=published_after.isoformat() if published_after else None,
+                published_before=published_before.isoformat() if published_before else None,
             )
 
             logger.debug(f"Executing YouTube API search with parameters: {search_params}")

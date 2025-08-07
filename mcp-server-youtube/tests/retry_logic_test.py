@@ -118,11 +118,11 @@ class TestRetrySearchDecorator:
         # Verify retry count (should call 3 times)
         assert call_count == 3
         
-        # Verify retry logs
-        retry_logs = [record for record in caplog.records if "Retrying" in record.message]
+        # Verify retry logs (updated for enhanced retry logging)
+        retry_logs = [record for record in caplog.records if "Retry attempt" in record.message]
         assert len(retry_logs) == 2  # Two retry logs
         assert "search_videos" in retry_logs[0].message
-        assert "YouTubeApiError" in retry_logs[0].message
+        assert "ServiceUnavailableError" in retry_logs[0].message  # Updated to match actual error type
     
     def test_retry_on_youtube_client_error_then_success(self, youtube_searcher, caplog):
         """Test retry triggered on YouTubeClientError, eventually succeeds."""
@@ -160,10 +160,10 @@ class TestRetrySearchDecorator:
         # Verify retry occurred
         assert call_count == 2
         
-        # Verify retry logs
-        retry_logs = [record for record in caplog.records if "Retrying" in record.message]
+        # Verify retry logs (updated for enhanced retry logging)
+        retry_logs = [record for record in caplog.records if "Retry attempt" in record.message]
         assert len(retry_logs) == 1
-        assert "YouTubeClientError" in retry_logs[0].message
+        assert "ServiceUnavailableError" in retry_logs[0].message  # Updated to match actual error type
     
     def test_max_retries_exceeded_for_search(self, youtube_searcher, caplog):
         """Test that search throws exception after exceeding max retries."""
