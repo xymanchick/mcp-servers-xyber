@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 
+from mcp_server_tavily.middleware import ProcessTimeMiddleware
 import uvicorn
 from fastapi import FastAPI
 
@@ -29,6 +30,9 @@ def create_app() -> FastAPI:
 
     # Mount MCP server
     app.mount("/mcp-server", mcp_app)
+
+    # Add middleware 
+    app.add_middleware(ProcessTimeMiddleware)
 
     return app
 
