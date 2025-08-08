@@ -1,8 +1,26 @@
-import os
+from __future__ import annotations
+
 from logging.config import dictConfig
 
-"""Configures basic logging for the application."""
-logging_level = os.getenv("LOGGING_LEVEL", "INFO")
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class _LoggingSettings(BaseSettings):
+    """Configuration to be used for logging across the MCP server."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+    LOGGING_LEVEL: str = "INFO"
+
+
+_logging_settings = _LoggingSettings()
+
+logging_level = _logging_settings.LOGGING_LEVEL
 
 LOGGING_CONFIG = {
     "version": 1,
@@ -17,7 +35,6 @@ LOGGING_CONFIG = {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
-            "level": "INFO",
             "stream": "ext://sys.stdout",
         },
         "file": {
@@ -28,7 +45,25 @@ LOGGING_CONFIG = {
             "backupCount": 5,
         },
     },
-    "root": {"handlers": ["console"], "level": f"{logging_level}"},
+    "root": {"handlers": ["console"], "level": f"{_logging_settings.LOGGING_LEVEL}"},
+    # Adjust module specific loggers as needed
+    "loggers": {
+        # "uvicorn.error": {
+        #     "handlers": ["console"],
+        #     "level": logging_level,
+        #     "propagate": False,
+        # },
+        # "uvicorn.access": {
+        #     "handlers": ["console"],
+        #     "level": logging_level,
+        #     "propagate": False,
+        # },
+        # "fastapi": {
+        #     "handlers": ["console"],
+        #     "level": logging_level,
+        #     "propagate": False,
+        # }
+    }
 }
 
 
