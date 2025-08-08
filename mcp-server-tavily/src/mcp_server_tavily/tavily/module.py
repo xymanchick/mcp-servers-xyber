@@ -1,55 +1,58 @@
 import logging
 from functools import lru_cache
 from typing import Any
-
-import re
-
-import asyncio
-import aiohttp
 from langchain_tavily import TavilySearch
 
 from mcp_server_tavily.tavily.config import (
+    TavilyApiError,
     TavilyConfig,
     TavilyConfigError,
+    TavilyEmptyQueryError,
 )
 from mcp_server_tavily.tavily.models import TavilySearchResult
 from tenacity import (
+    RetryCallState,
     retry,
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
-    retry_if_exception,
-    before_sleep_log,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def is_retryable_tavily_error(error: BaseException) -> bool:
-    http_status_match = re.match(r"Error (\d+):", str(error))
-    if http_status_match is None:
-        return False
+def final_failure_callback(retry_state:RetryCallState):
+    exception: BaseException | None = None
+    result = None
+    if retry_state.outcome:
+        exception = retry_state.outcome.exception()
+        if not exception:
+            result = retry_state.outcome.result()
+    logger.error(f"Failed to retry after #{retry_state.attempt_number} attempts.  Cause: {str(type(exception).__name__) + '<-' + str(exception) if exception else ("function returned "+str(result))}.")
+    if exception:
+        raise exception
 
-    http_status = int(http_status_match.group(1))
-    if 500 <= http_status < 600:
-        return True
-    if http_status == 429:
-        return True
-    return False
-
+def retry_callback(retry_state:RetryCallState):
+    exception: BaseException | None  = None
+    result = None
+    if retry_state.outcome:
+        exception= retry_state.outcome.exception()
+        if not exception:
+            result = retry_state.outcome.result()
+    logger.warning(f"Retry #{retry_state.attempt_number}. Cause: {str(type(exception).__name__) + '<-' + str(exception) if exception else ("function returned "+str(result))}. Time until next retry: {retry_state.upcoming_sleep}.")
 
 @retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(min=0.5),
-    retry=retry_if_exception_type(aiohttp.ClientError)
-    | retry_if_exception_type(asyncio.TimeoutError)
-    | retry_if_exception(is_retryable_tavily_error),
-    before_sleep=before_sleep_log(logger, logging.WARNING),
-    reraise=True,
+    retry=retry_if_exception_type(TavilyApiError),
+    retry_error_callback=final_failure_callback,
+    before_sleep=retry_callback,
 )
 async def _ainvoke_with_retry(tool: TavilySearch, query: str) -> dict[str, Any]:
-    return await tool.ainvoke(query)
-
+    try:
+        return await tool.ainvoke(query)
+    except Exception as e:
+        raise TavilyApiError(f"Search failed<-{type(e).__name__}<-{e}") from e
 
 class _TavilyService:
     """Encapsulates Tavily client logic and configuration."""
@@ -62,7 +65,7 @@ class _TavilyService:
         """Creates an instance of the TavilySearch tool with current config."""
         try:
             return TavilySearch(
-                api_key=self.config.api_key,
+                tavily_api_key=self.config.api_key,
                 max_results=max_results or self.config.max_results,
                 topic=self.config.topic,
                 search_depth=self.config.search_depth,
@@ -97,9 +100,9 @@ class _TavilyService:
         """
         if not query:
             logger.warning("Received empty query for Tavily search.")
-            raise ValueError("Search query cannot be empty.")
+            raise TavilyEmptyQueryError("Search query cannot be empty.")
 
-        logger.info(f"Performing Tavily search for query: '{query[:100]}...'")
+        logger.debug(f"Performing Tavily search for query: '{query[:100]}...'")
 
         try:
             # Create tool
