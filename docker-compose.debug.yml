@@ -209,10 +209,10 @@ services:
       target: dev
     image: mcp_server_telegram_parser-debug
     container_name: mcp_server_telegram_parser_debug
-    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5707", "--wait-for-client", "-m", "mcp_server_telegram_parser", "--port", "8000", "--reload"]
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5711", "--wait-for-client", "-m", "mcp_server_telegram_parser", "--port", "8000", "--reload"]
     ports:
       - "8010:8000"
-      - "5710:5710"
+      - "5711:5711"
     volumes:
       - ./mcp-server-telegram-parser/src/mcp_server_telegram_parser:/app/mcp_server_telegram_parser:ro
     env_file: ./mcp-server-telegram-parser/.env

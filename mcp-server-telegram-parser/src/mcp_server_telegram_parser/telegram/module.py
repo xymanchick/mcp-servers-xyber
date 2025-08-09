@@ -6,7 +6,10 @@ from telethon import TelegramClient
 from telethon.sessions import StringSession
 
 from mcp_server_telegram_parser.schemas import ParsedChannel, ParsedMessage, TelegramParseResult
-from mcp_server_telegram_parser.telegram.config import ParserConfig
+from mcp_server_telegram_parser.telegram.config import (
+    ParserConfig,
+    ParserAuthError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,19 @@ class TelegramParserService:
 
     async def parse_channels(self, channels: Iterable[str], limit: int) -> TelegramParseResult:
         results: dict[str, ParsedChannel] = {}
-        async with TelegramClient(StringSession(self.config.string_session), self.config.api_id, self.config.api_hash) as client:
+        try:
+            client = TelegramClient(
+                StringSession(self.config.string_session),
+                self.config.api_id,
+                self.config.api_hash,
+            )
+
+        except Exception as e:
+            raise ParserAuthError(
+                "Authentication failed. The common case is due to invalid TELEGRAM_STRING_SESSION. Generate a new string and update TELEGRAM_STRING_SESSION."
+            ) from e
+
+        async with client as client:
             for name in channels:
                 key = name.strip().lstrip("@")
                 try:

@@ -2,6 +2,9 @@ from pydantic_settings import BaseSettings
 from pydantic import Field
 
 
+class ParserAuthError(Exception):
+    """Base class for parser authentication errors."""
+
 class ParserConfig(BaseSettings):
     api_id: int = Field(..., description="Telegram API ID")
     api_hash: str = Field(..., description="Telegram API Hash")
