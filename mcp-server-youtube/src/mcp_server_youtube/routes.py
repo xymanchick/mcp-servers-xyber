@@ -24,6 +24,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.get(
+    '/health',
+    summary='Health check endpoint',
+    description='Check if the server is running and healthy'
+)
+async def health_check():
+    """Health check endpoint to verify server status."""
+    return {
+        'status': 'healthy',
+        'timestamp': datetime.utcnow().isoformat(),
+        'service': 'YouTube MCP Server'
+    }
+
+
 @router.post(
     '/youtube_search_and_transcript',
     response_model=YouTubeSearchResponse,

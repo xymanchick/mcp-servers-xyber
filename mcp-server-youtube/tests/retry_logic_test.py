@@ -64,23 +64,12 @@ MOCK_RESPONSES = {
 class TestRetrySearchDecorator:
     """Test the functionality of retry_search decorator."""
     
-    @pytest.fixture
-    def youtube_searcher(self):
-        """Create YouTubeSearcher instance for testing."""
-        config = YouTubeConfig()
-        with patch.object(config, 'api_key', 'test_api_key'):
-            with patch('mcp_server_youtube.youtube.module.build') as mock_build:
-                mock_service = Mock()
-                mock_build.return_value = mock_service
-                searcher = YouTubeSearcher(config)
-                return searcher
-    
-    def test_retry_on_youtube_api_error_then_success(self, youtube_searcher, caplog):
+    def test_retry_on_youtube_api_error_then_success(self, mock_youtube_searcher_sync, caplog):
         """Test retry triggered on YouTubeApiError, eventually succeeds."""
         # Use predefined mock response
         mock_response = MOCK_RESPONSES['video1']
         
-        # Create HttpError instance
+        # Create HttpError instance that will be wrapped in YouTubeApiError
         http_error = HttpError(
             resp=Mock(status=503),
             content=b'{"error": {"message": "Service Unavailable"}}'
@@ -95,20 +84,19 @@ class TestRetrySearchDecorator:
                 raise http_error
             return mock_response
         
-        # Set up mock chain
+        # Set up mock chain for search().list().execute()
         mock_search = Mock()
         mock_list = Mock()
-        mock_execute = Mock(side_effect=mock_execute)
-        mock_list.execute = mock_execute
+        mock_list.execute.side_effect = mock_execute
         mock_search.list.return_value = mock_list
-        youtube_searcher.youtube_service.search.return_value = mock_search
+        mock_youtube_searcher_sync.youtube_service.search.return_value = mock_search
         
         # Mock transcript fetching
-        with patch.object(youtube_searcher, '_get_transcript_by_id') as mock_transcript:
+        with patch.object(mock_youtube_searcher_sync, '_get_transcript_by_id') as mock_transcript:
             mock_transcript.return_value = ("Test transcript", "en", True)
             
             with caplog.at_level(logging.WARNING):
-                result = youtube_searcher.search_videos("test query")
+                result = mock_youtube_searcher_sync.search_videos("test query")
         
         # Verify results
         assert len(result) == 1
@@ -124,34 +112,33 @@ class TestRetrySearchDecorator:
         assert "search_videos" in retry_logs[0].message
         assert "YouTubeApiError" in retry_logs[0].message
     
-    def test_retry_on_youtube_client_error_then_success(self, youtube_searcher, caplog):
+    def test_retry_on_youtube_client_error_then_success(self, mock_youtube_searcher_sync, caplog):
         """Test retry triggered on YouTubeClientError, eventually succeeds."""
         # Use predefined mock response
         mock_response = MOCK_RESPONSES['video2']
         
-        # Mock YouTube service call: first throws YouTubeClientError, second succeeds
+        # Mock YouTube service call: first throws generic Exception (wrapped in YouTubeClientError), second succeeds
         call_count = 0
         def mock_execute():
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                raise YouTubeClientError("Client initialization failed")
+                raise ConnectionError("Client connection failed")
             return mock_response
         
         # Set up mock chain
         mock_search = Mock()
         mock_list = Mock()
-        mock_execute = Mock(side_effect=mock_execute)
-        mock_list.execute = mock_execute
+        mock_list.execute.side_effect = mock_execute
         mock_search.list.return_value = mock_list
-        youtube_searcher.youtube_service.search.return_value = mock_search
+        mock_youtube_searcher_sync.youtube_service.search.return_value = mock_search
         
         # Mock transcript fetching
-        with patch.object(youtube_searcher, '_get_transcript_by_id') as mock_transcript:
+        with patch.object(mock_youtube_searcher_sync, '_get_transcript_by_id') as mock_transcript:
             mock_transcript.return_value = ("Another transcript", "en", True)
             
             with caplog.at_level(logging.WARNING):
-                result = youtube_searcher.search_videos("another test")
+                result = mock_youtube_searcher_sync.search_videos("another test")
         
         # Verify results
         assert len(result) == 1
@@ -165,7 +152,7 @@ class TestRetrySearchDecorator:
         assert len(retry_logs) == 1
         assert "YouTubeClientError" in retry_logs[0].message
     
-    def test_max_retries_exceeded_for_search(self, youtube_searcher, caplog):
+    def test_max_retries_exceeded_for_search(self, mock_youtube_searcher_sync, caplog):
         """Test that search throws exception after exceeding max retries."""
         # Mock persistent failing HttpError
         http_error = HttpError(
@@ -181,14 +168,13 @@ class TestRetrySearchDecorator:
         
         mock_search = Mock()
         mock_list = Mock()
-        mock_execute = Mock(side_effect=mock_execute)
-        mock_list.execute = mock_execute
+        mock_list.execute.side_effect = mock_execute
         mock_search.list.return_value = mock_list
-        youtube_searcher.youtube_service.search.return_value = mock_search
+        mock_youtube_searcher_sync.youtube_service.search.return_value = mock_search
         
         with caplog.at_level(logging.WARNING):
             with pytest.raises(YouTubeApiError):
-                youtube_searcher.search_videos("failing query")
+                mock_youtube_searcher_sync.search_videos("failing query")
         
         # Verify retry count (5 retries = total 5 calls)
         assert call_count == 5
@@ -197,8 +183,8 @@ class TestRetrySearchDecorator:
         retry_logs = [record for record in caplog.records if "Retrying" in record.message]
         assert len(retry_logs) == 4
     
-    # def test_no_retry_on_non_retryable_error(self, youtube_searcher, caplog):
-    #     """[DEPRECATED] All exception of youtube_searcher.search_videos should be retried"""
+    # def test_no_retry_on_non_retryable_error(self, mock_youtube_searcher_sync, caplog):
+    #     """[DEPRECATED] All exception of mock_youtube_searcher_sync.search_videos should be retried"""
     #     # Mock error
     #     call_count = 0
     #     def mock_execute():
@@ -211,11 +197,11 @@ class TestRetrySearchDecorator:
     #     mock_execute = Mock(side_effect=mock_execute)
     #     mock_list.execute = mock_execute
     #     mock_search.list.return_value = mock_list
-    #     youtube_searcher.youtube_service.search.return_value = mock_search
+    #     mock_youtube_searcher_sync.youtube_service.search.return_value = mock_search
         
     #     with caplog.at_level(logging.WARNING):
     #         with pytest.raises(YouTubeClientError):
-    #             youtube_searcher.search_videos("invalid query")
+    #             mock_youtube_searcher_sync.search_videos("invalid query")
         
     #     # Should only retry once
     #     assert call_count == 1
@@ -228,16 +214,7 @@ class TestRetrySearchDecorator:
 class TestRetryTranscriptApiDecorator:
     """Test the functionality of retry_transcript_api decorator."""
     
-    @pytest.fixture
-    def youtube_searcher(self):
-        """Create YouTubeSearcher instance for testing."""
-        config = YouTubeConfig()
-        with patch.object(config, 'api_key', 'test_api_key'):
-            with patch('mcp_server_youtube.youtube.module.build'):
-                searcher = YouTubeSearcher(config)
-                return searcher
-
-    def test_retry_on_transcript_error_then_success(self, youtube_searcher, caplog):
+    def test_retry_on_transcript_error_then_success(self, mock_youtube_searcher_sync, caplog):
         """Test transcript fetching triggers retry on exception, eventually succeeds."""
         # Mock TranscriptFetcher behavior
         call_count = 0
@@ -263,7 +240,7 @@ class TestRetryTranscriptApiDecorator:
             mock_fetcher_class.return_value = mock_fetcher
             
             with caplog.at_level(logging.WARNING):
-                result = youtube_searcher._get_transcript_by_id(TEST_VIDEO_IDS['video1'], "en")
+                result = mock_youtube_searcher_sync._get_transcript_by_id(TEST_VIDEO_IDS['video1'], "en")
         
         # Verify results
         transcript, language, has_transcript = result
@@ -279,7 +256,7 @@ class TestRetryTranscriptApiDecorator:
         assert len(retry_logs) == 2  # Two retry logs
         assert "_get_transcript_by_id" in retry_logs[0].message
     
-    def test_retry_on_timeout_error_then_success(self, youtube_searcher, caplog):
+    def test_retry_on_timeout_error_then_success(self, mock_youtube_searcher_sync, caplog):
         """Test transcript fetching triggers retry on timeout error, eventually succeeds."""
         call_count = 0
         
@@ -302,7 +279,7 @@ class TestRetryTranscriptApiDecorator:
             mock_fetcher_class.return_value = mock_fetcher
             
             with caplog.at_level(logging.WARNING):
-                result = youtube_searcher._get_transcript_by_id(TEST_VIDEO_IDS['video2'], "en")
+                result = mock_youtube_searcher_sync._get_transcript_by_id(TEST_VIDEO_IDS['video2'], "en")
         
         # Verify results
         transcript, language, has_transcript = result
@@ -317,8 +294,8 @@ class TestRetryTranscriptApiDecorator:
         assert len(retry_logs) == 1
         assert "TimeoutError" in retry_logs[0].message
     
-    def test_max_retries_exceeded_for_transcript(self, youtube_searcher, caplog):
-        """Test transcript retry returns error status after exceeding max retries."""
+    def test_max_retries_exceeded_for_transcript(self, mock_youtube_searcher_sync, caplog):
+        """Test transcript retry returns fallback value after exceeding max retries."""
         # Mock persistent failure
         def mock_fetch_side_effect(language):
             raise ConnectionError("Persistent connection error")
@@ -329,11 +306,12 @@ class TestRetryTranscriptApiDecorator:
             mock_fetcher_class.return_value = mock_fetcher
             
             with caplog.at_level(logging.WARNING):
-                result = youtube_searcher._get_transcript_by_id(TEST_VIDEO_IDS['video3'], "en")
+                # With retry_error_callback, should return fallback value even with reraise=True
+                result = mock_youtube_searcher_sync._get_transcript_by_id(TEST_VIDEO_IDS['video3'], "en")
         
-        # Verify results (should return error status instead of throwing exception)
+        # Verify results (should return fallback value from callback)
         transcript, language, has_transcript = result
-        assert "Transcript service temporarily unavailable" in transcript
+        assert transcript == "Transcript service temporarily unavailable"
         assert language is None
         assert has_transcript is False
         
@@ -344,7 +322,7 @@ class TestRetryTranscriptApiDecorator:
         retry_logs = [record for record in caplog.records if "Retrying" in record.message]
         assert len(retry_logs) == 4  # 4 retry logs
     
-    def test_exponential_backoff_timing(self, youtube_searcher):
+    def test_exponential_backoff_timing(self, mock_youtube_searcher_sync):
         """Test exponential backoff timing."""
         call_count = 0
         
@@ -367,7 +345,7 @@ class TestRetryTranscriptApiDecorator:
             mock_fetcher_class.return_value = mock_fetcher
             
             start_time = time.time()
-            result = youtube_searcher._get_transcript_by_id(TEST_VIDEO_IDS['video1'], "en")
+            result = mock_youtube_searcher_sync._get_transcript_by_id(TEST_VIDEO_IDS['video1'], "en")
             end_time = time.time()
         
         # Verify results
@@ -380,7 +358,7 @@ class TestRetryTranscriptApiDecorator:
         assert total_time >= 1.5  # At least exponential backoff delay
         assert total_time < 5.0   # But should not be too long
     
-    def test_retry_logging_details(self, youtube_searcher, caplog):
+    def test_retry_logging_details(self, mock_youtube_searcher_sync, caplog):
         """Test detailed content of retry logs."""
         call_count = 0
         
@@ -405,7 +383,7 @@ class TestRetryTranscriptApiDecorator:
             mock_fetcher_class.return_value = mock_fetcher
             
             with caplog.at_level(logging.WARNING):
-                result = youtube_searcher._get_transcript_by_id(TEST_VIDEO_IDS['video2'], "en")
+                result = mock_youtube_searcher_sync._get_transcript_by_id(TEST_VIDEO_IDS['video2'], "en")
         
         # Verify results
         transcript, language, has_transcript = result
@@ -429,18 +407,7 @@ class TestRetryTranscriptApiDecorator:
 class TestIntegratedRetryBehavior:
     """Test integrated retry behavior."""
     
-    @pytest.fixture
-    def youtube_searcher(self):
-        """Create YouTubeSearcher instance for testing."""
-        config = YouTubeConfig()
-        with patch.object(config, 'api_key', 'test_api_key'):
-            with patch('mcp_server_youtube.youtube.module.build') as mock_build:
-                mock_service = Mock()
-                mock_build.return_value = mock_service
-                searcher = YouTubeSearcher(config)
-                return searcher
-    
-    def test_search_with_transcript_retries(self, youtube_searcher, caplog):
+    def test_search_with_transcript_retries(self, mock_youtube_searcher_sync, caplog):
         """Test integrated scenario where both search and transcript have retries."""
         # Use predefined mock response
         mock_response = MOCK_RESPONSES['video3']
@@ -464,7 +431,7 @@ class TestIntegratedRetryBehavior:
         mock_execute = Mock(side_effect=mock_execute)
         mock_list.execute = mock_execute
         mock_search.list.return_value = mock_list
-        youtube_searcher.youtube_service.search.return_value = mock_search
+        mock_youtube_searcher_sync.youtube_service.search.return_value = mock_search
         
         # Mock transcript: first fails, second succeeds
         transcript_call_count = 0
@@ -488,7 +455,7 @@ class TestIntegratedRetryBehavior:
             mock_fetcher_class.return_value = mock_fetcher
             
             with caplog.at_level(logging.WARNING):
-                result = youtube_searcher.search_videos("integrated test")
+                result = mock_youtube_searcher_sync.search_videos("integrated test")
         
         # Verify results
         assert len(result) == 1
@@ -514,3 +481,159 @@ class TestIntegratedRetryBehavior:
         assert len(transcript_retry_logs) == 1
         assert "YouTubeApiError" in search_retry_logs[0].message
         assert "ConnectionError" in transcript_retry_logs[0].message
+
+
+class TestRetryDecoratorEdgeCases:
+    """Test edge cases and additional scenarios for retry decorators."""
+    
+    def test_retry_with_different_http_error_codes(self, mock_youtube_searcher_sync, caplog):
+        """Test retry behavior with different HTTP error codes."""
+        mock_response = MOCK_RESPONSES['video1']
+        
+        # Test 503 (Service Unavailable) - should retry
+        http_error_503 = HttpError(
+            resp=Mock(status=503),
+            content=b'{"error": {"message": "Service Unavailable"}}'
+        )
+        
+        # Test 502 (Bad Gateway) - should retry
+        http_error_502 = HttpError(
+            resp=Mock(status=502),
+            content=b'{"error": {"message": "Bad Gateway"}}'
+        )
+        
+        call_count = 0
+        def mock_execute():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise http_error_503
+            elif call_count == 2:
+                raise http_error_502
+            return mock_response
+        
+        mock_search = Mock()
+        mock_list = Mock()
+        mock_list.execute.side_effect = mock_execute
+        mock_search.list.return_value = mock_list
+        mock_youtube_searcher_sync.youtube_service.search.return_value = mock_search
+        
+        with patch.object(mock_youtube_searcher_sync, '_get_transcript_by_id') as mock_transcript:
+            mock_transcript.return_value = ("Test transcript", "en", True)
+            
+            with caplog.at_level(logging.WARNING):
+                result = mock_youtube_searcher_sync.search_videos("test query")
+        
+        # Verify success after retries
+        assert len(result) == 1
+        assert call_count == 3
+        
+        # Verify both errors triggered retries
+        retry_logs = [record for record in caplog.records if "Retrying" in record.message]
+        assert len(retry_logs) == 2
+
+    def test_transcript_retry_with_different_exceptions(self, mock_youtube_searcher_sync, caplog):
+        """Test transcript retry with various exception types."""
+        call_count = 0
+        
+        def mock_fetch_side_effect(language):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise ConnectionError("Network connection failed")
+            elif call_count == 2:
+                raise TimeoutError("Request timeout")
+            elif call_count == 3:
+                raise OSError("OS level error")
+            # Fourth time succeeds
+            return TranscriptResult(
+                status=TranscriptStatus.SUCCESS,
+                transcript="Success after multiple retries",
+                language="en",
+                available_languages=["en"],
+                error_message=None
+            )
+        
+        with patch('mcp_server_youtube.youtube.module.TranscriptFetcher') as mock_fetcher_class:
+            mock_fetcher = Mock()
+            mock_fetcher.fetch.side_effect = mock_fetch_side_effect
+            mock_fetcher_class.return_value = mock_fetcher
+            
+            with caplog.at_level(logging.WARNING):
+                result = mock_youtube_searcher_sync._get_transcript_by_id(TEST_VIDEO_IDS['video1'], "en")
+        
+        # Verify results
+        transcript, language, has_transcript = result
+        assert transcript == "Success after multiple retries"
+        assert has_transcript is True
+        assert call_count == 4
+        
+        # Verify all three error types triggered retries
+        retry_logs = [record for record in caplog.records if "Retrying" in record.message]
+        assert len(retry_logs) == 3
+        assert "ConnectionError" in retry_logs[0].message
+        assert "TimeoutError" in retry_logs[1].message
+        assert "OSError" in retry_logs[2].message
+
+    def test_search_no_retry_on_successful_first_attempt(self, mock_youtube_searcher_sync, caplog):
+        """Test that successful search doesn't trigger any retries."""
+        mock_response = MOCK_RESPONSES['video1']
+        
+        call_count = 0
+        def mock_execute():
+            nonlocal call_count
+            call_count += 1
+            return mock_response
+        
+        mock_search = Mock()
+        mock_list = Mock()
+        mock_list.execute.side_effect = mock_execute
+        mock_search.list.return_value = mock_list
+        mock_youtube_searcher_sync.youtube_service.search.return_value = mock_search
+        
+        with patch.object(mock_youtube_searcher_sync, '_get_transcript_by_id') as mock_transcript:
+            mock_transcript.return_value = ("Test transcript", "en", True)
+            
+            with caplog.at_level(logging.WARNING):
+                result = mock_youtube_searcher_sync.search_videos("test query")
+        
+        # Verify success on first try
+        assert len(result) == 1
+        assert call_count == 1
+        
+        # Verify no retry logs
+        retry_logs = [record for record in caplog.records if "Retrying" in record.message]
+        assert len(retry_logs) == 0
+
+    def test_transcript_no_retry_on_successful_first_attempt(self, mock_youtube_searcher_sync, caplog):
+        """Test that successful transcript fetch doesn't trigger any retries."""
+        call_count = 0
+        
+        def mock_fetch_side_effect(language):
+            nonlocal call_count
+            call_count += 1
+            return TranscriptResult(
+                status=TranscriptStatus.SUCCESS,
+                transcript="Immediate success",
+                language="en",
+                available_languages=["en"],
+                error_message=None
+            )
+        
+        with patch('mcp_server_youtube.youtube.module.TranscriptFetcher') as mock_fetcher_class:
+            mock_fetcher = Mock()
+            mock_fetcher.fetch.side_effect = mock_fetch_side_effect
+            mock_fetcher_class.return_value = mock_fetcher
+            
+            with caplog.at_level(logging.WARNING):
+                result = mock_youtube_searcher_sync._get_transcript_by_id(TEST_VIDEO_IDS['video1'], "en")
+        
+        # Verify success on first try
+        transcript, language, has_transcript = result
+        assert transcript == "Immediate success"
+        assert has_transcript is True
+        assert call_count == 1
+        
+        # Verify no retry logs
+        retry_logs = [record for record in caplog.records if "Retrying" in record.message]
+        assert len(retry_logs) == 0
