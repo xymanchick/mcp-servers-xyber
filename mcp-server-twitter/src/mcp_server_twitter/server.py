@@ -9,9 +9,9 @@ from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 
 
-from .twitter import AsyncTwitterClient, get_twitter_client
+from mcp_server_twitter.twitter import AsyncTwitterClient, get_twitter_client
 
-from .schemas import (
+from mcp_server_twitter.schemas import (
     CreateTweetRequest,
     GetUserTweetsRequest,
     FollowUserRequest,

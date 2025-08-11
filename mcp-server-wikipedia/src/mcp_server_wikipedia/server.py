@@ -16,7 +16,7 @@ from mcp_server_wikipedia.wikipedia import (
     get_wikipedia_service,
 )
 
-from .schemas import (
+from mcp_server_wikipedia.schemas import (
     SearchWikipediaRequest,
     GetArticleRequest,
     ArticleResponse,
