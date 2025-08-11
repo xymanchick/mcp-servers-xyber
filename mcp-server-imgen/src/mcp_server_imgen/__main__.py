@@ -63,4 +63,5 @@ if __name__ == "__main__":
         reload=args.reload,
         log_level=logging_level.lower(),
         factory=True,
+        lifespan="on"
     )
