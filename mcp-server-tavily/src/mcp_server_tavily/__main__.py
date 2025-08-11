@@ -4,16 +4,11 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-from dotenv import load_dotenv
 
 from mcp_server_tavily.logging_config import configure_logging, logging_level
 from mcp_server_tavily.server import mcp_server
 
 configure_logging()
-
-# --- Load environment variables ---
-load_dotenv() ## Added because API key could not be loaded without this line
-
 
 logger = logging.getLogger(__name__)
 
