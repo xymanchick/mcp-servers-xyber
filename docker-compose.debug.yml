@@ -219,6 +219,22 @@ services:
     restart: unless-stopped
     environment: {}
 
+  mcp_server_hangman:
+    build:
+      context: ./mcp-server-hangman
+      dockerfile: Dockerfile
+      target: dev
+    image: mcp_server_hangman-debug
+    container_name: mcp_server_hangman_debug
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5712", "--wait-for-client", "-m", "mcp_server_hangman", "--port", "8000", "--reload"]
+    ports:
+      - "8015:8000"
+      - "5712:5712"
+    volumes:
+      - ./mcp-server-hangman/src/mcp_server_hangman:/app/mcp_server_hangman:ro
+    restart: unless-stopped
+    environment: {}
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant_storage
