@@ -64,7 +64,7 @@ async def generate_image(
     ctx: Context,
     prompt: Annotated[
         str,
-        Field(description="Text prompt describing the desired image", max_length=100),
+        Field(description="Text prompt describing the desired image", max_length=200),
     ],
     width: Annotated[
         int,
