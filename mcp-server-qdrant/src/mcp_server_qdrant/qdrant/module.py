@@ -216,12 +216,13 @@ class QdrantConnector:
                 # Build filter conditions from the filters dict
                 filter_conditions: list[models.Condition] = []
                 for field_path, value in filters.items():
-                    filter_conditions.append(
-                        models.FieldCondition(
-                            key=field_path,
-                            match=models.MatchValue(value=value),
+                    if value is not None: 
+                        filter_conditions.append(
+                            models.FieldCondition(
+                                key=field_path,
+                                match=models.MatchValue(value=value),
+                            )
                         )
-                    )
 
                 if filter_conditions:
                     query_filter = models.Filter(must=filter_conditions)
