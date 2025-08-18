@@ -7,7 +7,6 @@ from google.auth.transport.requests import Request
 from google.cloud import aiplatform_v1
 from google.oauth2.service_account import Credentials
 from google.protobuf import json_format, struct_pb2
-
 from mcp_server_imgen.google_client.config import (
     EmptyPredictionError,
     GoogleAPIError,

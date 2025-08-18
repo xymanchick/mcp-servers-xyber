@@ -5,11 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class Base(BaseModel):
     """Base model for all schemas."""
+
     model_config = ConfigDict(
-        strict=True,
-        from_attributes=True,
-        extra='forbid',
-        populate_by_name=True
+        strict=True, from_attributes=True, extra="forbid", populate_by_name=True
     )
 
 
@@ -40,5 +38,5 @@ class QdrantFindRequest(QdrantGetCollectionInfoRequest):
     filters: dict[str, Any] | None = Field(
         None,
         description="Optional filters as field_path -> value pairs. "
-                    "Filtering by tenant fields (if configured) will be much faster than filtering by other fields.",
+        "Filtering by tenant fields (if configured) will be much faster than filtering by other fields.",
     )

@@ -5,7 +5,6 @@ from typing import Any, AsyncIterator
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from mcp_server_tavily.tavily import (
     TavilySearchResult,
     TavilyServiceError,
@@ -55,8 +54,9 @@ mcp_server = FastMCP(name="tavily", lifespan=app_lifespan)
 async def tavily_web_search(
     ctx: Context,
     query: str,  # The search query string for Tavily
-    max_results: int
-    | None = None,  # Optional override for the maximum number of search results (min 1)
+    max_results: (
+        int | None
+    ) = None,  # Optional override for the maximum number of search results (min 1)
 ) -> str:
     """Performs a web search using the Tavily API based on the provided query."""
     tavily_service = ctx.request_context.lifespan_context["tavily_service"]

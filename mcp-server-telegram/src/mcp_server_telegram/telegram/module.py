@@ -4,11 +4,7 @@ import logging
 from functools import lru_cache
 
 import requests
-
-from mcp_server_telegram.telegram.config import (
-    TelegramConfig,
-    TelegramConfigError,
-)
+from mcp_server_telegram.telegram.config import TelegramConfig, TelegramConfigError
 
 logger = logging.getLogger(__name__)
 

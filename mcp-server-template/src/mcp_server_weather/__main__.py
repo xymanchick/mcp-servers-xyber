@@ -7,7 +7,6 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-
 from mcp_server_weather.logging_config import configure_logging, logging_level
 from mcp_server_weather.server import mcp_server
 
@@ -19,7 +18,7 @@ logger = logging.getLogger(__name__)
 # --- Application Factory --- #
 def create_app() -> FastAPI:
     """Create a FastAPI application that serves the MCP server with streamable-http
-    
+
     Returns:
         Configured FastAPI application
     """
@@ -33,7 +32,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=mcp_app.router.lifespan_context,
     )
-    
+
     # Mount MCP server
     app.mount("/mcp-server", mcp_app)
 

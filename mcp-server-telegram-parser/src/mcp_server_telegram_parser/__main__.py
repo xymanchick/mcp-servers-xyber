@@ -4,7 +4,6 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-
 from mcp_server_telegram_parser.logging_config import LOGGING_LEVEL as logging_level
 from mcp_server_telegram_parser.logging_config import configure_logging
 from mcp_server_telegram_parser.server import mcp_server
@@ -44,7 +43,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--reload",
         action="store_true",
-        default=os.getenv("MCP_TELEGRAM_PARSER_RELOAD", "false").lower() in ("true", "1", "t", "yes"),
+        default=os.getenv("MCP_TELEGRAM_PARSER_RELOAD", "false").lower()
+        in ("true", "1", "t", "yes"),
     )
 
     args = parser.parse_args()
@@ -58,5 +58,3 @@ if __name__ == "__main__":
         log_level=logging_level.lower(),
         factory=True,
     )
-
-

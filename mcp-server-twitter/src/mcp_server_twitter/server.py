@@ -1,20 +1,22 @@
 import json
 import logging
-from pydantic import ValidationError
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
+from .schemas import (
+    CreateTweetInput,
+    FollowUserInput,
+    GetTrendsInput,
+    GetUserTweetsInput,
+    RetweetTweetInput,
+    SearchHashtagInput,
+)
 from .twitter import AsyncTwitterClient, get_twitter_client
-from .schemas import (CreateTweetInput,
-                      GetUserTweetsInput,
-                      FollowUserInput,
-                      RetweetTweetInput,
-                      GetTrendsInput,
-                      SearchHashtagInput)
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,7 @@ mcp_server = FastMCP("twitter-server", lifespan=app_lifespan)
 
 # --- Tool Definitions --- #
 
+
 @mcp_server.tool()
 async def create_tweet(ctx: Context, tool_input: dict) -> str:
     """
@@ -76,11 +79,11 @@ async def create_tweet(ctx: Context, tool_input: dict) -> str:
         if validated_data.image_content_str:
             image_size = len(validated_data.image_content_str.encode("utf-8"))
             if image_size > 5_000_000:
-                raise ToolError("Image content too large (max 5MB)", status_code=413)
+                raise ToolError("Image content too large (max 5MB)")
 
     except ValidationError as e:
         # Return structured error with HTTP 400
-        raise ToolError(f"Invalid input: {e.errors()}", status_code=400)
+        raise ToolError(f"Invalid input: {e.errors()}")
 
     try:
         # Call Twitter client with validated data
@@ -102,7 +105,9 @@ async def create_tweet(ctx: Context, tool_input: dict) -> str:
     except Exception as e:
         msg = str(e)
         if "403" in msg or "Forbidden" in msg:
-            raise ToolError("Tweet creation forbidden. Check content policy or API permissions")
+            raise ToolError(
+                "Tweet creation forbidden. Check content policy or API permissions"
+            )
         elif "401" in msg or "Unauthorized" in msg:
             raise ToolError("Unauthorized. Check Twitter API credentials")
         elif "duplicate" in msg.lower():
@@ -137,8 +142,7 @@ async def get_user_tweets(ctx: Context, tool_input: dict) -> str:
         for uid in validated_data.user_ids:
             try:
                 resp = await client.get_user_tweets(
-                    user_id=uid,
-                    max_results=validated_data.max_results
+                    user_id=uid, max_results=validated_data.max_results
                 )
                 if resp and resp.data:
                     tweets_dict[uid] = [t.text for t in resp.data]
@@ -197,7 +201,9 @@ async def follow_user(ctx: Context, tool_input: dict) -> str:
         if "404" in msg or "Not Found" in msg:
             raise ToolError(f"User {validated_data.user_id} not found")
         elif "403" in msg or "Forbidden" in msg:
-            raise ToolError("Cannot follow user. Account may be private or already followed")
+            raise ToolError(
+                "Cannot follow user. Account may be private or already followed"
+            )
         elif "401" in msg or "Unauthorized" in msg:
             raise ToolError("Unauthorized. Check Twitter API permissions")
         else:
@@ -229,7 +235,9 @@ async def retweet_tweet(ctx: Context, tool_input: dict) -> str:
     except Exception as retweet_error:
         msg = str(retweet_error)
         if "404" in msg or "Not Found" in msg:
-            raise ToolError(f"Tweet {validated_data.tweet_id} not found or has been deleted")
+            raise ToolError(
+                f"Tweet {validated_data.tweet_id} not found or has been deleted"
+            )
         elif "403" in msg or "Forbidden" in msg:
             raise ToolError("Cannot retweet. Already retweeted or tweet is private")
         elif "401" in msg or "Unauthorized" in msg:
@@ -260,8 +268,7 @@ async def get_trends(ctx: Context, tool_input: dict) -> str:
 
     try:
         trends = await client.get_trends(
-            countries=validated.countries,
-            max_trends=validated.max_trends
+            countries=validated.countries, max_trends=validated.max_trends
         )
         return json.dumps(trends, ensure_ascii=False, indent=2)
     except Exception as e:
@@ -290,10 +297,8 @@ async def search_hashtag(ctx: Context, tool_input: dict) -> str:
 
     try:
         tweets = await client.search_hashtag(
-            hashtag=validated.hashtag,
-            max_results=validated.max_results
+            hashtag=validated.hashtag, max_results=validated.max_results
         )
         return json.dumps(tweets, ensure_ascii=False, indent=2)
     except Exception as e:
         raise ToolError(f"Error searching hashtag: {str(e)}")
-

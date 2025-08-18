@@ -7,7 +7,6 @@ from typing import List, Optional
 
 import arxiv  # Official arxiv library
 import fitz  # PyMuPDF
-
 from mcp_server_arxiv.arxiv.config import (
     ArxivApiError,
     ArxivConfig,
@@ -101,9 +100,9 @@ async def _async_download_and_extract_pdf_text(
     return ArxivSearchResult(
         title=paper.title,
         authors=[author.name for author in paper.authors],
-        published_date=paper.published.strftime("%Y-%m-%d")
-        if paper.published
-        else "N/A",
+        published_date=(
+            paper.published.strftime("%Y-%m-%d") if paper.published else "N/A"
+        ),
         summary=paper.summary,
         arxiv_id=arxiv_id,
         pdf_url=pdf_url,
@@ -236,9 +235,9 @@ class _ArxivService:
                     f"Waiting for {len(tasks)} PDF processing tasks to complete..."
                 )
                 # Gather results; asyncio.gather preserves order
-                processed_results: List[
-                    ArxivSearchResult | Exception
-                ] = await asyncio.gather(*tasks, return_exceptions=True)
+                processed_results: List[ArxivSearchResult | Exception] = (
+                    await asyncio.gather(*tasks, return_exceptions=True)
+                )
                 logger.info("All PDF processing tasks finished.")
 
                 final_results_list: List[ArxivSearchResult] = []
@@ -260,11 +259,11 @@ class _ArxivService:
                                 authors=[
                                     author.name for author in original_paper_obj.authors
                                 ],
-                                published_date=original_paper_obj.published.strftime(
-                                    "%Y-%m-%d"
-                                )
-                                if original_paper_obj.published
-                                else "N/A",
+                                published_date=(
+                                    original_paper_obj.published.strftime("%Y-%m-%d")
+                                    if original_paper_obj.published
+                                    else "N/A"
+                                ),
                                 summary=original_paper_obj.summary,
                                 arxiv_id=original_paper_obj.get_short_id(),
                                 pdf_url=original_paper_obj.pdf_url,

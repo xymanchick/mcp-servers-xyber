@@ -36,13 +36,11 @@ class _ImageGenerationService:
         guidance_scale: float = 3,
         num_inference_steps: int = 50,
     ) -> list[str]:
-        """
-        Generate images using Google Vertex AI.
+        """Generate images using Google Vertex AI.
 
         Raises:
             GoogleAPIError: If the API call fails.
             ImageDecodeError: If the returned image data cannot be decoded.
-
         """
         logger.info(f"Generating {num_images} image(s) for prompt: '{prompt}'")
 

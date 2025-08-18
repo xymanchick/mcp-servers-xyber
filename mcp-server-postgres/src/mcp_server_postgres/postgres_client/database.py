@@ -2,10 +2,9 @@
 Database connection and session handling for PostgreSQL.
 """
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-
 # Use absolute import within the mcp_server_postgres.postgres_client package
 from mcp_server_postgres.postgres_client.config import PostgresConfig
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # Get database connection URL from configuration
 DATABASE_URL = PostgresConfig().get_db_url()

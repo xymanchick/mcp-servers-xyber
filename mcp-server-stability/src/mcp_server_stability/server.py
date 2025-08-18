@@ -6,14 +6,13 @@ from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import Field
-
 from mcp_server_stability.stable_diffusion import (
     StabilityService,
     StableDiffusionClientError,
     StableDiffusionServerConnectionError,
     get_stability_service,
 )
+from pydantic import Field
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +23,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, object]]:
     logger.info("Lifespan: Initializing Stable Diffusion service...")
+    stability_service = None
     try:
-        stability_service: StabilityService = await get_stability_service()
+        stability_service = await get_stability_service()
         logger.info("Lifespan: Stable Diffusion service initialized successfully.")
         yield {"stability_service": stability_service}
 
@@ -41,11 +41,12 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, object]]:
         )
         raise startup_err
     finally:
-        logger.info("Lifespan: Cleaning up Stable Diffusion service.")
-        await stability_service.cleanup()
-        logger.info(
-            "Lifespan: Stable Diffusion service cleanup completed successfully."
-        )
+        if stability_service is not None:
+            logger.info("Lifespan: Cleaning up Stable Diffusion service.")
+            await stability_service.cleanup()
+            logger.info(
+                "Lifespan: Stable Diffusion service cleanup completed successfully."
+            )
 
 
 # --- MCP Server Initialization --- #

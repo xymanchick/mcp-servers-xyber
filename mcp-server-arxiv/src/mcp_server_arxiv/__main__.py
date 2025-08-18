@@ -7,7 +7,6 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-
 from mcp_server_arxiv.logging_config import LOGGING_CONFIG, configure_logging
 from mcp_server_arxiv.server import mcp_server
 

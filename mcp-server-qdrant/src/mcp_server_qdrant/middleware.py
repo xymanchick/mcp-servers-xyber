@@ -6,7 +6,11 @@ class PayloadSizeMiddleware(BaseHTTPMiddleware):
     max_size: int = 1_000_000  # 1 MB default limit
 
     async def dispatch(self, request: requests.Request, call_next):
-        content_length = int(request.headers.get("content-length", 0))
+        try:
+            content_length = int(request.headers.get("content-length", 0))
+        except ValueError:
+            # If content-length is not a valid integer, treat as 0
+            content_length = 0
 
         if content_length > self.max_size:
             return responses.JSONResponse(
