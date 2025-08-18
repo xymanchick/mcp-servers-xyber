@@ -5,7 +5,6 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import ValidationError as PydanticValidationError
 
 from mcp_server_imgen.google_client import (
     GoogleConfigError,
@@ -22,16 +21,6 @@ from mcp_server_imgen.utils import (
 from mcp_server_imgen.schemas import GenerateImageRequest
 
 logger = logging.getLogger(__name__)
-
-# --- Custom Exceptions --- #
-class ValidationError(ToolError):
-    """Custom exception for input validation failures."""
-
-    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
-        self.message = message
-        self.code = code
-        self.status_code = 400
-        super().__init__(message)
 
 # --- Lifespan Management --- #
 @asynccontextmanager
@@ -75,51 +64,26 @@ mcp_server = FastMCP(name="imgen", lifespan=app_lifespan)
 @mcp_server.tool()
 async def generate_image(
     ctx: Context,
-    prompt: str,
-    width: int,
-    height: int,
-    num_images: int,
-    seed: int | None,
-    guidance_scale: float,
-    num_inference_steps: int,
+    request: GenerateImageRequest,
 ) -> str:
     """Generate images from text using Google Vertex AI Stable Diffusion."""
     image_generator = ctx.request_context.lifespan_context["image_generator"]
     gemini_model = ctx.request_context.lifespan_context["gemini_model"]
 
     try:
-        
-        # Validate input parameters
-        GenerateImageRequest(
-            prompt=prompt,
-            width=width,
-            height=height,
-            num_images=num_images,
-            seed=seed,
-            guidance_scale=guidance_scale,
-            num_inference_steps=num_inference_steps,
-        )
-        
-        # Generate images
+        # Generate images using the validated request data
         image_base64_list = await image_generator.generate_images(
-            prompt=prompt,
-            width=width,
-            height=height,
-            num_images=num_images,
-            seed=seed,
-            guidance_scale=guidance_scale,
-            num_inference_steps=num_inference_steps,
+            prompt=request.prompt,
+            width=request.width,
+            height=request.height,
+            num_images=request.num_images,
+            seed=request.seed,
+            guidance_scale=request.guidance_scale,
+            num_inference_steps=request.num_inference_steps,
         )
 
-        logger.info(f"Successfully generated image for prompt: '{prompt}'")
+        logger.info(f"Successfully generated image for prompt: '{request.prompt}'")
         return image_base64_list[0]
-    
-    except PydanticValidationError as ve:
-        error_details = "\n".join(
-            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
-            for err in ve.errors()
-        )
-        raise ValidationError(f"Invalid parameters:\n{error_details}")
 
     except (GoogleServiceError, ImageGenerationServiceError) as service_err:
         logger.error(f"Service error during image generation: {service_err}")

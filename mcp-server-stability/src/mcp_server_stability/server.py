@@ -5,8 +5,6 @@ from contextlib import asynccontextmanager
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import ValidationError as PydanticValidationError
-from mcp_server_stability.schemas import ImageGenerationRequest
 
 from mcp_server_stability.stable_diffusion import (
     StabilityService,
@@ -14,18 +12,9 @@ from mcp_server_stability.stable_diffusion import (
     StableDiffusionServerConnectionError,
     get_stability_service,
 )
+from mcp_server_stability.schemas import ImageGenerationRequest
 
 logger = logging.getLogger(__name__)
-
-# --- Custom Exceptions --- #
-class ValidationError(ToolError):
-    """Custom exception for input validation failures."""
-
-    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
-        self.message = message
-        self.code = code
-        self.status_code = 400
-        super().__init__(message)
 
 # --- Lifespan Management for MCP Server --- #
 
@@ -69,35 +58,23 @@ mcp_server = FastMCP("stability-server", lifespan=app_lifespan)
 @mcp_server.tool()
 async def generate_image(
     ctx: Context,
-    prompt: str,
-    negative_prompt: str | None = "ugly, inconsistent",
-    aspect_ratio: str = "1:1",
-    seed: int | None = 42,
-    style_preset: str | None = None,
+    request: ImageGenerationRequest,
 ) -> str:
     """Generate an image from a prompt using Stable Diffusion and returns it as a base64 encoded string"""
     stability_service: StabilityService = ctx.request_context.lifespan_context[
         "stability_service"
     ]
-    params = {
-        "prompt": prompt,
-        "negative_prompt": negative_prompt,
-        "aspect_ratio": aspect_ratio,
-        "seed": seed,
-    }
-    if style_preset:
-        params["style_preset"] = style_preset
 
     try:
-        
-        # Validate input parameters
-        ImageGenerationRequest(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            aspect_ratio=aspect_ratio,
-            seed=seed,
-            style_preset=style_preset,
-        )
+        # Use validated data for parameters
+        params = {
+            "prompt": request.prompt,
+            "negative_prompt": request.negative_prompt,
+            "aspect_ratio": request.aspect_ratio,
+            "seed": request.seed,
+        }
+        if request.style_preset:
+            params["style_preset"] = request.style_preset
         
         response = await stability_service.send_generation_request(params)
         finish_reason = response.headers.get("finish-reason")
@@ -112,12 +89,6 @@ async def generate_image(
     except (StableDiffusionServerConnectionError, StableDiffusionClientError) as exc:
         logger.error(f"Stable Diffusion error: {exc}")
         raise ToolError(str(exc)) from exc
-    except PydanticValidationError as ve:
-        error_details = "; ".join(
-            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
-        )
-        logger.warning(f"Validation error: {error_details}")
-        raise ValidationError(f"Validation error: {error_details}") from ve
     except Exception as exc:
         logger.error(f"Unexpected error: {exc}", exc_info=True)
         raise ToolError(f"Unexpected error: {exc}") from exc

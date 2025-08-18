@@ -94,7 +94,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     match name:
         case PostgresMCPServerTools.GET_CHARACTER_BY_NAME.value:
             try:
-                # 1. Validate Input Arguments
+                # 1. Validate Input Arguments using Pydantic model
                 request_model = GetCharacterByNameRequest(**arguments)
                 character_name = request_model.name
 
