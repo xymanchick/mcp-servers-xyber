@@ -202,6 +202,40 @@ services:
     restart: unless-stopped
     environment: {}
 
+
+  mcp_server_telegram_parser:
+    build:
+      context: ./mcp-server-telegram-parser
+      dockerfile: Dockerfile
+      target: dev
+    image: mcp_server_telegram_parser-debug
+    container_name: mcp_server_telegram_parser_debug
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5711", "--wait-for-client", "-m", "mcp_server_telegram_parser", "--port", "8000", "--reload"]
+    ports:
+      - "8010:8000"
+      - "5711:5711"
+    volumes:
+      - ./mcp-server-telegram-parser/src/mcp_server_telegram_parser:/app/mcp_server_telegram_parser:ro
+    env_file: ./mcp-server-telegram-parser/.env
+    restart: unless-stopped
+    environment: {}
+
+  mcp_server_hangman:
+    build:
+      context: ./mcp-server-hangman
+      dockerfile: Dockerfile
+      target: dev
+    image: mcp_server_hangman-debug
+    container_name: mcp_server_hangman_debug
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5712", "--wait-for-client", "-m", "mcp_server_hangman", "--port", "8000", "--reload"]
+    ports:
+      - "8015:8000"
+      - "5712:5712"
+    volumes:
+      - ./mcp-server-hangman/src/mcp_server_hangman:/app/mcp_server_hangman:ro
+    restart: unless-stopped
+    environment: {}
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant_storage

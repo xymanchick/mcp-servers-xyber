@@ -1,7 +1,6 @@
+from mcp_server_postgres.postgres_client.models.base_model import Base
 from sqlalchemy import JSON, UUID, String
 from sqlalchemy.orm import Mapped, mapped_column
-
-from mcp_server_postgres.postgres_client.models.base_model import Base
 
 
 class Agent(Base):

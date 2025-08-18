@@ -149,6 +149,7 @@ def stop_server(server_process: subprocess.Popen) -> None:
         server_process.wait()
 
 
+
 def run_manual_tests() -> tuple[bool, float]:
     """Run manual tests."""
     import os
@@ -180,6 +181,7 @@ def run_manual_tests() -> tuple[bool, float]:
     except Exception as e:
         logger.error(f"Unexpected error running manual tests: {e}")
         return False, time.time() - start_time
+
 
 
 def run_automated_tests() -> tuple[bool, float]:
@@ -371,6 +373,7 @@ def check_dependencies() -> bool:
     
     if missing_deps:
         logger.error(f"Missing dependencies: {', '.join(missing_deps)}")
+
         return False
     
     logger.info("All dependencies are available")
@@ -445,6 +448,7 @@ def main():
         if server_process is None:
             logger.warning("Failed to start server. Running tests that don't require server...")
             args.no_server = True
+
 
     try:
         # Run all test suites
@@ -552,6 +556,7 @@ def main():
             
         return all_passed
 
+
     except KeyboardInterrupt:
         logger.warning("Test execution interrupted by user")
         return False
@@ -599,3 +604,4 @@ def list_test_files():
 if __name__ == '__main__':
     success = main()
     sys.exit(0 if success else 1)
+

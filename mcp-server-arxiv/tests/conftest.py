@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 
 import arxiv
 import pytest
-
 from mcp_server_arxiv.server import mcp_server
 from mcp_server_arxiv.arxiv.config import ArxivConfig, ArxivApiError, ArxivConfigError
 from mcp_server_arxiv.arxiv.models import ArxivSearchResult
@@ -26,7 +25,6 @@ def fake_arxiv_result():
 @pytest.fixture
 def mcp_server_fixture():
     return mcp_server
-
 
 @pytest.fixture
 def arxiv_config():

@@ -10,15 +10,14 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import Field
-
 from mcp_server_weather.weather import (
-    WeatherClient,
-    WeatherError,
     WeatherApiError,
+    WeatherClient,
     WeatherClientError,
+    WeatherError,
     get_weather_client,
 )
+from pydantic import Field
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +33,13 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
     """Manage server startup/shutdown. Initializes required services.
-    
+
     Args:
         server: The FastMCP server instance
-        
+
     Yields:
         Dictionary with initialized services
-        
+
     Raises:
         WeatherError: If service initialization fails
     """
@@ -74,7 +73,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 
         except Exception as e:
             logger.error(f"Error closing weather client: {e}")
-                
+
         logger.info("Lifespan: Shutdown cleanup completed")
 
 
@@ -85,33 +84,30 @@ mcp_server = FastMCP("weather-server", lifespan=app_lifespan)
 # --- Tool Definitions --- #
 # Feel free to add more tools here!
 
+
 @mcp_server.tool()
 async def get_weather(
     ctx: Context,
-    latitude: Annotated[
-        str, Field(description="Location latitude")
-    ],
-    longitude: Annotated[
-        str, Field(description="Location longitude")
-    ], 
+    latitude: Annotated[str, Field(description="Location latitude")],
+    longitude: Annotated[str, Field(description="Location longitude")],
     units: Annotated[
-        Literal['metric', 'imperial'] | None,
+        Literal["metric", "imperial"] | None,
         Field(
             default=None,
-            description="Unit system (metric or imperial, defaults to configuration)"
-        )
+            description="Unit system (metric or imperial, defaults to configuration)",
+        ),
     ] = None,
 ) -> dict[str, str]:
     """Get current weather data for a location.
-    
+
     Args:
-        latitude: Location latitude 
+        latitude: Location latitude
         longitude: Location longitude
         units: Unit system (metric or imperial, defaults to configuration)
-        
+
     Returns:
         Dictionary with weather state, temperature, and humidity
-        
+
     Raises:
         ToolError: If weather retrieval fails
     """
@@ -120,9 +116,7 @@ async def get_weather(
     try:
         # Get weather data from client
         weather_data = await weather_client.get_weather(
-            latitude=latitude,
-            longitude=longitude,
-            units = units
+            latitude=latitude, longitude=longitude, units=units
         )
 
         # Format response
@@ -144,7 +138,9 @@ async def get_weather(
         raise ToolError(f"Weather client error: {client_err}") from client_err
 
     except Exception as e:
-        logger.error(f"Unexpected error processing tool get_weather: {e}", exc_info=True)
+        logger.error(
+            f"Unexpected error processing tool get_weather: {e}", exc_info=True
+        )
         raise ToolError(
             "An unexpected error occurred processing weather request"
         ) from e

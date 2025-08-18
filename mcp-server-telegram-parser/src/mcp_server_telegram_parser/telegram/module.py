@@ -2,14 +2,14 @@ import logging
 from functools import lru_cache
 from typing import Iterable
 
+from mcp_server_telegram_parser.schemas import (
+    ParsedChannel,
+    ParsedMessage,
+    TelegramParseResult,
+)
+from mcp_server_telegram_parser.telegram.config import ParserAuthError, ParserConfig
 from telethon import TelegramClient
 from telethon.sessions import StringSession
-
-from mcp_server_telegram_parser.schemas import ParsedChannel, ParsedMessage, TelegramParseResult
-from mcp_server_telegram_parser.telegram.config import (
-    ParserConfig,
-    ParserAuthError,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,9 @@ class TelegramParserService:
     def __init__(self, config: ParserConfig) -> None:
         self.config = config
 
-    async def parse_channels(self, channels: Iterable[str], limit: int) -> TelegramParseResult:
+    async def parse_channels(
+        self, channels: Iterable[str], limit: int
+    ) -> TelegramParseResult:
         results: dict[str, ParsedChannel] = {}
         try:
             client = TelegramClient(
@@ -69,5 +71,3 @@ class TelegramParserService:
 @lru_cache(maxsize=1)
 def get_parser_service() -> TelegramParserService:
     return TelegramParserService(ParserConfig())
-
-

@@ -1,7 +1,6 @@
 import logging
 
 import httpx
-
 from mcp_server_stability.stable_diffusion.config import (
     StableDiffusionClientConfig,
     StableDiffusionClientError,

@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
-
 from mcp_server_arxiv import (
     ArxivApiError,
     ArxivConfigError,
@@ -15,10 +14,12 @@ from mcp_server_arxiv.server import app_lifespan, mcp_server
 
 
 @pytest.mark.asyncio
-@patch("mcp_server_arxiv.server.get_arxiv_service", return_value=MagicMock(name="_ArxivService"))
+@patch(
+    "mcp_server_arxiv.server.get_arxiv_service",
+    return_value=MagicMock(name="_ArxivService"),
+)
 @patch("mcp_server_arxiv.server.logger")
 async def test_app_lifespan_success(mock_logger, mock_get_service):
-
     async with app_lifespan(mcp_server) as lifespan_ctx:
         assert "arxiv_service" in lifespan_ctx
         assert lifespan_ctx["arxiv_service"] is mock_get_service.return_value
@@ -28,9 +29,11 @@ async def test_app_lifespan_success(mock_logger, mock_get_service):
     mock_logger.info.assert_any_call("Lifespan: Shutdown cleanup completed")
 
 
-
 @pytest.mark.asyncio
-@patch("mcp_server_arxiv.server.get_arxiv_service", side_effect=ArxivConfigError("config error"))
+@patch(
+    "mcp_server_arxiv.server.get_arxiv_service",
+    side_effect=ArxivConfigError("config error"),
+)
 @patch("mcp_server_arxiv.server.logger")
 async def test_app_lifespan_raises_arxiv_config_error(mock_logger, mock_get_service):
     with pytest.raises(ArxivConfigError, match="config error"):
@@ -44,7 +47,10 @@ async def test_app_lifespan_raises_arxiv_config_error(mock_logger, mock_get_serv
 
 
 @pytest.mark.asyncio
-@patch("mcp_server_arxiv.server.get_arxiv_service", side_effect=ArxivServiceError("service error"))
+@patch(
+    "mcp_server_arxiv.server.get_arxiv_service",
+    side_effect=ArxivServiceError("service error"),
+)
 @patch("mcp_server_arxiv.server.logger")
 async def test_app_lifespan_raises_arxiv_service_error(mock_logger, mock_get_service):
     with pytest.raises(ArxivServiceError, match="service error"):
@@ -58,7 +64,10 @@ async def test_app_lifespan_raises_arxiv_service_error(mock_logger, mock_get_ser
 
 
 @pytest.mark.asyncio
-@patch("mcp_server_arxiv.server.get_arxiv_service", side_effect=RuntimeError("unexpected error"))
+@patch(
+    "mcp_server_arxiv.server.get_arxiv_service",
+    side_effect=RuntimeError("unexpected error"),
+)
 @patch("mcp_server_arxiv.server.logger")
 async def test_app_lifespan_raises_unexpected_error(mock_logger, mock_get_service):
     with pytest.raises(RuntimeError, match="unexpected error"):
@@ -71,13 +80,14 @@ async def test_app_lifespan_raises_unexpected_error(mock_logger, mock_get_servic
     mock_logger.info.assert_any_call("Lifespan: Shutdown cleanup completed")
 
 
-
 @pytest.mark.asyncio
 @patch("mcp_server_arxiv.server.logger")
 @patch("mcp_server_arxiv.server.get_arxiv_service")
+
 async def test_arxiv_search_success(mock_get_arxiv_service, mock_logger, mcp_server_fixture, sample_arxiv_search_result):
     # Create a new result with str method mocked via patch instead of assignment
     fake_result = sample_arxiv_search_result
+
 
     fake_arxiv_service = MagicMock()
     fake_arxiv_service.search = AsyncMock(return_value=[fake_result])
@@ -103,8 +113,6 @@ async def test_arxiv_search_success(mock_get_arxiv_service, mock_logger, mcp_ser
         max_text_length_override=2000,
     )
 
-
-@pytest.mark.asyncio
 @pytest.mark.asyncio
 @patch("mcp_server_arxiv.server.logger")
 @patch("mcp_server_arxiv.server.get_arxiv_service")
@@ -122,6 +130,7 @@ async def test_arxiv_search_errors(
         "max_results": 1,
         "max_text_length": 1000,
     }
+
 
     async with Client(mcp_server_fixture) as client:
         with pytest.raises(ToolError, match="ArXiv API error"):

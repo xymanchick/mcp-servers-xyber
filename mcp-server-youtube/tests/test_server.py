@@ -1,15 +1,21 @@
 import pytest
 import json
 from unittest.mock import Mock, patch, AsyncMock
-from contextlib import asynccontextmanager
 
+
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
+
 from pydantic import ValidationError as PydanticValidationError
 
 from mcp_server_youtube.server import app_lifespan, youtube_search_and_transcript, ValidationError
 from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError
 from mcp_server_youtube.youtube.models import YouTubeSearchRequest, YouTubeSearchResponse
+
 
 
 class TestAppLifespan:
@@ -20,25 +26,30 @@ class TestAppLifespan:
         """Test successful app lifespan initialization."""
         mock_server = Mock(spec=FastMCP)
         mock_searcher = Mock()
-        
-        with patch('mcp_server_youtube.server.get_youtube_searcher') as mock_get_searcher:
+
+        with patch(
+            "mcp_server_youtube.server.get_youtube_searcher"
+        ) as mock_get_searcher:
             mock_get_searcher.return_value = mock_searcher
-            
+
             async with app_lifespan(mock_server) as context:
                 assert "youtube_searcher" in context
                 assert context["youtube_searcher"] is mock_searcher
-            
+
             mock_get_searcher.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_app_lifespan_youtube_client_error(self, mock_context):
         """Test app lifespan with YouTubeClientError during initialization."""
         mock_server = Mock(spec=FastMCP)
-        
-        with patch('mcp_server_youtube.server.get_youtube_searcher') as mock_get_searcher:
+
+        with patch(
+            "mcp_server_youtube.server.get_youtube_searcher"
+        ) as mock_get_searcher:
             mock_get_searcher.side_effect = YouTubeClientError("API key invalid")
             
             with pytest.raises(ToolError, match="Service initialization failed"):
+
                 async with app_lifespan(mock_server):
                     pass
 
@@ -46,11 +57,14 @@ class TestAppLifespan:
     async def test_app_lifespan_unexpected_error(self, mock_context):
         """Test app lifespan with unexpected error during initialization."""
         mock_server = Mock(spec=FastMCP)
-        
-        with patch('mcp_server_youtube.server.get_youtube_searcher') as mock_get_searcher:
+
+        with patch(
+            "mcp_server_youtube.server.get_youtube_searcher"
+        ) as mock_get_searcher:
             mock_get_searcher.side_effect = Exception("Unexpected initialization error")
             
             with pytest.raises(ToolError, match="Unexpected startup error"):
+
                 async with app_lifespan(mock_server):
                     pass
 
@@ -72,12 +86,10 @@ class TestYouTubeSearchAndTranscript:
         }
         
         result = await youtube_search_and_transcript.fn(ctx=mock_context, request=request)
-        
+
         # Verify the searcher was called correctly
         mock_searcher.search_videos.assert_called_once_with(
-            query="test query",
-            max_results=1,
-            language="en"
+            query="test query", max_results=1, language="en"
         )
         
         # Parse and verify the JSON result
@@ -90,6 +102,7 @@ class TestYouTubeSearchAndTranscript:
         video_result = result_data["results"][0]
         assert video_result["video_id"] == sample_youtube_video.video_id
         assert video_result["title"] == sample_youtube_video.title
+
 
     @pytest.mark.asyncio
     async def test_youtube_search_and_transcript_multiple_videos(self, sample_youtube_video_1, sample_youtube_video_2, mock_context):
@@ -130,6 +143,7 @@ class TestYouTubeSearchAndTranscript:
             query="test query",
             max_results=5,  # Default value from YouTubeSearchRequest
             language="en"   # Default value when transcript_language is None
+
         )
 
     @pytest.mark.asyncio
@@ -147,10 +161,9 @@ class TestYouTubeSearchAndTranscript:
         
         await youtube_search_and_transcript.fn(ctx=mock_context, request=request)
         
+
         mock_searcher.search_videos.assert_called_once_with(
-            query="custom query",
-            max_results=5,
-            language="es"
+            query="custom query", max_results=5, language="es"
         )
 
     @pytest.mark.asyncio
@@ -169,6 +182,7 @@ class TestYouTubeSearchAndTranscript:
         assert result_data["total_results"] == 0
         assert result_data["results"] == []
 
+
     @pytest.mark.asyncio
     async def test_youtube_search_and_transcript_youtube_client_error(self, mock_context):
         """Test handling of YouTubeClientError."""
@@ -181,6 +195,7 @@ class TestYouTubeSearchAndTranscript:
         with pytest.raises(ToolError, match="YouTube API error: API quota exceeded"):
             await youtube_search_and_transcript.fn(ctx=mock_context, request=request)
 
+
     @pytest.mark.asyncio
     async def test_youtube_search_and_transcript_unexpected_error(self, mock_context):
         """Test handling of unexpected errors."""
@@ -192,6 +207,7 @@ class TestYouTubeSearchAndTranscript:
         
         with pytest.raises(ToolError, match="Internal error: Unexpected error"):
             await youtube_search_and_transcript.fn(ctx=mock_context, request=request)
+
 
     @pytest.mark.asyncio
     async def test_youtube_search_and_transcript_validation_error(self, mock_context):
@@ -402,6 +418,7 @@ class TestParameterValidationEdgeCases:
             query="test",
             max_results=1,
             language="en"
+
         )
         
     @pytest.mark.asyncio
@@ -427,3 +444,4 @@ class TestParameterValidationEdgeCases:
                 max_results=5,
                 language=lang
             )
+

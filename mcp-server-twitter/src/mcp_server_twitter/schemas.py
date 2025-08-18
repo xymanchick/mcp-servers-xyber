@@ -34,9 +34,7 @@ class CreateTweetInput(BaseModel):
     in_reply_to_tweet_id: Optional[str] = Field(
         default=None, description="Tweet ID to reply to"
     )
-    quote_tweet_id: Optional[str] = Field(
-        default=None, description="Tweet ID to quote"
-    )
+    quote_tweet_id: Optional[str] = Field(default=None, description="Tweet ID to quote")
 
 
 class GetUserTweetsInput(BaseModel):
@@ -53,9 +51,7 @@ class FollowUserInput(BaseModel):
 
 
 class RetweetTweetInput(BaseModel):
-    tweet_id: Annotated[
-        str, Field(min_length=1, description="Tweet ID to retweet")
-    ]
+    tweet_id: Annotated[str, Field(min_length=1, description="Tweet ID to retweet")]
 
 
 class GetTrendsInput(BaseModel):
@@ -70,9 +66,7 @@ class GetTrendsInput(BaseModel):
 class SearchHashtagInput(BaseModel):
     hashtag: Annotated[
         str,
-        Field(
-            min_length=1, description="Hashtag to search (with or without #)"
-        ),
+        Field(min_length=1, description="Hashtag to search (with or without #)"),
     ]
     max_results: Annotated[
         int,

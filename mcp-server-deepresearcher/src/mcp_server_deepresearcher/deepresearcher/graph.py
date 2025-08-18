@@ -1,31 +1,33 @@
-import json
 import asyncio
-from typing_extensions import Literal
+import json
+import logging
 import os
-
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.runnables import RunnableConfig
-from langgraph.graph import START, END, StateGraph
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.tools import Tool, StructuredTool
 from typing import List, Union
 
-
-from mcp_server_deepresearcher.deepresearcher.state import SummaryState, SummaryStateInput, SummaryStateOutput
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.runnables import RunnableConfig
+from langchain_core.tools import StructuredTool, Tool
+from langgraph.graph import END, START, StateGraph
 from mcp_server_deepresearcher.deepresearcher.prompts import (
-    query_writer_instructions, 
-    summarizer_instructions, 
-    reflection_instructions, 
-    get_current_date, 
-    final_report_instructions
+    final_report_instructions,
+    get_current_date,
+    query_writer_instructions,
+    reflection_instructions,
+    summarizer_instructions,
+)
+from mcp_server_deepresearcher.deepresearcher.state import (
+    SummaryState,
+    SummaryStateInput,
+    SummaryStateOutput,
 )
 from mcp_server_deepresearcher.deepresearcher.utils import (
-    clean_response, 
-    create_mcp_tasks, 
-    extract_source_info, 
-    format_sources
+    clean_response,
+    create_mcp_tasks,
+    extract_source_info,
+    format_sources,
 )
-import logging
+from typing_extensions import Literal
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +38,15 @@ class DeepResearcher:
         self.llm = LLM
         self.tools = tools
         self.graph = self._build_graph()
-        logger.info(f"DeepResearcher initialized with LLM: {self.llm} and {self.tools} tools")
+        logger.info(
+            f"DeepResearcher initialized with LLM: {self.llm} and {self.tools} tools"
+        )
 
     def _build_graph(self):
         # Add nodes and edges
-        builder = StateGraph(SummaryState, input=SummaryStateInput, output=SummaryStateOutput)
+        builder = StateGraph(
+            SummaryState, input=SummaryStateInput, output=SummaryStateOutput
+        )
         builder.add_node("generate_query", self.generate_query)
         builder.add_node("web_research", self.web_research)
         builder.add_node("summarize_sources", self.summarize_sources)
@@ -54,23 +60,20 @@ class DeepResearcher:
         builder.add_edge("summarize_sources", "reflect_on_summary")
         builder.add_conditional_edges("reflect_on_summary", self.route_research)
         builder.add_edge("finalize_summary", END)
-        
 
         graph = builder.compile()
         logger.info("Graph compiled successfully")
-
-
 
         # Script to save the graph as an image file
         # Save the graph visualization as an image file
         # logger.info("Saving graph as image")
         # try:
         #     from IPython.display import Image
-            
+
         #     # Get the directory of the current file
         #     output_dir = os.path.dirname(os.path.abspath(__file__))
         #     output_path = os.path.join(output_dir, "deep_researcher_graph.png")
-            
+
         #     # Save the graph visualization as a PNG file
         #     try:
         #         # Use the appropriate method to save the graph
@@ -83,19 +86,19 @@ class DeepResearcher:
         #         logger.error(f"Error saving graph: {e}")
         # except Exception as e:
         #     logger.error(f"Error saving graph: {e}")
-        
+
         return graph
 
     async def generate_query(self, state: SummaryState, config: RunnableConfig):
         """LangGraph node that generates a search query based on the research topic.
-        
+
         Uses an LLM to create an optimized search query for web research based on
         the user's research topic. Supports both LMStudio and Ollama as LLM providers.
-        
+
         Args:
             state: Current graph state containing the research topic
             config: Configuration for the runnable, including LLM provider settings
-            
+
         Returns:
             Dictionary with state update, including search_query key containing the generated query
         """
@@ -104,16 +107,17 @@ class DeepResearcher:
         # Format the prompt
         current_date = get_current_date()
         formatted_prompt = query_writer_instructions.format(
-            current_date=current_date,
-            research_topic=state.research_topic
+            current_date=current_date, research_topic=state.research_topic
         )
 
         # Generate a query
         result = await self.llm.ainvoke(
-            [SystemMessage(content=formatted_prompt),
-            HumanMessage(content=f"Generate a query for web search:")]
+            [
+                SystemMessage(content=formatted_prompt),
+                HumanMessage(content=f"Generate a query for web search:"),
+            ]
         )
-        
+
         # Get the content
         content = result.content
         # Parse response directly to dict using JsonOutputParser
@@ -121,10 +125,9 @@ class DeepResearcher:
         result = JsonOutputParser().parse(cleaned_response)
 
         # Get the query
-        search_query = result['query']
+        search_query = result["query"]
 
         logger.info(f"Generated query: {search_query}")
-     
 
         return {"search_query": search_query}
 
@@ -133,12 +136,12 @@ class DeepResearcher:
     async def web_research(self, state: SummaryState, config: RunnableConfig):
         """
         LangGraph node that performs parallel web research using multiple MCP servers.
-        
+
         Executes searches, correctly parses and aggregates the results, and formats
         them for further processing.
         """
         logger.info("--- Starting Parallel Web Research Node ---")
-        
+
         # 1. Create and execute tasks in parallel
         tasks, task_names = create_mcp_tasks(self.tools, state.search_query)
         # return_exceptions=True is crucial for resilience
@@ -150,7 +153,7 @@ class DeepResearcher:
 
         for i, result in enumerate(parallel_results):
             task_name = task_names[i]
-            
+
             if isinstance(result, Exception):
                 print(f"  - Task '{task_name}' FAILED with error: {result}")
                 # Optionally add error to raw content for LLM to know
@@ -159,21 +162,21 @@ class DeepResearcher:
 
             # This handles both string and tuple `(content, None)` results
             content = result[0] if isinstance(result, tuple) else result
-            
+
             # If the content is a list, join it into a single string.
             if isinstance(content, list):
                 content = "\n".join(map(str, content))
-            
+
             # Ensure content is a string before stripping
             content = str(content)
-            
+
             if not content or not content.strip():
                 print(f"  - Task '{task_name}' succeeded but returned empty content.")
                 continue
 
             print(f"  - Task '{task_name}' completed successfully.")
             all_raw_content.append(content)
-            
+
             # Use helper to get structured info for citations
             source_info = extract_source_info(content, task_name)
             all_structured_sources.append(source_info)
@@ -181,32 +184,32 @@ class DeepResearcher:
         # 3. Aggregate and format the final outputs
         # A single string with all the raw content for the LLM
         search_str = "\n\n---\n\n".join(all_raw_content)
-        
+
         # A single, formatted string of numbered sources for citation
         formatted_sources_str = format_sources(all_structured_sources)
 
         logger.info("--- Web Research Node Finished ---")
-        
+
         # 4. Return the correctly structured dictionary
         logger.info(f"Returning web research results: {search_str}")
- 
+
         return {
-            "sources_gathered": [formatted_sources_str], 
-            "research_loop_count": state.research_loop_count + 1, 
-            "web_research_results": [search_str]
+            "sources_gathered": [formatted_sources_str],
+            "research_loop_count": state.research_loop_count + 1,
+            "web_research_results": [search_str],
         }
 
     async def summarize_sources(self, state: SummaryState, config: RunnableConfig):
         """LangGraph node that summarizes web research results.
-        
-        Uses an LLM to create or update a running summary based on the newest web research 
+
+        Uses an LLM to create or update a running summary based on the newest web research
         results, integrating them with any existing summary.
-        
+
         Args:
             state: Current graph state containing research topic, running summary,
                 and web research results
             config: Configuration for the runnable, including LLM provider settings
-            
+
         Returns:
             Dictionary with state update, including running_summary key containing the updated summary
         """
@@ -234,49 +237,56 @@ class DeepResearcher:
 
         # Run the LLM
         result = await self.llm.ainvoke(
-            [SystemMessage(content=summarizer_instructions),
-            HumanMessage(content=human_message_content)]
+            [
+                SystemMessage(content=summarizer_instructions),
+                HumanMessage(content=human_message_content),
+            ]
         )
-    
+
         # Strip thinking tokens if configured
         running_summary = result.content
 
         logger.info(f"Running summary: {running_summary}")
 
-
-
         return {"running_summary": running_summary}
 
     async def reflect_on_summary(self, state: SummaryState, config: RunnableConfig):
         """LangGraph node that identifies knowledge gaps and generates follow-up queries.
-        
+
         Analyzes the current summary to identify areas for further research and generates
         a new search query to address those gaps. Uses structured output to extract
         the follow-up query in JSON format.
-        
+
         Args:
             state: Current graph state containing the running summary and research topic
             config: Configuration for the runnable, including LLM provider settings
-            
+
         Returns:
             Dictionary with state update, including search_query key containing the generated follow-up query
         """
         logger.info("--- Starting Reflect on Summary Node ---")
 
         result = await self.llm.ainvoke(
-            [SystemMessage(content=reflection_instructions.format(research_topic=state.research_topic)),
-            HumanMessage(content=f"Reflect on our existing knowledge: \n === \n {state.running_summary}, \n === \n And now identify a knowledge gap and generate a follow-up web search query:")]
+            [
+                SystemMessage(
+                    content=reflection_instructions.format(
+                        research_topic=state.research_topic
+                    )
+                ),
+                HumanMessage(
+                    content=f"Reflect on our existing knowledge: \n === \n {state.running_summary}, \n === \n And now identify a knowledge gap and generate a follow-up web search query:"
+                ),
+            ]
         )
-            
 
         # Strip thinking tokens if configured
         try:
             # Try to parse as JSON first
             reflection_content = json.loads(result.content)
             logger.info(f"Reflection content: {reflection_content}")
-      
+
             # Get the follow-up query
-            query = reflection_content.get('follow_up_query')
+            query = reflection_content.get("follow_up_query")
             # Check if query is None or empty
             if not query:
                 # Use a fallback query
@@ -299,11 +309,11 @@ class DeepResearcher:
         # 1. Clean and Deduplicate Sources
         seen_sources = set()
         unique_sources = []
-        
+
         for source_str in state.sources_gathered:
-            for line in source_str.split('\n'):
+            for line in source_str.split("\n"):
                 line = line.strip()
-                if not line or line == '{}':  # Skip empty or invalid
+                if not line or line == "{}":  # Skip empty or invalid
                     continue
 
                 # Attempt to extract a clean URL and title
@@ -313,7 +323,7 @@ class DeepResearcher:
                         json_part = line.split("] ")[1]
                         data = json.loads(json_part)
                         url = data.get("url") or data.get("twitterUrl")
-                        text = data.get("text", "No title available").split('\n')[0]
+                        text = data.get("text", "No title available").split("\n")[0]
                         if url and url not in seen_sources:
                             unique_sources.append({"title": text, "url": url})
                             seen_sources.add(url)
@@ -323,9 +333,9 @@ class DeepResearcher:
                         if len(parts) > 1:
                             content = parts[1]
                             # Extract URL which is often at the end in parentheses
-                            url_start = content.rfind('(')
+                            url_start = content.rfind("(")
                             if url_start != -1:
-                                url = content[url_start+1:-1]
+                                url = content[url_start + 1 : -1]
                                 title = content[:url_start].strip()
                                 if url and url not in seen_sources:
                                     unique_sources.append({"title": title, "url": url})
@@ -340,12 +350,13 @@ class DeepResearcher:
         )
 
         result = await self.llm.ainvoke(
-            [SystemMessage(content=final_report_instructions),
-            HumanMessage(content=human_message_content)]
+            [
+                SystemMessage(content=final_report_instructions),
+                HumanMessage(content=human_message_content),
+            ]
         )
         logger.info(f"Final report: {result.content}")
-  
-        
+
         try:
             report_data = json.loads(result.content)
         except json.JSONDecodeError:
@@ -353,7 +364,7 @@ class DeepResearcher:
             report_data = {
                 "title": "Research Report",
                 "executive_summary": state.running_summary,
-                "key_findings": []
+                "key_findings": [],
             }
 
         # 3. Add sources to the structured data
@@ -361,16 +372,18 @@ class DeepResearcher:
 
         return {"running_summary": report_data}
 
-    async def route_research(self, state: SummaryState, config: RunnableConfig) -> Literal["finalize_summary", "web_research"]:
+    async def route_research(
+        self, state: SummaryState, config: RunnableConfig
+    ) -> Literal["finalize_summary", "web_research"]:
         """LangGraph routing function that determines the next step in the research flow.
-        
+
         Controls the research loop by deciding whether to continue gathering information
         or to finalize the summary based on the configured maximum number of research loops.
-        
+
         Args:
             state: Current graph state containing the research loop count
             config: Configuration for the runnable, including max_web_research_loops setting
-            
+
         Returns:
             String literal indicating the next node to visit ("web_research" or "finalize_summary")
         """
@@ -378,11 +391,12 @@ class DeepResearcher:
         configurable = config.get("configurable", {})
         max_loops = configurable.get("max_web_research_loops", 2)  # Default to 2 loops
         if state.research_loop_count <= max_loops:
-            logger.info(f"Research loop count: {state.research_loop_count} is less than max loops: {max_loops}, returning to web_research")
+            logger.info(
+                f"Research loop count: {state.research_loop_count} is less than max loops: {max_loops}, returning to web_research"
+            )
             return "web_research"
         else:
-            logger.info(f"Research loop count: {state.research_loop_count} is greater than max loops: {max_loops}, returning to finalize_summary")
+            logger.info(
+                f"Research loop count: {state.research_loop_count} is greater than max loops: {max_loops}, returning to finalize_summary"
+            )
             return "finalize_summary"
-
-
-

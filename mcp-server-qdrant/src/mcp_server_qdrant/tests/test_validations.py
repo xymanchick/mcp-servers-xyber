@@ -11,37 +11,41 @@ from qdrant_client.http.models.models import QueryResponse
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-        ["error", "request_data", "expected"],
-        [
-            (
-                    not_rise_error(),
-                    dict(
-                        information="1",
-                        collection_name="test_collection",
-                    ),
-                [TextContent(type='text', text="Remembered: 1 in collection test_collection", annotations=None)]
+    ["error", "request_data", "expected"],
+    [
+        (
+            not_rise_error(),
+            dict(
+                information="1",
+                collection_name="test_collection",
             ),
-            (
-                    raises(
-                        ToolError,
-                        match="Invalid parameters: collection_name: Field required; information: Field required",
-                    ),
-                    dict(metadata={"source": "test_source", "tenant": "test_tenant"}),
-                None
+            [
+                TextContent(
+                    type="text",
+                    text="Remembered: 1 in collection test_collection",
+                    annotations=None,
+                )
+            ],
+        ),
+        (
+            raises(
+                ToolError,
+                match="Invalid parameters: collection_name: Field required; information: Field required",
             ),
-            (
-                    raises(ToolError, match="Invalid parameters: information: Input should be a valid string"),
-                    dict(
-                        information=1,
-                        collection_name="test_collection",
-                    ),
-                None
+            dict(metadata={"source": "test_source", "tenant": "test_tenant"}),
+            None,
+        ),
+        (
+            raises(
+                ToolError,
+                match="Invalid parameters: information: Input should be a valid string",
             ),
         ],
         ids=["valid", "missed_required_fields", "validation_error"]
     )
 @patch('mcp_server_qdrant.qdrant.module.QdrantConnector.store', new_callable=AsyncMock)
 async def test_qdrant_store(_, mcp_server, error, request_data: dict, expected: str | None):
+
     with error:
         async with Client(mcp_server) as client:
             result = await client.call_tool("qdrant_store", {"request": request_data})
@@ -51,30 +55,35 @@ async def test_qdrant_store(_, mcp_server, error, request_data: dict, expected: 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-        ["error", "request_data", "expected"],
-        [
-            (
-                    not_rise_error(),
-                    dict(
-                        query="query",
-                        collection_name="test_collection",
-                        search_limit=1,
-                        filters={"key": "value"},
-                    ),
-                    (QueryResponse(points=[]), [])
+    ["error", "request_data", "expected"],
+    [
+        (
+            not_rise_error(),
+            dict(
+                query="query",
+                collection_name="test_collection",
+                search_limit=1,
+                filters={"key": "value"},
+            ),
+            (QueryResponse(points=[]), []),
+        ),
+        (
+            not_rise_error(),
+            dict(
+                query="query",
+                collection_name="test_collection",
+                search_limit=1,
+                filters={"key": "value"},
             ),
             (
-                    not_rise_error(),
-                    dict(
-                        query="query",
-                        collection_name="test_collection",
-                        search_limit=1,
-                        filters={"key": "value"},
-                    ),
-                    (
-                        None,
-                        [TextContent(type='text', text="No information found for the query 'query'", annotations=None)]
+                None,
+                [
+                    TextContent(
+                        type="text",
+                        text="No information found for the query 'query'",
+                        annotations=None,
                     )
+                ],
             ),
             (
                     raises(ToolError, match="Invalid parameters: collection_name: Field required"),
@@ -85,14 +94,17 @@ async def test_qdrant_store(_, mcp_server, error, request_data: dict, expected: 
                     ),
                     (None, None)
             ),
-            (
-                    raises(ToolError, match="Invalid parameters: search_limit: Input should be a valid integer"),
-                    dict(
-                        query="query",
-                        collection_name="test_collection",
-                        search_limit="limit",
-                    ),
-                    (None, None)
+            dict(
+                query="query",
+                search_limit=1,
+                filters={"key": "value"},
+            ),
+            (None, None),
+        ),
+        (
+            raises(
+                ToolError,
+                match="Invalid parameters: search_limit: Input should be a valid integer",
             ),
             (
                     raises(ToolError, match="Invalid parameters: query: Field required"),
@@ -119,13 +131,19 @@ async def test_qdrant_find(mock_search, mcp_server, error, request_data: dict, e
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-        ["error", "request_data"],
-        [
-            (not_rise_error(), dict(collection_name="test_collection")),
-            (raises(ToolError, match="Invalid parameters: collection_name: Field required"), dict()),
-            (
-                    raises(ToolError, match="Invalid parameters: collection_name: Input should be a valid string"),
-                    dict(collection_name=1),
+    ["error", "request_data"],
+    [
+        (not_rise_error(), dict(collection_name="test_collection")),
+        (
+            raises(
+                ToolError, match="Invalid parameters: collection_name: Field required"
+            ),
+            dict(),
+        ),
+        (
+            raises(
+                ToolError,
+                match="Invalid parameters: collection_name: Input should be a valid string",
             ),
         ],
         ids=["valid", "missed_required_fields", "validation_error"]

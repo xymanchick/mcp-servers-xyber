@@ -7,7 +7,6 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from mcp_server_cartesia.cartesia_client import (
     CartesiaApiError,
     CartesiaClientError,
@@ -62,8 +61,9 @@ mcp_server = FastMCP(
 async def generate_cartesia_tts(
     ctx: Context,
     text: str,  # The text content to synthesize into speech
-    voice: dict
-    | None = None,  # Optional Cartesia voice configuration to override the default
+    voice: (
+        dict | None
+    ) = None,  # Optional Cartesia voice configuration to override the default
     model_id: str | None = None,  # Optional Cartesia model ID to override the default
 ) -> str:
     """Generates speech from the provided text using Cartesia TTS and saves it as a WAV file. Returns the path to the saved file."""

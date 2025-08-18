@@ -5,7 +5,6 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-
 from mcp_server_telegram.logging_config import LOGGING_LEVEL as logging_level
 from mcp_server_telegram.logging_config import configure_logging
 from mcp_server_telegram.server import mcp_server

@@ -7,7 +7,6 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-
 from mcp_server_twitter.logging_config import configure_logging, logging_level
 from mcp_server_twitter.server import mcp_server
 

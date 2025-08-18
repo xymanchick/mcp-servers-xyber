@@ -1,11 +1,9 @@
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
-
-
 from mcp_server_twitter.server import mcp_server
 
 

@@ -5,7 +5,6 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from mcp_server_arxiv.arxiv import (
     ArxivApiError,
     ArxivConfigError,
@@ -57,10 +56,12 @@ mcp_server = FastMCP(name="arxiv", lifespan=app_lifespan)
 async def arxiv_search(
     ctx: Context,
     query: str,  # The search query string for ArXiv
-    max_results: int
-    | None = None,  # Optional override for the maximum number of results to fetch and process (1-50)
-    max_text_length: int
-    | None = None,  # Optional max characters of full text per paper (min 100)
+    max_results: (
+        int | None
+    ) = None,  # Optional override for the maximum number of results to fetch and process (1-50)
+    max_text_length: (
+        int | None
+    ) = None,  # Optional max characters of full text per paper (min 100)
 ) -> str:
     """Searches arXiv for scientific papers based on a query, downloads PDFs, extracts text, and returns formatted results."""
     arxiv_service = ctx.request_context.lifespan_context["arxiv_service"]
@@ -82,7 +83,7 @@ async def arxiv_search(
 
         formatted_items = ["ArXiv Search Results:\n"]
         for i, result in enumerate(search_results):
-            formatted_items.append(f"\n--- Paper {i+1} ---\n{str(result)}")
+            formatted_items.append(f"\n--- Paper {i + 1} ---\n{str(result)}")
 
         formatted_response = "\n".join(formatted_items)
         logger.info(

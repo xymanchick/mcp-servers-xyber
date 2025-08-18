@@ -24,6 +24,7 @@ from mcp_server_youtube.youtube.models import YouTubeSearchRequest, YouTubeVideo
 from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError, YouTubeApiError
 from fastmcp.exceptions import ToolError
 
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

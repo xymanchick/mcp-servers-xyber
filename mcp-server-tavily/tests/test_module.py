@@ -1,5 +1,6 @@
 import asyncio
 import logging
+
 from unittest.mock import MagicMock, AsyncMock, patch
 import pytest
 import aiohttp
@@ -11,7 +12,6 @@ from mcp_server_tavily.tavily.module import (
 )
 from mcp_server_tavily.tavily.config import TavilyConfig, TavilyConfigError
 from mcp_server_tavily.tavily.models import TavilySearchResult
-
 
 def test_is_retryable_tavily_error_429():
     error = Exception("Error 429: Too Many Requests")

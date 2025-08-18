@@ -5,12 +5,11 @@ import os
 import uvicorn
 from mcp.server import Server
 from mcp.server.sse import SseServerTransport
+from mcp_server_postgres.logging_config import configure_logging, logging_level
+from mcp_server_postgres.server import server
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.routing import Mount, Route
-
-from mcp_server_postgres.logging_config import configure_logging, logging_level
-from mcp_server_postgres.server import server
 
 configure_logging()
 logger = logging.getLogger(__name__)

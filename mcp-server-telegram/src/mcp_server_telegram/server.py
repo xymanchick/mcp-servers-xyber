@@ -4,11 +4,7 @@ import logging
 from fastapi import Request  # <-- CHANGE: Import Request to access headers
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
-from mcp_server_telegram.telegram import (
-    TelegramServiceError,
-    get_telegram_service,
-)
+from mcp_server_telegram.telegram import TelegramServiceError, get_telegram_service
 
 logger = logging.getLogger(__name__)
 

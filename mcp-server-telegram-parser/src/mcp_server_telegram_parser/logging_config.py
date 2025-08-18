@@ -26,5 +26,3 @@ LOGGING_CONFIG = {
 
 def configure_logging() -> None:
     dictConfig(LOGGING_CONFIG)
-
-

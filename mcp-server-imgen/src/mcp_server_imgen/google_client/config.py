@@ -1,6 +1,8 @@
 import logging
+from functools import lru_cache
 
-from pydantic import field_validator
+import google.generativeai as genai
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,16 @@ class EmptyPredictionError(GoogleAPIError):
     pass
 
 
+# --- Configuration Classes --- #
+class GeminiConfig(BaseSettings):
+    """Configuration for the Gemini API."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_prefix="GOOGLE_", extra="ignore"
+    )
+    api_key: SecretStr = Field(..., description="Gemini API key")
+
+
 class GoogleConfig(BaseSettings):
     """
     Configuration for connecting to Google Vertex AI services.
@@ -50,7 +62,7 @@ class GoogleConfig(BaseSettings):
     # Project info
     project_id: str
     location: str
-    endpoint_id: str
+    endpoint_id: str = Field(..., description="Vertex AI endpoint ID")
     api_endpoint: str
 
     # Credentials info as a dictionary
@@ -69,8 +81,7 @@ class GoogleConfig(BaseSettings):
     @field_validator("credentials_private_key")
     @classmethod
     def clean_private_key(cls, v: str) -> str:
-        """
-        Cleans the Google service account private key string from environment variables.
+        """Cleans the Google service account private key string from environment variables.
 
         Hint:
         GOOGLE_CREDENTIALS_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\n....\n-----END PRIVATE KEY-----"
@@ -78,8 +89,8 @@ class GoogleConfig(BaseSettings):
         Handles differences between docker compose env_file and docker run --env-file:
         1. Removes surrounding quotes if present.
         2. Replaces literal '\\n' sequences with actual newline characters.
-
         """
+
         # 1. Remove surrounding double quotes if they exist
         if v.startswith('"') and v.endswith('"'):
             v = v[1:-1]
@@ -108,3 +119,14 @@ class GoogleConfig(BaseSettings):
             "client_x509_cert_url": self.credentials_client_x509_cert_url,
             "universe_domain": self.credentials_universe_domain,
         }
+
+
+@lru_cache(maxsize=1)
+def get_gemini_model() -> genai.GenerativeModel:
+    """Initialize the Gemini model."""
+    try:
+        config = GeminiConfig()
+        genai.configure(api_key=config.api_key.get_secret_value())
+        return genai.GenerativeModel("models/gemini-2.5-pro")
+    except Exception as e:
+        raise GoogleConfigError(f"Failed to initialize Gemini: {e}") from e

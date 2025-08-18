@@ -24,6 +24,7 @@ LOGGING_CONFIG = {
     "root": {"handlers": ["console"], "level": f"{LOGGING_LEVEL}"},
 }
 
+
 def configure_logging():
     """Apply logging configuration."""
     dictConfig(LOGGING_CONFIG)

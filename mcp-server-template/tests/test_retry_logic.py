@@ -34,6 +34,7 @@ This test file provides comprehensive coverage of the retry mechanism, including
 Note: Some tests (test_max_retries_exceeded, test_retry_on_http_error_codes) use
 real retry timing and may take longer to execute due to exponential backoff.
 """
+
 import asyncio
 import json
 import logging
@@ -48,37 +49,40 @@ from tenacity import RetryError, stop_after_attempt, wait_fixed, retry_if_except
 
 from mcp_server_weather.weather.config import WeatherConfig, WeatherApiError, WeatherClientError
 from mcp_server_weather.weather.module import WeatherClient
-from mcp_server_weather.weather.models import WeatherData
 
+from mcp_server_weather.weather.models import WeatherData
+from mcp_server_weather.weather.module import WeatherClient
+from requests.exceptions import ConnectionError, RequestException, Timeout
 
 # Test data constants
 TEST_COORDINATES = {
-    'london': ('51.5074', '-0.1278'),
-    'new_york': ('40.7128', '-74.0060'),
-    'tokyo': ('35.6762', '139.6503'),
+    "london": ("51.5074", "-0.1278"),
+    "new_york": ("40.7128", "-74.0060"),
+    "tokyo": ("35.6762", "139.6503"),
 }
 
 MOCK_RESPONSES = {
-    'london': {
-        'weather': [{'description': 'cloudy'}],
-        'main': {'temp': 15.5, 'humidity': 76},
-        'cod': 200
+    "london": {
+        "weather": [{"description": "cloudy"}],
+        "main": {"temp": 15.5, "humidity": 76},
+        "cod": 200,
     },
-    'new_york': {
-        'weather': [{'description': 'sunny'}],
-        'main': {'temp': 22.8, 'humidity': 65},
-        'cod': 200
+    "new_york": {
+        "weather": [{"description": "sunny"}],
+        "main": {"temp": 22.8, "humidity": 65},
+        "cod": 200,
     },
-    'tokyo': {
-        'weather': [{'description': 'rainy'}],
-        'main': {'temp': 18.2, 'humidity': 85},
-        'cod': 200
-    }
+    "tokyo": {
+        "weather": [{"description": "rainy"}],
+        "main": {"temp": 18.2, "humidity": 85},
+        "cod": 200,
+    },
 }
 
 
 class TestRetryApiCallDecorator:
     """Test the functionality of retry_api_call decorator."""
+
     
     @pytest.mark.asyncio
     async def test_retry_on_client_error_then_success(self, weather_client, caplog, mock_asyncio_sleep, mock_http_response_factory):
@@ -111,12 +115,14 @@ class TestRetryApiCallDecorator:
         assert result.state == "cloudy"
         assert result.temperature == "15.5C"
         assert result.humidity == "76%"
-        
+
         # Verify retry count (should call 3 times)
         assert call_count == 3
-        
+
         # Verify retry logs
-        retry_logs = [record for record in caplog.records if "Retrying" in record.message]
+        retry_logs = [
+            record for record in caplog.records if "Retrying" in record.message
+        ]
         assert len(retry_logs) == 2  # Two retry logs
     
     @pytest.mark.asyncio
@@ -170,9 +176,11 @@ class TestRetryApiCallDecorator:
         # Verify results
         assert isinstance(result, WeatherData)
         assert result.state == "sunny"
-        
+
         # Verify retry logs
-        retry_logs = [record for record in caplog.records if "Retrying" in record.message]
+        retry_logs = [
+            record for record in caplog.records if "Retrying" in record.message
+        ]
         assert len(retry_logs) == 2
     
     @pytest.mark.asyncio
@@ -242,7 +250,9 @@ class TestRetryApiCallDecorator:
         assert call_count == 1
         
         # Verify no retry logs
-        retry_logs = [record for record in caplog.records if "Retrying" in record.message]
+        retry_logs = [
+            record for record in caplog.records if "Retrying" in record.message
+        ]
         assert len(retry_logs) == 0
     
     @pytest.mark.asyncio

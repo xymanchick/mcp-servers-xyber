@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
-from datetime import timedelta
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
 
 from mcp_server_youtube.youtube.models import YouTubeSearchRequest
 from pydantic import ValidationError
@@ -13,11 +11,14 @@ def test_valid_request_minimal(test_client, api_endpoints, sample_minimal_reques
     response = test_client.post(
         api_endpoints['search_and_transcript'],
         json=sample_minimal_request
+
     )
-    assert response.status_code == 200, f'Response status: {response.status_code}, Content: {response.json()}'
+    assert (
+        response.status_code == 200
+    ), f"Response status: {response.status_code}, Content: {response.json()}"
     data = response.json()
-    assert 'videos' in data
-    assert len(data['videos']) <= 3
+    assert "videos" in data
+    assert len(data["videos"]) <= 3
 
     # Verify response structure
     for video in data['videos']:
@@ -47,11 +48,14 @@ def test_valid_request_with_language(test_client, api_endpoints, sample_search_r
     response = test_client.post(
         api_endpoints['search_and_transcript'],
         json=sample_search_request
+
     )
-    assert response.status_code == 200, f'Response status: {response.status_code}, Content: {response.json()}'
+    assert (
+        response.status_code == 200
+    ), f"Response status: {response.status_code}, Content: {response.json()}"
     data = response.json()
-    assert 'videos' in data
-    assert len(data['videos']) <= 5
+    assert "videos" in data
+    assert len(data["videos"]) <= 5
 
     # Verify transcript language
     for video in data['videos']:
@@ -61,6 +65,7 @@ def test_valid_request_with_language(test_client, api_endpoints, sample_search_r
         # For mock data, transcript should contain the language
         if video['transcript'] not in ['[No transcript available]', '[Transcripts are disabled]']:
             assert 'en' in video['transcript'] or len(video['transcript']) > 0
+
 
 
 def test_valid_request_with_dates(test_client, api_endpoints):
@@ -75,17 +80,20 @@ def test_valid_request_with_dates(test_client, api_endpoints):
                 'published_before': '2024-12-31T23:59:59Z'
             }
         }
+
     )
-    assert response.status_code == 200, f'Response status: {response.status_code}, Content: {response.json()}'
+    assert (
+        response.status_code == 200
+    ), f"Response status: {response.status_code}, Content: {response.json()}"
     data = response.json()
-    assert 'videos' in data
-    assert len(data['videos']) <= 5
+    assert "videos" in data
+    assert len(data["videos"]) <= 5
 
     # Verify dates are within range
-    for video in data['videos']:
-        published_at = datetime.fromisoformat(video['published_at'])
-        assert published_at >= datetime.fromisoformat('2024-01-01T00:00:00+00:00')
-        assert published_at <= datetime.fromisoformat('2024-12-31T23:59:59+00:00')
+    for video in data["videos"]:
+        published_at = datetime.fromisoformat(video["published_at"])
+        assert published_at >= datetime.fromisoformat("2024-01-01T00:00:00+00:00")
+        assert published_at <= datetime.fromisoformat("2024-12-31T23:59:59+00:00")
 
 
 def test_valid_request_with_order_by(test_client, api_endpoints):
@@ -93,48 +101,54 @@ def test_valid_request_with_order_by(test_client, api_endpoints):
     for order_by in ['relevance', 'date', 'viewCount', 'rating']:
         response = test_client.post(
             api_endpoints['search_and_transcript'],
+
             json={
-                'request': {
-                    'query': 'python programming',
-                    'max_results': 5,
-                    'order_by': order_by
+                "request": {
+                    "query": "python programming",
+                    "max_results": 5,
+                    "order_by": order_by,
                 }
-            }
+            },
         )
-        assert response.status_code == 200, f'Response status: {response.status_code}, Content: {response.json()}'
+        assert (
+            response.status_code == 200
+        ), f"Response status: {response.status_code}, Content: {response.json()}"
         data = response.json()
-        assert 'videos' in data
-        assert len(data['videos']) <= 5
+        assert "videos" in data
+        assert len(data["videos"]) <= 5
 
 
 def test_valid_request_with_all_options(test_client, api_endpoints):
     """Test valid request with all optional parameters."""
     response = test_client.post(
         api_endpoints['search_and_transcript'],
+
         json={
-            'request': {
-                'query': 'Python programming tutorial',
-                'max_results': 5,
-                'transcript_language': 'en',
-                'published_after': '2025-01-01T00:00:00Z',
-                'order_by': 'relevance'
+            "request": {
+                "query": "Python programming tutorial",
+                "max_results": 5,
+                "transcript_language": "en",
+                "published_after": "2025-01-01T00:00:00Z",
+                "order_by": "relevance",
             }
-        }
+        },
     )
-    assert response.status_code == 200, f'Response status: {response.status_code}, Content: {response.json()}'
+    assert (
+        response.status_code == 200
+    ), f"Response status: {response.status_code}, Content: {response.json()}"
     data = response.json()
-    assert 'videos' in data
-    assert len(data['videos']) <= 5
+    assert "videos" in data
+    assert len(data["videos"]) <= 5
 
     # Verify all fields are present in results
-    for result in data['videos']:
-        assert 'video_id' in result
-        assert 'title' in result
-        assert 'channel' in result
-        assert 'published_at' in result
-        assert 'thumbnail' in result
-        assert 'description' in result
-        assert 'transcript' in result
+    for result in data["videos"]:
+        assert "video_id" in result
+        assert "title" in result
+        assert "channel" in result
+        assert "published_at" in result
+        assert "thumbnail" in result
+        assert "description" in result
+        assert "transcript" in result
 
 
 def test_valid_request_with_default_max_results(test_client, api_endpoints):
@@ -147,12 +161,15 @@ def test_valid_request_with_default_max_results(test_client, api_endpoints):
                 'max_results': 5
             }
         }
+
     )
-    assert response.status_code == 200, f'Response status: {response.status_code}, Content: {response.json()}'
+    assert (
+        response.status_code == 200
+    ), f"Response status: {response.status_code}, Content: {response.json()}"
     data = response.json()
-    assert 'videos' in data
-    assert 'total_results' in data
-    assert len(data['videos']) <= 5
+    assert "videos" in data
+    assert "total_results" in data
+    assert len(data["videos"]) <= 5
 
 
 def test_empty_query(test_client, api_endpoints, invalid_requests):
@@ -160,12 +177,13 @@ def test_empty_query(test_client, api_endpoints, invalid_requests):
     response = test_client.post(
         api_endpoints['search_and_transcript'],
         json=invalid_requests['empty_query']
+
     )
     assert response.status_code == 400
     data = response.json()
-    assert 'error' in data
-    assert 'details' in data
-    assert any('query' in err['field'] for err in data['details'])
+    assert "error" in data
+    assert "details" in data
+    assert any("query" in err["field"] for err in data["details"])
 
 
 def test_whitespace_query(test_client, api_endpoints, invalid_requests):
@@ -173,12 +191,13 @@ def test_whitespace_query(test_client, api_endpoints, invalid_requests):
     response = test_client.post(
         api_endpoints['search_and_transcript'],
         json=invalid_requests['whitespace_query']
+
     )
     assert response.status_code == 400
     data = response.json()
-    assert 'error' in data
-    assert 'details' in data
-    assert any('query' in err['field'] for err in data['details'])
+    assert "error" in data
+    assert "details" in data
+    assert any("query" in err["field"] for err in data["details"])
 
 
 def test_invalid_max_results(test_client, api_endpoints, invalid_requests):
@@ -189,9 +208,9 @@ def test_invalid_max_results(test_client, api_endpoints, invalid_requests):
     )
     assert response.status_code == 400
     data = response.json()
-    assert 'error' in data
-    assert 'details' in data
-    assert any('max_results' in err['field'] for err in data['details'])
+    assert "error" in data
+    assert "details" in data
+    assert any("max_results" in err["field"] for err in data["details"])
 
 
 def test_invalid_max_results_too_high(test_client, api_endpoints, invalid_requests):
@@ -199,12 +218,13 @@ def test_invalid_max_results_too_high(test_client, api_endpoints, invalid_reques
     response = test_client.post(
         api_endpoints['search_and_transcript'],
         json=invalid_requests['invalid_max_results_high']
+
     )
     assert response.status_code == 400
     data = response.json()
-    assert 'error' in data
-    assert 'details' in data
-    assert any('max_results' in err['field'] for err in data['details'])
+    assert "error" in data
+    assert "details" in data
+    assert any("max_results" in err["field"] for err in data["details"])
 
 
 def test_invalid_language(test_client, api_endpoints, invalid_requests):
@@ -212,12 +232,13 @@ def test_invalid_language(test_client, api_endpoints, invalid_requests):
     response = test_client.post(
         api_endpoints['search_and_transcript'],
         json=invalid_requests['invalid_language']
+
     )
     assert response.status_code == 400
     data = response.json()
-    assert 'error' in data
-    assert 'details' in data
-    assert any('transcript_language' in err['field'] for err in data['details'])
+    assert "error" in data
+    assert "details" in data
+    assert any("transcript_language" in err["field"] for err in data["details"])
 
 
 def test_invalid_date_format(test_client, api_endpoints, invalid_requests):
@@ -225,12 +246,13 @@ def test_invalid_date_format(test_client, api_endpoints, invalid_requests):
     response = test_client.post(
         api_endpoints['search_and_transcript'],
         json=invalid_requests['invalid_date_format']
+
     )
     assert response.status_code == 400
     data = response.json()
-    assert 'error' in data
-    assert 'details' in data
-    assert any('published_after' in err['field'] for err in data['details'])
+    assert "error" in data
+    assert "details" in data
+    assert any("published_after" in err["field"] for err in data["details"])
 
 
 def test_future_date(test_client, api_endpoints):
@@ -238,19 +260,20 @@ def test_future_date(test_client, api_endpoints):
     future_date = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
     response = test_client.post(
         api_endpoints['search_and_transcript'],
+
         json={
-            'request': {
-                'query': 'python programming',
-                'max_results': 5,
-                'published_after': future_date
+            "request": {
+                "query": "python programming",
+                "max_results": 5,
+                "published_after": future_date,
             }
-        }
+        },
     )
     assert response.status_code == 400
     data = response.json()
-    assert 'error' in data
-    assert 'details' in data
-    assert any('published_after' in err['field'] for err in data['details'])
+    assert "error" in data
+    assert "details" in data
+    assert any("published_after" in err["field"] for err in data["details"])
 
 
 def test_invalid_order_by(test_client, api_endpoints):
@@ -293,21 +316,24 @@ def test_valid_order_by_values(test_client, api_endpoints):
                     'order_by': order_by
                 }
             }
+
         )
-        assert response.status_code == 200, f'Response status: {response.status_code}, Content: {response.json()}'
+        assert (
+            response.status_code == 200
+        ), f"Response status: {response.status_code}, Content: {response.json()}"
         data = response.json()
-        assert 'videos' in data
-        assert len(data['videos']) <= 5
+        assert "videos" in data
+        assert len(data["videos"]) <= 5
 
 
 def test_missing_required_fields(test_client, api_endpoints):
     """Test request missing required fields."""
-    data = {'query': 'Python programming'}  # missing max_results
+    data = {"query": "Python programming"}  # missing max_results
     try:
         YouTubeSearchRequest(**data)
     except ValidationError as e:
         error_details = [f"{err['loc'][0]}: {err['msg']}" for err in e.errors()]
-        assert 'max_results' in '\n'.join(error_details)
+        assert "max_results" in "\n".join(error_details)
 
 
 def test_too_long_query(test_client, api_endpoints):
@@ -321,12 +347,13 @@ def test_too_long_query(test_client, api_endpoints):
                 'max_results': 5
             }
         }
+
     )
     assert response.status_code == 400
     data = response.json()
-    assert 'error' in data
-    assert 'details' in data
-    assert any('query' in err['field'] for err in data['details'])
+    assert "error" in data
+    assert "details" in data
+    assert any("query" in err["field"] for err in data["details"])
 
 
 def test_negative_max_results(test_client, api_endpoints):

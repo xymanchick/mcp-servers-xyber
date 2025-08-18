@@ -1,9 +1,10 @@
 import asyncio
 import base64
 import io
-import os
 import logging
+import os
 import ssl
+from typing import Dict, List
 
 import aiohttp
 import anyio
@@ -19,8 +20,6 @@ from tenacity import (
 from tweepy import API, OAuth1UserHandler
 from tweepy.asynchronous import AsyncClient
 from tweepy.errors import TweepyException
-from typing import List, Dict
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,27 +1,27 @@
 """YouTube searcher module with modern Python 3.10+ features."""
+
 from __future__ import annotations
 
 import logging
 from datetime import datetime
 from functools import lru_cache
 
-from googleapiclient.discovery import build
-from googleapiclient.discovery import Resource
+from googleapiclient.discovery import Resource, build
 from googleapiclient.errors import HttpError
 from mcp_server_youtube.utils.data_utils import DataUtils
-from mcp_server_youtube.youtube.config import get_youtube_config
-from mcp_server_youtube.youtube.config import YouTubeConfig
-from mcp_server_youtube.youtube.models import TranscriptStatus
-from mcp_server_youtube.youtube.models import YouTubeVideo
+from mcp_server_youtube.youtube.config import YouTubeConfig, get_youtube_config
+from mcp_server_youtube.youtube.models import TranscriptStatus, YouTubeVideo
 from mcp_server_youtube.youtube.transcript import TranscriptFetcher
-from mcp_server_youtube.youtube.youtube_errors import YouTubeApiError
-from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError
+from mcp_server_youtube.youtube.youtube_errors import (
+    YouTubeApiError,
+    YouTubeClientError,
+)
 from tenacity import (
+    before_sleep_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,8 +41,13 @@ retry_fetch_transcript = retry(
     wait=wait_exponential(multiplier=0.5, min=0.5, max=5),
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
-    retry_error_callback=lambda retry_state: ('Transcript service temporarily unavailable', None, False)
+    retry_error_callback=lambda retry_state: (
+        "Transcript service temporarily unavailable",
+        None,
+        False,
+    ),
 )
+
 
 # --- YouTubeSearcher Class ---
 @lru_cache(maxsize=1)
@@ -83,21 +88,21 @@ class YouTubeSearcher:
 
         """
         try:
-            service = build('youtube', 'v3', developerKey=self.config.api_key)
-            logger.debug('YouTube Data API service initialized successfully.')
+            service = build("youtube", "v3", developerKey=self.config.api_key)
+            logger.debug("YouTube Data API service initialized successfully.")
             return service
         except Exception as e:
-            msg = f'Failed to initialize YouTube Data API service: {e}'
+            msg = f"Failed to initialize YouTube Data API service: {e}"
             logger.exception(msg)
             raise YouTubeClientError(msg) from e
 
     def _build_search_params(
-            self,
-            query: str,
-            max_results: int = 15,
-            order_by: str | None = None,
-            published_after: str | None = None,
-            published_before: str | None = None,
+        self,
+        query: str,
+        max_results: int = 15,
+        order_by: str | None = None,
+        published_after: str | None = None,
+        published_before: str | None = None,
     ) -> dict[str, str | int]:
         """Build search parameters for YouTube Data API request.
 
@@ -112,18 +117,18 @@ class YouTubeSearcher:
             Dictionary of search parameters
         """
         search_params = {
-            'q': query,
-            'part': 'id,snippet',
-            'maxResults': max_results,
-            'type': 'video',
-            'order': order_by or 'relevance',
+            "q": query,
+            "part": "id,snippet",
+            "maxResults": max_results,
+            "type": "video",
+            "order": order_by or "relevance",
         }
 
         # Add date filters if provided
         if published_after:
-            search_params['publishedAfter'] = published_after
+            search_params["publishedAfter"] = published_after
         if published_before:
-            search_params['publishedBefore'] = published_before
+            search_params["publishedBefore"] = published_before
 
         return search_params
 
@@ -136,12 +141,12 @@ class YouTubeSearcher:
         Returns:
             True if the item is a valid YouTube video, False otherwise.
         """
-        return search_item.get('id', {}).get('kind') == 'youtube#video'
+        return search_item.get("id", {}).get("kind") == "youtube#video"
 
     @lru_cache(maxsize=128)
     @retry_fetch_transcript
     def _get_transcript_by_id(
-            self, video_id: str, language: str = 'en'
+        self, video_id: str, language: str = "en"
     ) -> tuple[str | None, str | None, bool]:
         """Get transcript for a video ID using TranscriptFetcher.
 
@@ -152,7 +157,7 @@ class YouTubeSearcher:
         Returns:
             Tuple of (transcript_text_or_status, language_code, has_transcript)
         """
-        logger.debug(f'Attempting to fetch transcript for video {video_id}')
+        logger.debug(f"Attempting to fetch transcript for video {video_id}")
 
         # Use TranscriptFetcher for better handling
         fetcher = TranscriptFetcher(video_id)
@@ -162,22 +167,22 @@ class YouTubeSearcher:
             return result.transcript, result.language, True
 
         # Create user-friendly status message
-        status_message = 'Transcript unavailable'
+        status_message = "Transcript unavailable"
         if result.available_languages:
-            langs = ', '.join(result.available_languages)
-            status_message = f'Available languages: {langs}'
+            langs = ", ".join(result.available_languages)
+            status_message = f"Available languages: {langs}"
 
         if result.error_message:
-            status_message += f'\nError: {result.error_message}'
+            status_message += f"\nError: {result.error_message}"
 
         return status_message, result.language if result.language else None, False
 
     def _create_video_from_search_item(
-            self,
-            search_item: dict,
-            transcript: str | None,
-            transcript_language: str | None,
-            has_transcript: bool,
+        self,
+        search_item: dict,
+        transcript: str | None,
+        transcript_language: str | None,
+        has_transcript: bool,
     ) -> YouTubeVideo:
         """Create a YouTubeVideo object from a search item and transcript.
 
@@ -211,13 +216,13 @@ class YouTubeSearcher:
 
     @retry_search
     def search_videos(
-            self,
-            query: str,
-            max_results: int = 15,
-            language: str = 'en',
-            order_by: str = 'relevance',
-            published_after: datetime | None = None,
-            published_before: datetime | None = None,
+        self,
+        query: str,
+        max_results: int = 15,
+        language: str = "en",
+        order_by: str = "relevance",
+        published_after: datetime | None = None,
+        published_before: datetime | None = None,
     ) -> list[YouTubeVideo]:
         """Search YouTube videos and retrieve their transcripts.
 
@@ -237,32 +242,44 @@ class YouTubeSearcher:
             YouTubeClientError: For other unexpected errors during the search
         """
         try:
-            logger.info(f"Searching YouTube for query: '{query}' with max_results={max_results}")
+            logger.info(
+                f"Searching YouTube for query: '{query}' with max_results={max_results}"
+            )
 
             search_params = self._build_search_params(
                 query,
                 max_results,
                 order_by=order_by,
-                published_after=DataUtils.format_iso_datetime(published_after) if published_after else None,
-                published_before=DataUtils.format_iso_datetime(published_before) if published_before else None,
+                published_after=(
+                    DataUtils.format_iso_datetime(published_after)
+                    if published_after
+                    else None
+                ),
+                published_before=(
+                    DataUtils.format_iso_datetime(published_before)
+                    if published_before
+                    else None
+                ),
             )
 
-            search_response = self.youtube_service.search().list(**search_params).execute()
-            items = search_response.get('items', [])
+            search_response = (
+                self.youtube_service.search().list(**search_params).execute()
+            )
+            items = search_response.get("items", [])
 
             videos = []
             for item in items:
                 if not self._is_valid_search_item(item):
                     continue
 
-                video_id = item.get('id', {}).get('videoId')
+                video_id = item.get("id", {}).get("videoId")
                 if not video_id:
-                    logger.warning(f'Search item found without videoId: {item}')
+                    logger.warning(f"Search item found without videoId: {item}")
                     continue
 
                 # Fetch transcript and language
-                transcript, transcript_language, has_transcript = self._get_transcript_by_id(
-                    video_id, language
+                transcript, transcript_language, has_transcript = (
+                    self._get_transcript_by_id(video_id, language)
                 )
 
                 # Create YouTubeVideo object
@@ -272,16 +289,18 @@ class YouTubeSearcher:
                 videos.append(video)
 
             videos_with_transcripts = len([v for v in videos if v.has_transcript])
-            logger.info(f'Found {len(videos)} videos, {videos_with_transcripts} with transcripts')
+            logger.info(
+                f"Found {len(videos)} videos, {videos_with_transcripts} with transcripts"
+            )
 
             return videos
 
-        except (HttpError) as e:
-            error_msg = f'YouTube API error: {e}'
+        except HttpError as e:
+            error_msg = f"YouTube API error: {e}"
             logger.error(error_msg, exc_info=True)
             raise YouTubeApiError(error_msg) from e
-        
+
         except Exception as e:
-            msg = f'An unexpected error occurred during YouTube search: {e}'
+            msg = f"An unexpected error occurred during YouTube search: {e}"
             logger.error(msg, exc_info=True)
             raise YouTubeClientError(msg) from e
