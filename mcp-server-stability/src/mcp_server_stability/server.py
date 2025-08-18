@@ -2,20 +2,30 @@ import base64
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError as PydanticValidationError
+from mcp_server_stability.schemas import ImageGenerationRequest
+
 from mcp_server_stability.stable_diffusion import (
     StabilityService,
     StableDiffusionClientError,
     StableDiffusionServerConnectionError,
     get_stability_service,
 )
-from pydantic import Field
 
 logger = logging.getLogger(__name__)
 
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        self.message = message
+        self.code = code
+        self.status_code = 400
+        super().__init__(message)
 
 # --- Lifespan Management for MCP Server --- #
 
@@ -59,59 +69,11 @@ mcp_server = FastMCP("stability-server", lifespan=app_lifespan)
 @mcp_server.tool()
 async def generate_image(
     ctx: Context,
-    prompt: Annotated[
-        str, Field(description="Text description of the image to generate")
-    ],
-    negative_prompt: Annotated[
-        str | None,
-        Field(
-            default="ugly, inconsistent",
-            max_length=10000,
-            description="Text describing what you do not wish to see in the output image",
-        ),
-    ] = "ugly, inconsistent",
-    aspect_ratio: Annotated[
-        str,
-        Field(
-            default="1:1",
-            pattern="^(16:9|1:1|21:9|2:3|3:2|4:5|5:4|9:16|9:21)$",
-            description="Controls the aspect ratio of the generated image. Common values: '1:1', '16:9', '9:16', '2:3', '3:2'.",
-        ),
-    ] = "1:1",
-    seed: Annotated[
-        int | None,
-        Field(
-            default=42,
-            ge=0,
-            description="Seed for reproducible generation. Set to 0 for a random seed.",
-        ),
-    ] = 42,
-    style_preset: Annotated[
-        Literal[
-            "3d-model",
-            "analog-film",
-            "anime",
-            "cinematic",
-            "comic-book",
-            "digital-art",
-            "enhance",
-            "fantasy-art",
-            "isometric",
-            "line-art",
-            "low-poly",
-            "modeling-compound",
-            "neon-punk",
-            "origami",
-            "photographic",
-            "pixel-art",
-            "tile-texture",
-        ]
-        | None,
-        Field(
-            default=None,
-            description="Predefined style preset to guide the image generation. E.g., 'photographic', 'anime'.",
-        ),
-    ] = None,
+    prompt: str,
+    negative_prompt: str | None = "ugly, inconsistent",
+    aspect_ratio: str = "1:1",
+    seed: int | None = 42,
+    style_preset: str | None = None,
 ) -> str:
     """Generate an image from a prompt using Stable Diffusion and returns it as a base64 encoded string"""
     stability_service: StabilityService = ctx.request_context.lifespan_context[
@@ -127,6 +89,16 @@ async def generate_image(
         params["style_preset"] = style_preset
 
     try:
+        
+        # Validate input parameters
+        ImageGenerationRequest(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            aspect_ratio=aspect_ratio,
+            seed=seed,
+            style_preset=style_preset,
+        )
+        
         response = await stability_service.send_generation_request(params)
         finish_reason = response.headers.get("finish-reason")
         if finish_reason == "CONTENT_FILTERED":
@@ -140,6 +112,12 @@ async def generate_image(
     except (StableDiffusionServerConnectionError, StableDiffusionClientError) as exc:
         logger.error(f"Stable Diffusion error: {exc}")
         raise ToolError(str(exc)) from exc
+    except PydanticValidationError as ve:
+        error_details = "; ".join(
+            f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+        )
+        logger.warning(f"Validation error: {error_details}")
+        raise ValidationError(f"Validation error: {error_details}") from ve
     except Exception as exc:
         logger.error(f"Unexpected error: {exc}", exc_info=True)
         raise ToolError(f"Unexpected error: {exc}") from exc

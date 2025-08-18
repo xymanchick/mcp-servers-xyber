@@ -4,9 +4,36 @@ import logging
 from fastapi import Request  # <-- CHANGE: Import Request to access headers
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from mcp_server_telegram.telegram import TelegramServiceError, get_telegram_service
+from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
+
+from mcp_server_telegram.telegram import (
+    TelegramServiceError,
+    get_telegram_service,
+)
 
 logger = logging.getLogger(__name__)
+
+# --- Input Schema for the Tool ---
+class PostToTelegramRequest(BaseModel):
+    """Input schema for the post_to_telegram tool."""
+
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=4096,
+        description="The message content to post to Telegram",
+    )
+    
+
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        self.message = message
+        self.code = code
+        self.status_code = 400
+        super().__init__(message)
 
 # --- MCP Server Initialization (NO LIFESPAN) --- #
 # CHANGE: The lifespan is removed. The server is now stateless at startup.
@@ -26,6 +53,23 @@ async def post_to_telegram(
     - 'X-Telegram-Token'
     - 'X-Telegram-Channel'
     """
+    
+    # --- Validate Input ---
+    try:
+        # Validate the input message against the schema
+        PostToTelegramRequest(message=message)
+    except PydanticValidationError as ve:
+        error_details = "\n".join(
+            f"  - {'.'.join(str(loc).capitalize() for loc in err['loc'])}: {err['msg']}"
+            for err in ve.errors()
+        )
+        raise ValidationError(f"Invalid parameters:\n{error_details}")
+    
+    except Exception as e:
+        logger.error(f"Unexpected error during message validation: {e}", exc_info=True)
+        raise ToolError("An unexpected error occurred during message validation.") from e
+
+    
     request: Request = ctx.request_context.request
 
     # --- Get BOTH token and channel from headers ---
