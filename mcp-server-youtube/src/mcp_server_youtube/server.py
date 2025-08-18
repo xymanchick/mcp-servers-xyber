@@ -25,8 +25,10 @@ logger = logging.getLogger(__name__)
 class ValidationError(ToolError):
     """Custom exception for input validation failures."""
 
-    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
-        super().__init__(message, code=code)
+    def __init__(self, message: str, code: str = 'VALIDATION_ERROR'):
+        super().__init__(message)
+        self.code = code
+
         self.status_code = 400
 
 
@@ -124,7 +126,8 @@ async def youtube_search_and_transcript(ctx, request):
         raise ValidationError(f"Invalid parameters: {error_details}")
 
     except YouTubeClientError as yt_err:
-        raise ToolError(f"YouTube API error: {str(yt_err)}", code="YOUTUBE_API_ERROR")
+        raise ToolError(f'YouTube API error: {str(yt_err)}')
 
     except Exception as e:
-        raise ToolError(f"Internal error: {str(e)}", code="INTERNAL_ERROR")
+        raise ToolError(f'Internal error: {str(e)}')
+

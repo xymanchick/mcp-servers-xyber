@@ -43,10 +43,10 @@ class YouTubeVideo(BaseModel):
 
 class YouTubeSearchResponse(BaseModel):
     """Schema for YouTube search response."""
+    results: list[YouTubeVideo] = Field(default=[], description='List of search results')
+    total_results: int = Field(default=0, description='Total number of results')
+    next_page_token: str | None = Field(None, description='Token for next page')
 
-    videos: list[YouTubeVideo] = Field(default=[], description="List of search results")
-    total_results: int = Field(default=0, description="Total number of results")
-    next_page_token: str | None = Field(None, description="Token for next page")
 
     model_config = ConfigDict(
         strict=True, from_attributes=True, extra="forbid", populate_by_name=True

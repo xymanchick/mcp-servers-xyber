@@ -195,17 +195,20 @@ class YouTubeSearcher:
         Returns:
             A YouTubeVideo object containing video details and transcript
         """
-        snippet = search_item.get("snippet", {})
+        snippet = search_item.get('snippet', {})
+        
+        # Use a default date if publishedAt is missing or invalid
+        published_at = snippet.get('publishedAt')
+        if not published_at or published_at == 'N/A':
+            published_at = '1970-01-01T00:00:00Z'  # Unix epoch as default
 
         return YouTubeVideo(
-            video_id=search_item.get("id", {}).get("videoId", "N/A"),
-            title=snippet.get("title", "N/A"),
-            description=snippet.get("description", ""),
-            channel=snippet.get("channelTitle", "N/A"),
-            published_at=snippet.get("publishedAt", "N/A"),
-            thumbnail=snippet.get("thumbnails", {})
-            .get("default", {})
-            .get("url", "N/A"),
+            video_id=search_item.get('id', {}).get('videoId', 'N/A'),
+            title=snippet.get('title', 'N/A'),
+            description=snippet.get('description', ''),
+            channel=snippet.get('channelTitle', 'N/A'),
+            published_at=published_at,
+            thumbnail=snippet.get('thumbnails', {}).get('default', {}).get('url', 'N/A'),
             transcript=transcript,
             transcript_language=transcript_language,
             has_transcript=has_transcript,

@@ -79,11 +79,11 @@ async def create_tweet(ctx: Context, tool_input: dict) -> str:
         if validated_data.image_content_str:
             image_size = len(validated_data.image_content_str.encode("utf-8"))
             if image_size > 5_000_000:
-                raise ToolError("Image content too large (max 5MB)", status_code=413)
+                raise ToolError("Image content too large (max 5MB)")
 
     except ValidationError as e:
         # Return structured error with HTTP 400
-        raise ToolError(f"Invalid input: {e.errors()}", status_code=400)
+        raise ToolError(f"Invalid input: {e.errors()}")
 
     try:
         # Call Twitter client with validated data
