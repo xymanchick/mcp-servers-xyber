@@ -6,17 +6,22 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # --- Configuration and Error Classes --- #
 
 
-class TavilyServiceError(Exception):
-    """Base exception for Tavily client errors."""
+class BaseMCPException(Exception):
+    """Base exception for MCP server."""
+    pass
 
+class TavilyServiceError(BaseMCPException):
+    """Base exception for Tavily client errors."""
     pass
 
 
 class TavilyConfigError(TavilyServiceError):
     """Configuration-related errors for Tavily client."""
-
     pass
 
+class TavilyEmptyQueryError(TavilyServiceError):
+    """Ruquest search query is empty."""
+    pass
 
 class TavilyApiError(TavilyServiceError):
     """Exception raised for errors during Tavily API calls."""
