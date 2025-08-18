@@ -45,6 +45,7 @@ async def validate_image(model: genai.GenerativeModel,
                 ]
             )
 
+            logger.info(f"Validation response: {response.text}")
             return "invalid" not in response.text.lower()
         except Exception as e:
             logger.error(f"Error during image validation: {e}")

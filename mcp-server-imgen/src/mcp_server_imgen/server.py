@@ -76,7 +76,7 @@ async def generate_image(
     image_generator = ctx.request_context.lifespan_context["image_generator"]
     gemini_model = ctx.request_context.lifespan_context["gemini_model"]
 
-    for attempt in range(validation_retries + 1):
+    for attempt in range(1, validation_retries + 1):
         try:
             # Generate images
             image_base64_list = await image_generator.generate_images(
@@ -102,7 +102,7 @@ async def generate_image(
                     logger.info(f"Successfully generated and validated image for prompt: '{prompt}'")
                     return image_base64
                 
-                logger.warning(f"Image validation failed for prompt: '{prompt}' (attempt {attempt + 1})")
+                logger.warning(f"Image validation failed for prompt: '{prompt}' (attempt {attempt})")
             else:
                 logger.info(f"Successfully generated image for prompt: '{prompt}' (validation skipped)")
                 return image_base64
