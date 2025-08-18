@@ -1,11 +1,15 @@
-import google.generativeai as genai
 import logging
+
+import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 
+
 class ImageValidationError(Exception):
     """Errors during image validation."""
+
     pass
+
 
 validation_prompt = """
 You are an expert at evaluating images.
@@ -28,25 +32,26 @@ You should output JSON with the following format:
 - "reasoning" should be a concise explanation for your decision, specifically referencing the rule that was violated if the image is invalid.
 """
 
-async def validate_image(model: genai.GenerativeModel, 
-                         image_base64: str, 
-                         validation_prompt: str) -> bool:
-        """Validate image using Google Gemini Pro Vision.
-        
-        Raises:
-            ImageValidationError: If the validation fails.
-        """
-        try:
-            response = await model.generate_content_async(
-                [                
-                    validation_prompt,
-                    "Here is the image:",
-                    {"mime_type": "image/jpeg", "data": image_base64}
-                ]
-            )
 
-            logger.info(f"Validation response: {response.text}")
-            return "invalid" not in response.text.lower()
-        except Exception as e:
-            logger.error(f"Error during image validation: {e}")
-            raise ImageValidationError(f"Error during image validation: {e}") from e
+async def validate_image(
+    model: genai.GenerativeModel, image_base64: str, validation_prompt: str
+) -> bool:
+    """Validate image using Google Gemini Pro Vision.
+
+    Raises:
+        ImageValidationError: If the validation fails.
+    """
+    try:
+        response = await model.generate_content_async(
+            [
+                validation_prompt,
+                "Here is the image:",
+                {"mime_type": "image/jpeg", "data": image_base64},
+            ]
+        )
+
+        logger.info(f"Validation response: {response.text}")
+        return "invalid" not in response.text.lower()
+    except Exception as e:
+        logger.error(f"Error during image validation: {e}")
+        raise ImageValidationError(f"Error during image validation: {e}") from e

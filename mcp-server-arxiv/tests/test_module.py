@@ -2,7 +2,6 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from mcp_server_arxiv.arxiv.config import ArxivApiError, ArxivConfig, ArxivConfigError
 from mcp_server_arxiv.arxiv.models import ArxivSearchResult
 from mcp_server_arxiv.arxiv.module import (
@@ -14,8 +13,10 @@ from mcp_server_arxiv.arxiv.module import (
 class DummyTempDir:
     def __enter__(self):
         return "/tmp/fake"
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
 
 class TestArxivService:
     """Test class for _ArxivService."""
@@ -40,7 +41,10 @@ class TestArxivService:
         """Test initialization failure when arxiv package is not available."""
         config = ArxivConfig()
 
-        with pytest.raises(ArxivConfigError, match="Required package 'arxiv' or 'PyMuPDF' not installed."):
+        with pytest.raises(
+            ArxivConfigError,
+            match="Required package 'arxiv' or 'PyMuPDF' not installed.",
+        ):
             _ArxivService(config)
 
     @patch("mcp_server_arxiv.arxiv.module.arxiv")
@@ -49,7 +53,10 @@ class TestArxivService:
         """Test initialization failure when fitz package is not available."""
         config = ArxivConfig()
 
-        with pytest.raises(ArxivConfigError, match="Required package 'arxiv' or 'PyMuPDF' not installed."):
+        with pytest.raises(
+            ArxivConfigError,
+            match="Required package 'arxiv' or 'PyMuPDF' not installed.",
+        ):
             _ArxivService(config)
 
     @pytest.mark.asyncio
@@ -71,11 +78,14 @@ class TestArxivService:
     @patch("mcp_server_arxiv.arxiv.module._async_download_and_extract_pdf_text")
     @patch("mcp_server_arxiv.arxiv.module.tempfile.TemporaryDirectory")
     @patch("asyncio.get_running_loop")
-    async def test_search_success(self, mock_get_loop, mock_temp_dir, mock_download, mock_fitz, mock_arxiv):
+    async def test_search_success(
+        self, mock_get_loop, mock_temp_dir, mock_download, mock_fitz, mock_arxiv
+    ):
         """Test successful search with mocked dependencies."""
         config = ArxivConfig(default_max_results=2, default_max_text_length=1000)
 
-        class DummyResult: pass
+        class DummyResult:
+            pass
 
         mock_arxiv.Result = DummyResult
 
@@ -99,7 +109,6 @@ class TestArxivService:
         mock_paper2.summary = "Summary 2"
         mock_paper2.get_short_id = MagicMock(return_value="8765.4321v1")
         mock_paper2.pdf_url = "http://arxiv.org/pdf/8765.4321v1.pdf"
-
 
         # Mock arxiv.Search and client.results
         mock_search = MagicMock()
@@ -158,6 +167,7 @@ class TestArxivService:
         # simulate error in run_in_executor
         async def fake_run_in_executor(executor, func, *args):
             raise Exception("arxiv error")
+
         mock_loop = MagicMock()
         mock_loop.run_in_executor.side_effect = fake_run_in_executor
         mock_get_loop.return_value = mock_loop
@@ -188,19 +198,25 @@ class TestArxivService:
         results = await service.search("no results query")
         assert results == []
 
-
     @pytest.mark.asyncio
     @patch("mcp_server_arxiv.arxiv.module.arxiv")
     @patch("mcp_server_arxiv.arxiv.module.fitz")
-    @patch("mcp_server_arxiv.arxiv.module._async_download_and_extract_pdf_text", new_callable=AsyncMock)
-    @patch("mcp_server_arxiv.arxiv.module.tempfile.TemporaryDirectory", return_value=DummyTempDir())
+    @patch(
+        "mcp_server_arxiv.arxiv.module._async_download_and_extract_pdf_text",
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "mcp_server_arxiv.arxiv.module.tempfile.TemporaryDirectory",
+        return_value=DummyTempDir(),
+    )
     @patch("asyncio.get_running_loop")
     async def test_search_pdf_processing_error(
         self, mock_get_loop, mock_temp_dir, mock_download, mock_fitz, mock_arxiv
     ):
         config = ArxivConfig(default_max_results=1, default_max_text_length=1000)
 
-        class DummyResult: pass
+        class DummyResult:
+            pass
 
         mock_client = MagicMock()
         mock_arxiv.Client.return_value = mock_client
@@ -220,6 +236,7 @@ class TestArxivService:
 
         async def fake_run_in_executor(executor, func, *args):
             return func(*args)
+
         mock_loop = MagicMock()
         mock_loop.run_in_executor.side_effect = fake_run_in_executor
         mock_get_loop.return_value = mock_loop
@@ -303,4 +320,3 @@ async def test_pdf_processing_empty_text(mock_fitz_open, fake_arxiv_result, tmp_
 
     assert result.full_text == "[Could not extract text content from PDF]"
     assert result.processing_error is None
-

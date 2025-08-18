@@ -1,7 +1,6 @@
 import os
 from logging.config import dictConfig
 
-
 LOGGING_LEVEL = os.getenv("MCP_HANGMAN_LOG_LEVEL", "INFO")
 
 
@@ -28,5 +27,3 @@ LOGGING_CONFIG = {
 
 def configure_logging() -> None:
     dictConfig(LOGGING_CONFIG)
-
-

@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 
 import arxiv
 import pytest
-
 from mcp_server_arxiv.server import mcp_server
 
 
@@ -19,7 +18,6 @@ def fake_arxiv_result():
     fake.authors[0].name = "Author One"
     fake.authors[1].name = "Author Two"
     return fake
-
 
 
 @pytest.fixture

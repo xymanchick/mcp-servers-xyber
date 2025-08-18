@@ -4,11 +4,7 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-
-from mcp_server_wikipedia.logging_config import (
-    configure_logging,
-    logging_level,
-)
+from mcp_server_wikipedia.logging_config import configure_logging, logging_level
 from mcp_server_wikipedia.server import mcp_server
 
 configure_logging()

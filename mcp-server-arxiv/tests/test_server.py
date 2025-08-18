@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
-
 from mcp_server_arxiv import (
     ArxivApiError,
     ArxivConfigError,
@@ -15,10 +14,12 @@ from mcp_server_arxiv.server import app_lifespan, mcp_server
 
 
 @pytest.mark.asyncio
-@patch("mcp_server_arxiv.server.get_arxiv_service", return_value=MagicMock(name="_ArxivService"))
+@patch(
+    "mcp_server_arxiv.server.get_arxiv_service",
+    return_value=MagicMock(name="_ArxivService"),
+)
 @patch("mcp_server_arxiv.server.logger")
 async def test_app_lifespan_success(mock_logger, mock_get_service):
-
     async with app_lifespan(mcp_server) as lifespan_ctx:
         assert "arxiv_service" in lifespan_ctx
         assert lifespan_ctx["arxiv_service"] is mock_get_service.return_value
@@ -28,9 +29,11 @@ async def test_app_lifespan_success(mock_logger, mock_get_service):
     mock_logger.info.assert_any_call("Lifespan: Shutdown cleanup completed")
 
 
-
 @pytest.mark.asyncio
-@patch("mcp_server_arxiv.server.get_arxiv_service", side_effect=ArxivConfigError("config error"))
+@patch(
+    "mcp_server_arxiv.server.get_arxiv_service",
+    side_effect=ArxivConfigError("config error"),
+)
 @patch("mcp_server_arxiv.server.logger")
 async def test_app_lifespan_raises_arxiv_config_error(mock_logger, mock_get_service):
     with pytest.raises(ArxivConfigError, match="config error"):
@@ -44,7 +47,10 @@ async def test_app_lifespan_raises_arxiv_config_error(mock_logger, mock_get_serv
 
 
 @pytest.mark.asyncio
-@patch("mcp_server_arxiv.server.get_arxiv_service", side_effect=ArxivServiceError("service error"))
+@patch(
+    "mcp_server_arxiv.server.get_arxiv_service",
+    side_effect=ArxivServiceError("service error"),
+)
 @patch("mcp_server_arxiv.server.logger")
 async def test_app_lifespan_raises_arxiv_service_error(mock_logger, mock_get_service):
     with pytest.raises(ArxivServiceError, match="service error"):
@@ -58,7 +64,10 @@ async def test_app_lifespan_raises_arxiv_service_error(mock_logger, mock_get_ser
 
 
 @pytest.mark.asyncio
-@patch("mcp_server_arxiv.server.get_arxiv_service", side_effect=RuntimeError("unexpected error"))
+@patch(
+    "mcp_server_arxiv.server.get_arxiv_service",
+    side_effect=RuntimeError("unexpected error"),
+)
 @patch("mcp_server_arxiv.server.logger")
 async def test_app_lifespan_raises_unexpected_error(mock_logger, mock_get_service):
     with pytest.raises(RuntimeError, match="unexpected error"):
@@ -71,11 +80,12 @@ async def test_app_lifespan_raises_unexpected_error(mock_logger, mock_get_servic
     mock_logger.info.assert_any_call("Lifespan: Shutdown cleanup completed")
 
 
-
 @pytest.mark.asyncio
 @patch("mcp_server_arxiv.server.logger")
 @patch("mcp_server_arxiv.server.get_arxiv_service")
-async def test_arxiv_search_success(mock_get_arxiv_service, mock_logger, mcp_server_fixture):
+async def test_arxiv_search_success(
+    mock_get_arxiv_service, mock_logger, mcp_server_fixture
+):
     fake_result = MagicMock(spec=ArxivSearchResult)
     fake_result.__str__.return_value = "Paper Title - Author"
 
@@ -107,19 +117,46 @@ async def test_arxiv_search_success(mock_get_arxiv_service, mock_logger, mcp_ser
 @pytest.mark.parametrize(
     ["error_ctx", "side_effect", "expected_exception", "match"],
     [
-        (pytest.raises(ToolError, match="Input validation error: Invalid input"), ValueError("Invalid input"), ToolError, "Input validation error"),
-        (pytest.raises(ToolError, match="ArXiv API error: API failure"), ArxivApiError("API failure"), ToolError,"ArXiv API error"),
-        (pytest.raises(ToolError, match="ArXiv service error: Service failure"), ArxivServiceError("Service failure"), ToolError, "ArXiv service error"),
-        (pytest.raises(ToolError, match="An unexpected error occurred during search."), Exception("Unexpected"), ToolError, "unexpected error"),
+        (
+            pytest.raises(ToolError, match="Input validation error: Invalid input"),
+            ValueError("Invalid input"),
+            ToolError,
+            "Input validation error",
+        ),
+        (
+            pytest.raises(ToolError, match="ArXiv API error: API failure"),
+            ArxivApiError("API failure"),
+            ToolError,
+            "ArXiv API error",
+        ),
+        (
+            pytest.raises(ToolError, match="ArXiv service error: Service failure"),
+            ArxivServiceError("Service failure"),
+            ToolError,
+            "ArXiv service error",
+        ),
+        (
+            pytest.raises(
+                ToolError, match="An unexpected error occurred during search."
+            ),
+            Exception("Unexpected"),
+            ToolError,
+            "unexpected error",
+        ),
         (not_rise_error(), None, None, None),
     ],
-    ids=["value_error", "api_error", "service_error", "unexpected_error", "success"]
+    ids=["value_error", "api_error", "service_error", "unexpected_error", "success"],
 )
 @patch("mcp_server_arxiv.server.logger")
 @patch("mcp_server_arxiv.server.get_arxiv_service")
 async def test_arxiv_search_errors(
-    mock_get_arxiv_service, mock_logger, mcp_server_fixture,
-    error_ctx, side_effect, expected_exception, match
+    mock_get_arxiv_service,
+    mock_logger,
+    mcp_server_fixture,
+    error_ctx,
+    side_effect,
+    expected_exception,
+    match,
 ):
     fake_result = MagicMock()
     fake_result.__str__.return_value = "Paper Title - Author"

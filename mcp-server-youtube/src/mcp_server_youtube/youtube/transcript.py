@@ -1,12 +1,14 @@
 """Modern transcript fetcher with user-friendly error messages."""
+
 from __future__ import annotations
 
-from mcp_server_youtube.youtube.models import TranscriptResult
-from mcp_server_youtube.youtube.models import TranscriptStatus
-from youtube_transcript_api import NoTranscriptFound
-from youtube_transcript_api import TranscriptsDisabled
-from youtube_transcript_api import VideoUnavailable
-from youtube_transcript_api import YouTubeTranscriptApi
+from mcp_server_youtube.youtube.models import TranscriptResult, TranscriptStatus
+from youtube_transcript_api import (
+    NoTranscriptFound,
+    TranscriptsDisabled,
+    VideoUnavailable,
+    YouTubeTranscriptApi,
+)
 
 
 class TranscriptFetcher:
@@ -25,17 +27,16 @@ class TranscriptFetcher:
         except TranscriptsDisabled:
             return TranscriptResult(
                 status=TranscriptStatus.DISABLED,
-                error_message='Transcripts disabled by video creator'
+                error_message="Transcripts disabled by video creator",
             )
         except VideoUnavailable:
             return TranscriptResult(
-                status=TranscriptStatus.UNAVAILABLE,
-                error_message='Video unavailable'
+                status=TranscriptStatus.UNAVAILABLE, error_message="Video unavailable"
             )
         except Exception:
             return TranscriptResult(
                 status=TranscriptStatus.ERROR,
-                error_message='Transcript service temporarily unavailable'
+                error_message="Transcript service temporarily unavailable",
             )
 
     def _get_preferred_transcript(self, preferred_language: str) -> TranscriptResult:
@@ -56,13 +57,12 @@ class TranscriptFetcher:
             if not transcripts:
                 return TranscriptResult(
                     status=TranscriptStatus.NO_TRANSCRIPT,
-                    error_message='No transcripts available for this video'
+                    error_message="No transcripts available for this video",
                 )
 
             # Get available languages (clean format)
             available_languages = [
-                str(t.language_code).replace('LanguageCode.', '')
-                for t in transcripts
+                str(t.language_code).replace("LanguageCode.", "") for t in transcripts
             ]
 
             # Try transcripts in priority order: manual → English → any available
@@ -76,22 +76,22 @@ class TranscriptFetcher:
                 # If this transcript failed, try the next one
 
             # All attempts failed - return user-friendly message with available languages
-            langs_str = ', '.join(available_languages)
+            langs_str = ", ".join(available_languages)
             if len(available_languages) == 1:
-                message = f'Transcript available in {langs_str} but currently inaccessible (YouTube blocking)'
+                message = f"Transcript available in {langs_str} but currently inaccessible (YouTube blocking)"
             else:
-                message = f'Transcripts available in {langs_str} but currently inaccessible (YouTube blocking)'
+                message = f"Transcripts available in {langs_str} but currently inaccessible (YouTube blocking)"
 
             return TranscriptResult(
                 status=TranscriptStatus.BLOCKED,
                 error_message=message,
-                available_languages=available_languages
+                available_languages=available_languages,
             )
 
         except Exception:
             return TranscriptResult(
                 status=TranscriptStatus.ERROR,
-                error_message='Transcript service temporarily unavailable'
+                error_message="Transcript service temporarily unavailable",
             )
 
     def _prioritize_transcripts(self, transcripts: list) -> list:
@@ -103,12 +103,15 @@ class TranscriptFetcher:
         for transcript in transcripts:
             try:
                 # Check if manually created (safely)
-                is_manual = hasattr(transcript, 'is_manually_created') and transcript.is_manually_created
-                lang_code = str(transcript.language_code).replace('LanguageCode.', '')
+                is_manual = (
+                    hasattr(transcript, "is_manually_created")
+                    and transcript.is_manually_created
+                )
+                lang_code = str(transcript.language_code).replace("LanguageCode.", "")
 
                 if is_manual:
                     manual_transcripts.append(transcript)
-                elif lang_code.startswith('en'):
+                elif lang_code.startswith("en"):
                     english_transcripts.append(transcript)
                 else:
                     other_transcripts.append(transcript)
@@ -124,10 +127,10 @@ class TranscriptFetcher:
         for entry in transcript_data:
             try:
                 # Handle different entry formats
-                if hasattr(entry, 'text'):
+                if hasattr(entry, "text"):
                     text = entry.text
-                elif isinstance(entry, dict) and 'text' in entry:
-                    text = entry['text']
+                elif isinstance(entry, dict) and "text" in entry:
+                    text = entry["text"]
                 else:
                     text = str(entry)
 
@@ -139,18 +142,20 @@ class TranscriptFetcher:
 
     def _format_transcript_text(self, text_parts: list[str]) -> str:
         """Format transcript text with length limits."""
-        formatted_transcript = ' '.join(text_parts)
+        formatted_transcript = " ".join(text_parts)
 
         # Truncate if too long
         if len(formatted_transcript) > self.max_transcript_preview:
-            formatted_transcript = formatted_transcript[:self.max_transcript_preview] + '...'
+            formatted_transcript = (
+                formatted_transcript[: self.max_transcript_preview] + "..."
+            )
 
         return formatted_transcript
 
     def _get_available_languages(self) -> list[str]:
         """Get clean list of available language codes."""
         return [
-            str(t.language_code).replace('LanguageCode.', '')
+            str(t.language_code).replace("LanguageCode.", "")
             for t in self.transcript_list
         ]
 
@@ -161,8 +166,7 @@ class TranscriptFetcher:
 
             if not transcript_data:
                 return TranscriptResult(
-                    status=TranscriptStatus.ERROR,
-                    error_message='Empty transcript data'
+                    status=TranscriptStatus.ERROR, error_message="Empty transcript data"
                 )
 
             # Extract text parts
@@ -170,7 +174,7 @@ class TranscriptFetcher:
             if not text_parts:
                 return TranscriptResult(
                     status=TranscriptStatus.ERROR,
-                    error_message='No valid text found in transcript'
+                    error_message="No valid text found in transcript",
                 )
 
             # Format transcript
@@ -179,14 +183,14 @@ class TranscriptFetcher:
             return TranscriptResult(
                 status=TranscriptStatus.SUCCESS,
                 transcript=formatted_transcript,
-                language=str(language).replace('LanguageCode.', ''),
-                available_languages=self._get_available_languages()
+                language=str(language).replace("LanguageCode.", ""),
+                available_languages=self._get_available_languages(),
             )
 
         except Exception:
             # Return user-friendly error instead of technical details
-            lang_code = str(language).replace('LanguageCode.', '')
+            lang_code = str(language).replace("LanguageCode.", "")
             return TranscriptResult(
                 status=TranscriptStatus.BLOCKED,
-                error_message=f'Transcript in {lang_code} currently inaccessible (YouTube blocking)'
+                error_message=f"Transcript in {lang_code} currently inaccessible (YouTube blocking)",
             )

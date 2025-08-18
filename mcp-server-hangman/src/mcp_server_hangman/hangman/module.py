@@ -7,7 +7,6 @@ from typing import Set
 
 from mcp_server_hangman.hangman.models import GameState
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +35,10 @@ class _HangmanGame:
 
     def is_won(self) -> bool:
         normalized_secret = self.secret_word.upper()
-        return all((c.upper() in self.guessed_letters) if c.isalpha() else True for c in normalized_secret)
+        return all(
+            (c.upper() in self.guessed_letters) if c.isalpha() else True
+            for c in normalized_secret
+        )
 
     def is_lost(self) -> bool:
         return self.remaining_attempts <= 0 and not self.is_won()
@@ -56,7 +58,9 @@ class HangmanService:
     def __init__(self) -> None:
         self._games: dict[str, _HangmanGame] = {}
 
-    def start_game(self, player_id: str, secret_word: str, max_attempts: int = 6) -> GameState:
+    def start_game(
+        self, player_id: str, secret_word: str, max_attempts: int = 6
+    ) -> GameState:
         if not secret_word or not isinstance(secret_word, str):
             raise HangmanError("Secret word must be a non-empty string")
         if not all(c.isalpha() for c in secret_word):
@@ -66,19 +70,28 @@ class HangmanService:
 
         game = _HangmanGame(secret_word=secret_word, max_attempts=max_attempts)
         self._games[player_id] = game
-        logger.info("New game started for player %s with length %d and %d attempts", player_id, len(secret_word), max_attempts)
+        logger.info(
+            "New game started for player %s with length %d and %d attempts",
+            player_id,
+            len(secret_word),
+            max_attempts,
+        )
         return self._to_state(player_id, game)
 
     def guess_letter(self, player_id: str, letter: str) -> GameState:
         game = self._games.get(player_id)
         if not game:
-            raise GameNotFoundError("No active game for this player. Start a new game first.")
+            raise GameNotFoundError(
+                "No active game for this player. Start a new game first."
+            )
 
         # If game is already over by attempts, consider it terminated
         if game.remaining_attempts <= 0 or game.is_won():
             # Ensure cleanup
             self._games.pop(player_id, None)
-            raise GameNotFoundError("No active game for this player. Start a new game first.")
+            raise GameNotFoundError(
+                "No active game for this player. Start a new game first."
+            )
 
         if not isinstance(letter, str) or len(letter) != 1 or not letter.isalpha():
             raise InvalidGuessError("Letter must be a single alphabetic character")
@@ -98,7 +111,7 @@ class HangmanService:
                 game.incorrect_letters.add(normalized)
 
         state = self._to_state(player_id, game)
-        
+
         # If attempts are exhausted and not won, terminate the game (invalidate player_id)
         if state.remaining_attempts == 0 and not state.won:
             self._games.pop(player_id, None)
@@ -111,12 +124,11 @@ class HangmanService:
             remaining_attempts=game.remaining_attempts,
             correct_letters=sorted(list(game.guessed_letters)),
             incorrect_letters=sorted(list(game.incorrect_letters)),
-            won=game.is_won()
+            won=game.is_won(),
         )
         return state
+
 
 @lru_cache(maxsize=1)
 def get_hangman_service() -> HangmanService:
     return HangmanService()
-
-

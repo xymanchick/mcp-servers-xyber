@@ -8,9 +8,6 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from functools import lru_cache
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from mcp_server_postgres.postgres_client.config import (
     PostgresAPIError,
     PostgresConfig,
@@ -18,6 +15,8 @@ from mcp_server_postgres.postgres_client.config import (
 )
 from mcp_server_postgres.postgres_client.database import async_session_maker
 from mcp_server_postgres.postgres_client.models.character_model import Agent
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class _PostgresService:

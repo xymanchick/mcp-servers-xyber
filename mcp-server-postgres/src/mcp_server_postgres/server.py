@@ -8,14 +8,13 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.types import TextContent, Tool
-from pydantic import BaseModel, Field, ValidationError
-
 from mcp_server_postgres.postgres_client import (
     Agent,
     PostgresServiceError,
     _PostgresService,
     get_postgres_service,
 )
+from pydantic import BaseModel, Field, ValidationError
 
 # Get module-level logger
 logger = logging.getLogger(__name__)

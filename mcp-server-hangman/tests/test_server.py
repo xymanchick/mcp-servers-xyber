@@ -1,12 +1,12 @@
 """Test cases for hangman MCP server tools."""
-import pytest
+
 from unittest.mock import MagicMock
 
+import pytest
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
-
-from mcp_server_hangman.server import mcp_server
 from mcp_server_hangman.hangman.module import HangmanService
+from mcp_server_hangman.server import mcp_server
 
 
 def _tool(name: str):
@@ -113,5 +113,3 @@ async def test_guess_without_game_toolerror(mock_context):
     guess = _tool("guess_letter")
     with pytest.raises(ToolError):
         await guess(ctx=mock_context, player_id="nonexistent", letter="a")
-
-

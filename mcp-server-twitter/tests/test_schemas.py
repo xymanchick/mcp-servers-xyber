@@ -1,6 +1,4 @@
 import pytest
-from pydantic import ValidationError
-
 from mcp_server_twitter.schemas import (
     CreateTweetInput,
     FollowUserInput,
@@ -9,6 +7,7 @@ from mcp_server_twitter.schemas import (
     RetweetTweetInput,
     SearchHashtagInput,
 )
+from pydantic import ValidationError
 
 # === CreateTweetInput ===
 

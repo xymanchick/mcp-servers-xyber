@@ -1,16 +1,16 @@
 import json
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from googleapiclient.errors import HttpError
-from youtube_transcript_api import NoTranscriptFound, TranscriptsDisabled
+from unittest.mock import MagicMock, Mock, patch
 
-from mcp_server_youtube.youtube.module import YouTubeSearcher, get_youtube_searcher
+import pytest
+from googleapiclient.errors import HttpError
 from mcp_server_youtube.youtube.config import (
-    YouTubeClientError,
     YouTubeApiError,
-    YouTubeTranscriptError
+    YouTubeClientError,
+    YouTubeTranscriptError,
 )
 from mcp_server_youtube.youtube.models import YouTubeVideo
+from mcp_server_youtube.youtube.module import YouTubeSearcher, get_youtube_searcher
+from youtube_transcript_api import NoTranscriptFound, TranscriptsDisabled
 
 
 class TestYouTubeSearcher:
@@ -18,7 +18,7 @@ class TestYouTubeSearcher:
 
     def test_init_success(self, mock_youtube_config):
         """Test successful YouTubeSearcher initialization."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build:
+        with patch("mcp_server_youtube.youtube.module.build") as mock_build:
             mock_service = Mock()
             mock_build.return_value = mock_service
 
@@ -27,28 +27,41 @@ class TestYouTubeSearcher:
             assert searcher.config == mock_youtube_config
             assert searcher.youtube_service == mock_service
             assert searcher.max_transcript_preview == 500
-            mock_build.assert_called_once_with("youtube", "v3", developerKey="test_api_key_123")
+            mock_build.assert_called_once_with(
+                "youtube", "v3", developerKey="test_api_key_123"
+            )
 
     def test_init_failure(self, mock_youtube_config):
         """Test YouTubeSearcher initialization failure."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build:
+        with patch("mcp_server_youtube.youtube.module.build") as mock_build:
             mock_build.side_effect = Exception("API initialization failed")
 
-            with pytest.raises(YouTubeClientError, match="Failed to initialize YouTube Data API service"):
+            with pytest.raises(
+                YouTubeClientError,
+                match="Failed to initialize YouTube Data API service",
+            ):
                 YouTubeSearcher(mock_youtube_config)
 
-    def test_search_videos_success(self, mock_youtube_config, sample_youtube_api_response, sample_transcript_response):
+    def test_search_videos_success(
+        self,
+        mock_youtube_config,
+        sample_youtube_api_response,
+        sample_transcript_response,
+    ):
         """Test successful video search with transcripts."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build, \
-             patch.object(YouTubeSearcher, '_get_transcript_by_id') as mock_transcript:
-
+        with (
+            patch("mcp_server_youtube.youtube.module.build") as mock_build,
+            patch.object(YouTubeSearcher, "_get_transcript_by_id") as mock_transcript,
+        ):
             # Setup mocks
             mock_service = Mock()
             mock_build.return_value = mock_service
 
             # FIXED: Properly configure the mock chain
             # Mock the search().list().execute() chain to return actual dict
-            mock_service.search().list().execute.return_value = sample_youtube_api_response
+            mock_service.search().list().execute.return_value = (
+                sample_youtube_api_response
+            )
 
             mock_transcript.return_value = "Test transcript content"
 
@@ -65,16 +78,13 @@ class TestYouTubeSearcher:
 
             # Verify API calls
             mock_service.search().list.assert_called_once_with(
-                q="test query",
-                part="id,snippet",
-                maxResults=2,
-                type="video"
+                q="test query", part="id,snippet", maxResults=2, type="video"
             )
             assert mock_transcript.call_count == 2
 
     def test_search_videos_no_results(self, mock_youtube_config):
         """Test video search with no results."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build:
+        with patch("mcp_server_youtube.youtube.module.build") as mock_build:
             mock_service = Mock()
             mock_build.return_value = mock_service
 
@@ -88,7 +98,7 @@ class TestYouTubeSearcher:
 
     def test_search_videos_missing_video_id(self, mock_youtube_config):
         """Test handling of search results without video IDs."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build:
+        with patch("mcp_server_youtube.youtube.module.build") as mock_build:
             mock_service = Mock()
             mock_build.return_value = mock_service
 
@@ -101,7 +111,7 @@ class TestYouTubeSearcher:
                             "kind": "youtube#video"
                             # Missing videoId
                         },
-                        "snippet": {"title": "Test Video"}
+                        "snippet": {"title": "Test Video"},
                     }
                 ]
             }
@@ -116,16 +126,14 @@ class TestYouTubeSearcher:
 
     def test_search_videos_http_error(self, mock_youtube_config):
         """Test handling of YouTube API HTTP errors."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build:
+        with patch("mcp_server_youtube.youtube.module.build") as mock_build:
             mock_service = Mock()
             mock_build.return_value = mock_service
 
             # Create mock HTTP error
-            error_content = json.dumps({
-                "error": {
-                    "message": "API key invalid"
-                }
-            }).encode('utf-8')
+            error_content = json.dumps(
+                {"error": {"message": "API key invalid"}}
+            ).encode("utf-8")
 
             mock_resp = Mock()
             mock_resp.status = 403
@@ -136,38 +144,50 @@ class TestYouTubeSearcher:
 
             searcher = YouTubeSearcher(mock_youtube_config)
 
-            with pytest.raises(YouTubeApiError, match="YouTube API search failed: API key invalid"):
+            with pytest.raises(
+                YouTubeApiError, match="YouTube API search failed: API key invalid"
+            ):
                 searcher.search_videos("test query")
 
     def test_search_videos_unexpected_error(self, mock_youtube_config):
         """Test handling of unexpected errors during search."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build:
+        with patch("mcp_server_youtube.youtube.module.build") as mock_build:
             mock_service = Mock()
             mock_build.return_value = mock_service
 
             # FIXED: Configure the mock to raise the error
-            mock_service.search().list().execute.side_effect = Exception("Unexpected error")
+            mock_service.search().list().execute.side_effect = Exception(
+                "Unexpected error"
+            )
 
             searcher = YouTubeSearcher(mock_youtube_config)
 
-            with pytest.raises(YouTubeClientError, match="An unexpected error occurred during YouTube search"):
+            with pytest.raises(
+                YouTubeClientError,
+                match="An unexpected error occurred during YouTube search",
+            ):
                 searcher.search_videos("test query")
 
-    def test_search_videos_transcript_error_handling(self, mock_youtube_config, sample_youtube_api_response):
+    def test_search_videos_transcript_error_handling(
+        self, mock_youtube_config, sample_youtube_api_response
+    ):
         """Test handling of transcript errors during search."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build, \
-             patch.object(YouTubeSearcher, '_get_transcript_by_id') as mock_transcript:
-
+        with (
+            patch("mcp_server_youtube.youtube.module.build") as mock_build,
+            patch.object(YouTubeSearcher, "_get_transcript_by_id") as mock_transcript,
+        ):
             mock_service = Mock()
             mock_build.return_value = mock_service
 
             # FIXED: Return actual dict
-            mock_service.search().list().execute.return_value = sample_youtube_api_response
+            mock_service.search().list().execute.return_value = (
+                sample_youtube_api_response
+            )
 
             # First video succeeds, second fails
             mock_transcript.side_effect = [
                 "Success transcript",
-                YouTubeTranscriptError("test_video_id_2", "Transcript disabled")
+                YouTubeTranscriptError("test_video_id_2", "Transcript disabled"),
             ]
 
             searcher = YouTubeSearcher(mock_youtube_config)
@@ -175,13 +195,18 @@ class TestYouTubeSearcher:
 
             assert len(results) == 2
             assert results[0].transcript == "Success transcript"
-            assert "[Transcript unavailable: Transcript disabled]" in results[1].transcript
+            assert (
+                "[Transcript unavailable: Transcript disabled]" in results[1].transcript
+            )
 
-    def test_get_transcript_by_id_success(self, mock_youtube_config, sample_transcript_response):
+    def test_get_transcript_by_id_success(
+        self, mock_youtube_config, sample_transcript_response
+    ):
         """Test successful transcript retrieval."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build, \
-             patch('mcp_server_youtube.youtube.module.YouTubeTranscriptApi') as mock_api:
-
+        with (
+            patch("mcp_server_youtube.youtube.module.build") as mock_build,
+            patch("mcp_server_youtube.youtube.module.YouTubeTranscriptApi") as mock_api,
+        ):
             mock_service = Mock()
             mock_build.return_value = mock_service
 
@@ -202,24 +227,31 @@ class TestYouTubeSearcher:
 
     def test_get_transcript_by_id_no_transcript_found(self, mock_youtube_config):
         """Test handling when no transcript is found."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build, \
-             patch('mcp_server_youtube.youtube.module.YouTubeTranscriptApi') as mock_api:
-
+        with (
+            patch("mcp_server_youtube.youtube.module.build") as mock_build,
+            patch("mcp_server_youtube.youtube.module.YouTubeTranscriptApi") as mock_api,
+        ):
             mock_service = Mock()
             mock_build.return_value = mock_service
 
-            mock_api.list_transcripts.side_effect = NoTranscriptFound("test_video_id", [], None)
+            mock_api.list_transcripts.side_effect = NoTranscriptFound(
+                "test_video_id", [], None
+            )
 
             searcher = YouTubeSearcher(mock_youtube_config)
 
-            with pytest.raises(YouTubeTranscriptError, match="No transcript found for video ID test_video_id"):
+            with pytest.raises(
+                YouTubeTranscriptError,
+                match="No transcript found for video ID test_video_id",
+            ):
                 searcher._get_transcript_by_id("test_video_id", "en")
 
     def test_get_transcript_by_id_transcripts_disabled(self, mock_youtube_config):
         """Test handling when transcripts are disabled."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build, \
-             patch('mcp_server_youtube.youtube.module.YouTubeTranscriptApi') as mock_api:
-
+        with (
+            patch("mcp_server_youtube.youtube.module.build") as mock_build,
+            patch("mcp_server_youtube.youtube.module.YouTubeTranscriptApi") as mock_api,
+        ):
             mock_service = Mock()
             mock_build.return_value = mock_service
 
@@ -227,30 +259,39 @@ class TestYouTubeSearcher:
 
             searcher = YouTubeSearcher(mock_youtube_config)
 
-            with pytest.raises(YouTubeTranscriptError, match="Transcripts are disabled for video ID: test_video_id"):
+            with pytest.raises(
+                YouTubeTranscriptError,
+                match="Transcripts are disabled for video ID: test_video_id",
+            ):
                 searcher._get_transcript_by_id("test_video_id", "en")
 
     def test_get_transcript_by_id_unexpected_error(self, mock_youtube_config):
         """Test handling of unexpected errors during transcript retrieval."""
-        with patch('mcp_server_youtube.youtube.module.build') as mock_build, \
-             patch('mcp_server_youtube.youtube.module.YouTubeTranscriptApi') as mock_api:
-
+        with (
+            patch("mcp_server_youtube.youtube.module.build") as mock_build,
+            patch("mcp_server_youtube.youtube.module.YouTubeTranscriptApi") as mock_api,
+        ):
             mock_service = Mock()
             mock_build.return_value = mock_service
 
-            mock_api.list_transcripts.side_effect = Exception("Unexpected transcript error")
+            mock_api.list_transcripts.side_effect = Exception(
+                "Unexpected transcript error"
+            )
 
             searcher = YouTubeSearcher(mock_youtube_config)
 
-            with pytest.raises(YouTubeTranscriptError, match="Could not retrieve transcript for video ID test_video_id"):
+            with pytest.raises(
+                YouTubeTranscriptError,
+                match="Could not retrieve transcript for video ID test_video_id",
+            ):
                 searcher._get_transcript_by_id("test_video_id", "en")
 
 
 class TestGetYouTubeSearcher:
     """Test cases for get_youtube_searcher function."""
 
-    @patch('mcp_server_youtube.youtube.module.YouTubeConfig')
-    @patch('mcp_server_youtube.youtube.module.YouTubeSearcher')
+    @patch("mcp_server_youtube.youtube.module.YouTubeConfig")
+    @patch("mcp_server_youtube.youtube.module.YouTubeSearcher")
     def test_get_youtube_searcher_caching(self, mock_searcher_class, mock_config_class):
         """Test that get_youtube_searcher properly caches instances."""
         mock_config = Mock()

@@ -1,9 +1,9 @@
 """Test cases for HangmanService module."""
-import pytest
 
+import pytest
 from mcp_server_hangman.hangman.module import (
-    HangmanService,
     GameNotFoundError,
+    HangmanService,
     InvalidGuessError,
 )
 
@@ -14,7 +14,9 @@ class TestHangmanService:
         self.player_id = "player-1"
 
     def test_start_game_initial_state(self):
-        state = self.service.start_game(player_id=self.player_id, secret_word="Banana", max_attempts=6)
+        state = self.service.start_game(
+            player_id=self.player_id, secret_word="Banana", max_attempts=6
+        )
         assert state.player_id == self.player_id
         assert state.masked_chars == list("______")
         assert state.remaining_attempts == 6
@@ -24,9 +26,13 @@ class TestHangmanService:
 
     def test_start_game_rejects_non_letters(self):
         with pytest.raises(Exception):
-            self.service.start_game(player_id=self.player_id, secret_word="Ice-Cream!", max_attempts=5)
+            self.service.start_game(
+                player_id=self.player_id, secret_word="Ice-Cream!", max_attempts=5
+            )
         with pytest.raises(Exception):
-            self.service.start_game(player_id=self.player_id, secret_word="abc123", max_attempts=5)
+            self.service.start_game(
+                player_id=self.player_id, secret_word="abc123", max_attempts=5
+            )
 
     def test_guess_correct_letter_case_insensitive(self):
         self.service.start_game(self.player_id, secret_word="Kiwi", max_attempts=5)
@@ -93,5 +99,3 @@ class TestHangmanService:
         # After win, subsequent guesses should raise as game is terminated
         with pytest.raises(GameNotFoundError):
             self.service.guess_letter(self.player_id, "x")
-
-

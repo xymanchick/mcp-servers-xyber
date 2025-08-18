@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+
 from pydantic import BaseModel, Field
 
 
@@ -28,5 +29,3 @@ class TelegramParseResult(BaseModel):
     @classmethod
     def create_now(cls, channels: dict[str, ParsedChannel]) -> "TelegramParseResult":
         return cls(fetch_timestamp=datetime.now(timezone.utc), channels=channels)
-
-

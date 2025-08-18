@@ -1,12 +1,12 @@
+import logging
 from unittest.mock import AsyncMock, MagicMock
 
-from aioresponses import aioresponses
-import logging
 import aiohttp
 import pytest
+import requests
+from aioresponses import aioresponses
 from mcp_server_twitter.twitter.module import AsyncTwitterClient
 from tweepy.errors import TweepyException
-import requests
 
 
 @pytest.fixture

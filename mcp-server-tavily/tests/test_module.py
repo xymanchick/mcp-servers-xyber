@@ -1,8 +1,9 @@
 import asyncio
 import logging
-from unittest.mock import MagicMock, AsyncMock
-import pytest
+from unittest.mock import AsyncMock, MagicMock
+
 import aiohttp
+import pytest
 from mcp_server_tavily.tavily.module import _TavilyService
 
 MOCK_RESULT = {"results": [{"title": "Test", "url": "#", "content": "Test"}]}

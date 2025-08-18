@@ -5,7 +5,6 @@ from typing import Any, Dict, List
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-
 from mcp_server_wikipedia.wikipedia import (
     ArticleNotFoundError,
     WikipediaAPIError,

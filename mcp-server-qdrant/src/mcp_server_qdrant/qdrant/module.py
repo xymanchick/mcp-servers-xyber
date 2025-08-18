@@ -216,7 +216,7 @@ class QdrantConnector:
                 # Build filter conditions from the filters dict
                 filter_conditions: list[models.Condition] = []
                 for field_path, value in filters.items():
-                    if value is not None: 
+                    if value is not None:
                         filter_conditions.append(
                             models.FieldCondition(
                                 key=field_path,

@@ -6,14 +6,13 @@ from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from pydantic import Field
-
 from mcp_server_stability.stable_diffusion import (
     StabilityService,
     StableDiffusionClientError,
     StableDiffusionServerConnectionError,
     get_stability_service,
 )
+from pydantic import Field
 
 logger = logging.getLogger(__name__)
 

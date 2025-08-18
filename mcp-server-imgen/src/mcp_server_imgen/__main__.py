@@ -4,7 +4,6 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-
 from mcp_server_imgen.logging_config import configure_logging, logging_level
 from mcp_server_imgen.server import mcp_server
 
@@ -63,5 +62,5 @@ if __name__ == "__main__":
         reload=args.reload,
         log_level=logging_level.lower(),
         factory=True,
-        lifespan="on"
+        lifespan="on",
     )
