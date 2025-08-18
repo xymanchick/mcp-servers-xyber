@@ -8,16 +8,29 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.types import TextContent, Tool
+from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
+from fastmcp.exceptions import ToolError
+
 from mcp_server_postgres.postgres_client import (
     Agent,
     PostgresServiceError,
     _PostgresService,
     get_postgres_service,
 )
-from pydantic import BaseModel, Field, ValidationError
 
 # Get module-level logger
 logger = logging.getLogger(__name__)
+
+
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        self.message = message
+        self.code = code
+        self.status_code = 400
+        super().__init__(message)
 
 # --- Tool Input/Output Schemas --- #
 
@@ -81,7 +94,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     match name:
         case PostgresMCPServerTools.GET_CHARACTER_BY_NAME.value:
             try:
-                # 1. Validate Input Arguments
+                # 1. Validate Input Arguments using Pydantic model
                 request_model = GetCharacterByNameRequest(**arguments)
                 character_name = request_model.name
 
@@ -95,10 +108,12 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
                 result_content.append(TextContent(type="text", text=f"{agent}"))
 
-            except ValidationError as ve:
-                error_msg = f"Invalid arguments for tool '{name}': {ve}"
-                logger.warning(error_msg)
-                return [TextContent(type="text", text=error_msg)]
+            except PydanticValidationError as ve:
+                logger.warning(f"Validation error: {ve}")
+                error_details = "; ".join(
+                    f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()
+                )
+                raise ValidationError(f"Invalid parameters: {error_details}")
 
             except PostgresServiceError as db_err:
                 error_msg = f"Database error processing tool '{name}': {db_err}"

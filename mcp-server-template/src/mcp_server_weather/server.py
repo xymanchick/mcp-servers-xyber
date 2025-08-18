@@ -6,10 +6,11 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+
 from mcp_server_weather.weather import (
     WeatherApiError,
     WeatherClient,
@@ -17,9 +18,14 @@ from mcp_server_weather.weather import (
     WeatherError,
     get_weather_client,
 )
-from pydantic import Field
+from mcp_server_weather.schemas import LocationRequest
 
 logger = logging.getLogger(__name__)
+
+# --- Custom Exceptions --- #
+
+
+# --- Input Validation Schemas --- #
 
 
 # --- Lifespan Management for MCP Server --- #
@@ -88,22 +94,12 @@ mcp_server = FastMCP("weather-server", lifespan=app_lifespan)
 @mcp_server.tool()
 async def get_weather(
     ctx: Context,
-    latitude: Annotated[str, Field(description="Location latitude")],
-    longitude: Annotated[str, Field(description="Location longitude")],
-    units: Annotated[
-        Literal["metric", "imperial"] | None,
-        Field(
-            default=None,
-            description="Unit system (metric or imperial, defaults to configuration)",
-        ),
-    ] = None,
+    request: LocationRequest,
 ) -> dict[str, str]:
     """Get current weather data for a location.
 
     Args:
-        latitude: Location latitude
-        longitude: Location longitude
-        units: Unit system (metric or imperial, defaults to configuration)
+        request: LocationRequest containing latitude, longitude, and optional units
 
     Returns:
         Dictionary with weather state, temperature, and humidity
@@ -114,9 +110,9 @@ async def get_weather(
     weather_client = ctx.request_context.lifespan_context["weather_client"]
 
     try:
-        # Get weather data from client
+        # Get weather data from client using validated request data
         weather_data = await weather_client.get_weather(
-            latitude=latitude, longitude=longitude, units=units
+            latitude=request.latitude, longitude=request.longitude, units=request.units
         )
 
         # Format response

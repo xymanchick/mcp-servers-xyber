@@ -1,10 +1,11 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Any
+from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+
 from mcp_server_imgen.google_client import (
     GoogleConfigError,
     GoogleServiceError,
@@ -17,11 +18,9 @@ from mcp_server_imgen.utils import (
     _ImageGenerationService,
     get_image_generation_service,
 )
-from mcp_server_imgen.validation import validate_image, validation_prompt
-from pydantic import Field
+from mcp_server_imgen.schemas import GenerateImageRequest
 
 logger = logging.getLogger(__name__)
-
 
 # --- Lifespan Management --- #
 @asynccontextmanager
@@ -65,106 +64,37 @@ mcp_server = FastMCP(name="imgen", lifespan=app_lifespan)
 @mcp_server.tool()
 async def generate_image(
     ctx: Context,
-    prompt: Annotated[
-        str,
-        Field(description="Text prompt describing the desired image", max_length=300),
-    ],
-    width: Annotated[
-        int,
-        Field(
-            512,
-            description="Image width in pixels (128-1024, divisible by 8)",
-            ge=128,
-            le=1024,
-            multiple_of=8,
-        ),
-    ] = 512,
-    height: Annotated[
-        int,
-        Field(
-            512,
-            description="Image height in pixels (128-1024, divisible by 8)",
-            ge=128,
-            le=1024,
-            multiple_of=8,
-        ),
-    ] = 512,
-    num_images: Annotated[
-        int, Field(1, description="Number of images to generate (1-4)", ge=1, le=4)
-    ] = 1,
-    seed: Annotated[
-        int | None, Field(None, description="Seed for reproducible generation")
-    ] = None,
-    guidance_scale: Annotated[
-        float,
-        Field(7.5, description="Prompt guidance scale (1.0-20.0)", ge=1.0, le=20.0),
-    ] = 7.5,
-    num_inference_steps: Annotated[
-        int, Field(50, description="Number of denoising steps (10-100)", ge=10, le=100)
-    ] = 50,
-    validation_retries: Annotated[
-        int,
-        Field(
-            0,
-            description="Number of times to retry validation if it fails",
-            ge=0,
-            le=50,
-        ),
-    ] = 0,
+    request: GenerateImageRequest,
 ) -> str:
     """Generate images from text using Google Vertex AI Stable Diffusion."""
     image_generator = ctx.request_context.lifespan_context["image_generator"]
     gemini_model = ctx.request_context.lifespan_context["gemini_model"]
 
-    for attempt in range(1, validation_retries + 1):
-        try:
-            # Generate images
-            image_base64_list = await image_generator.generate_images(
-                prompt=prompt,
-                width=width,
-                height=height,
-                num_images=num_images,
-                seed=seed,
-                guidance_scale=guidance_scale,
-                num_inference_steps=num_inference_steps,
-            )
+    try:
+        # Generate images using the validated request data
+        image_base64_list = await image_generator.generate_images(
+            prompt=request.prompt,
+            width=request.width,
+            height=request.height,
+            num_images=request.num_images,
+            seed=request.seed,
+            guidance_scale=request.guidance_scale,
+            num_inference_steps=request.num_inference_steps,
+        )
 
-            image_base64 = image_base64_list[0]
+        logger.info(f"Successfully generated image for prompt: '{request.prompt}'")
+        return image_base64_list[0]
 
-            if validation_retries:
-                is_valid = await validate_image(
-                    model=gemini_model,
-                    image_base64=image_base64,
-                    validation_prompt=validation_prompt,
-                )
+    except (GoogleServiceError, ImageGenerationServiceError) as service_err:
+        logger.error(f"Service error during image generation: {service_err}")
+        raise ToolError(
+            f"Image generation service error: {service_err}"
+        ) from service_err
 
-                if is_valid:
-                    logger.info(
-                        f"Successfully generated and validated image for prompt: '{prompt}'"
-                    )
-                    return image_base64
-
-                logger.warning(
-                    f"Image validation failed for prompt: '{prompt}' (attempt {attempt})"
-                )
-            else:
-                logger.info(
-                    f"Successfully generated image for prompt: '{prompt}' (validation skipped)"
-                )
-                return image_base64
-
-        except (GoogleServiceError, ImageGenerationServiceError) as service_err:
-            logger.error(f"Service error during image generation: {service_err}")
-            raise ToolError(
-                f"Image generation service error: {service_err}"
-            ) from service_err
-
-        except Exception as e:
-            logger.error(
-                f"Unexpected error during image generation: {e}", exc_info=True
-            )
-            raise ToolError(
-                "An unexpected error occurred during image generation."
-            ) from e
-
-    raise ToolError("Failed to generate a valid image after multiple attempts.")
+    except Exception as e:
+        logger.error(
+            f"Unexpected error during image generation: {e}", exc_info=True
+        )
+        raise ToolError(
+            "An unexpected error occurred during image generation."
+        ) from e

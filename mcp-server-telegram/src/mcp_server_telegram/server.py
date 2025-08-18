@@ -4,7 +4,12 @@ import logging
 from fastapi import Request  # <-- CHANGE: Import Request to access headers
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from mcp_server_telegram.telegram import TelegramServiceError, get_telegram_service
+
+from mcp_server_telegram.telegram import (
+    TelegramServiceError,
+    get_telegram_service,
+)
+from mcp_server_telegram.schemas import PostToTelegramRequest
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +23,7 @@ mcp_server = FastMCP(
 @mcp_server.tool()
 async def post_to_telegram(
     ctx: Context,
-    message: str,  # <-- The tool is now very simple! It only takes the message.
+    request: PostToTelegramRequest,
 ) -> str:
     """
     Posts a message to a pre-configured Telegram channel.
@@ -26,11 +31,12 @@ async def post_to_telegram(
     - 'X-Telegram-Token'
     - 'X-Telegram-Channel'
     """
-    request: Request = ctx.request_context.request
+    
+    request_http: Request = ctx.request_context.request
 
     # --- Get BOTH token and channel from headers ---
-    token = request.headers.get("X-Telegram-Token")
-    channel = request.headers.get("X-Telegram-Channel")
+    token = request_http.headers.get("X-Telegram-Token")
+    channel = request_http.headers.get("X-Telegram-Channel")
 
     # --- Validate that both were provided ---
     if not token:
@@ -52,7 +58,7 @@ async def post_to_telegram(
         # Get a service instance configured with the user's specific key and channel.
         telegram_service = get_telegram_service(token=token, channel=channel)
 
-        success: bool = await telegram_service.send_message(message)
+        success: bool = await telegram_service.send_message(request.message)
 
         if success:
             logger.info(

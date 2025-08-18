@@ -1,18 +1,21 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Optional
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+
 from mcp_server_tavily.tavily import (
     TavilySearchResult,
     TavilyServiceError,
     _TavilyService,
     get_tavily_service,
 )
+from mcp_server_tavily.schemas import TavilySearchRequest
 
 logger = logging.getLogger(__name__)
+
 
 
 # --- Lifespan Management --- #
@@ -53,18 +56,15 @@ mcp_server = FastMCP(name="tavily", lifespan=app_lifespan)
 @mcp_server.tool()
 async def tavily_web_search(
     ctx: Context,
-    query: str,  # The search query string for Tavily
-    max_results: (
-        int | None
-    ) = None,  # Optional override for the maximum number of search results (min 1)
+    request: TavilySearchRequest,
 ) -> str:
     """Performs a web search using the Tavily API based on the provided query."""
     tavily_service = ctx.request_context.lifespan_context["tavily_service"]
 
     try:
-        # Execute core logic
+        # Execute core logic using the validated request data
         search_results: list[TavilySearchResult] = await tavily_service.search(
-            query=query, max_results=max_results
+            query=request.query, max_results=request.max_results
         )
 
         # Format response

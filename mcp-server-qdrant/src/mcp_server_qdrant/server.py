@@ -10,26 +10,38 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
-from mcp_server_qdrant.exceptions import ValidationError
-from mcp_server_qdrant.qdrant import Entry, QdrantConnector, get_qdrant_connector
-from mcp_server_qdrant.shemas import (
-    QdrantFindRequest,
-    QdrantGetCollectionInfoRequest,
-    QdrantStoreRequest,
-)
-from pydantic import ValidationError as PydanticValidationError
+
 from qdrant_client.models import CollectionInfo, ScoredPoint
+
+from mcp_server_qdrant.qdrant import Entry, QdrantConnector, get_qdrant_connector
+from mcp_server_qdrant.schemas import (
+    QdrantStoreRequest,
+    QdrantFindRequest,
+    QdrantGetCollectionRequest,
+)
 
 logger = logging.getLogger(__name__)
 
+# --- Custom Exceptions --- #
+class ValidationError(ToolError):
+    """Custom exception for input validation failures."""
+
+    def __init__(self, message: str, code: str = "VALIDATION_ERROR"):
+        self.message = message
+        self.code = code
+        self.status_code = 400
+        super().__init__(message)
+
 
 # --- Tool Name Enums --- #
+
 class ToolNames(StrEnum):
     QDRANT_STORE = "qdrant-store"
     QDRANT_FIND = "qdrant-find"
 
 
 # --- Lifespan Management for MCP Server --- #
+
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
     """Manage server startup/shutdown. Initializes Qdrant services."""
@@ -60,7 +72,7 @@ mcp_server = FastMCP(name="qdrant", lifespan=app_lifespan)
 @mcp_server.tool()
 async def qdrant_store(
     ctx: Context,
-    request: dict[str, Any],
+    request: QdrantStoreRequest,
 ) -> str:
     """
     Keep the memory for later use, when you are asked to remember something.
@@ -69,22 +81,18 @@ async def qdrant_store(
     qdrant_connector = ctx.request_context.lifespan_context["qdrant_connector"]
 
     try:
-        validated_request = QdrantStoreRequest.model_validate(request)
-        # Execute core logic
+        # Execute core logic using the validated request data
         entry = Entry(
-            content=validated_request.information, metadata=validated_request.metadata
+            content=request.information, metadata=request.metadata
         )
         await qdrant_connector.store(
-            entry, collection_name=validated_request.collection_name
+            entry, collection_name=request.collection_name
         )
 
         logger.info(
-            f"Successfully stored information in collection {validated_request.collection_name}"
+            f"Successfully stored information in collection {request.collection_name}"
         )
-        return f"Remembered: {validated_request.information} in collection {validated_request.collection_name}"
-
-    except PydanticValidationError as ve:
-        raise ValidationError(error=ve)
+        return f"Remembered: {request.information} in collection {request.collection_name}"
 
     except Exception as e:
         logger.error(f"Error storing information: {e}", exc_info=True)
@@ -94,7 +102,8 @@ async def qdrant_store(
 @mcp_server.tool()
 async def qdrant_find(
     ctx: Context,
-    request: dict[str, Any],
+    request: QdrantFindRequest,
+    filters: dict[str, Any] | None = None,
 ) -> list[ScoredPoint] | str:
     """
     Look up memories in Qdrant. Use this tool when you need to find memories by their content.
@@ -104,18 +113,17 @@ async def qdrant_find(
     qdrant_connector = ctx.request_context.lifespan_context["qdrant_connector"]
 
     try:
-        validated_request = QdrantFindRequest.model_validate(request)
-        # Execute core logic
+        # Execute core logic using the validated request data
         search_results = await qdrant_connector.search(
-            validated_request.query,
-            collection_name=validated_request.collection_name,
-            limit=validated_request.search_limit,
-            filters=validated_request.filters,
+            request.query,
+            collection_name=request.collection_name,
+            limit=request.search_limit,
+            filters=filters,
         )
 
         # Format response
         if not search_results:
-            message = f"No information found for the query '{validated_request.query}'"
+            message = f"No information found for the query '{request.query}'"
             logger.info(message)
             return message
 
@@ -123,9 +131,6 @@ async def qdrant_find(
             f"Successfully searched Qdrant with {len(search_results.points)} results"
         )
         return search_results.points
-
-    except PydanticValidationError as ve:
-        raise ValidationError(error=ve)
 
     except Exception as e:
         logger.error(f"Error searching Qdrant: {e}", exc_info=True)
@@ -135,7 +140,7 @@ async def qdrant_find(
 @mcp_server.tool()
 async def qdrant_get_collection_info(
     ctx: Context,
-    request: dict[str, Any],
+    request: QdrantGetCollectionRequest,
 ) -> CollectionInfo | dict[str, str]:
     """
     Retrieves detailed configuration and schema information for a specific Qdrant collection.
@@ -145,21 +150,16 @@ async def qdrant_get_collection_info(
     qdrant_connector = ctx.request_context.lifespan_context["qdrant_connector"]
 
     try:
-        validated_request = QdrantGetCollectionInfoRequest.model_validate(request)
-
         collection_details = await qdrant_connector.get_collection_details(
-            validated_request.collection_name
+            request.collection_name
         )
         logger.info(
-            f"Successfully retrieved details for collection {validated_request.collection_name}"
+            f"Successfully retrieved details for collection {request.collection_name}"
         )
         return collection_details
 
-    except PydanticValidationError as ve:
-        raise ValidationError(error=ve)
-
     except Exception as e:
-        collection_name = request.get("collection_name")
+        collection_name = request.collection_name
 
         logger.error(
             f"Error getting info for collection '{collection_name}': {e}", exc_info=True

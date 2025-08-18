@@ -9,6 +9,7 @@ from mcp_server_tavily.logging_config import configure_logging, logging_level
 from mcp_server_tavily.server import mcp_server
 
 configure_logging()
+
 logger = logging.getLogger(__name__)
 
 # --- Application Factory --- #
