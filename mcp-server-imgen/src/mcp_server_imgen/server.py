@@ -63,7 +63,7 @@ mcp_server = FastMCP(
 @mcp_server.tool()
 async def generate_image(
     ctx: Context,
-    prompt: Annotated[str, Field(description="Text prompt describing the desired image", max_length=100)],
+    prompt: Annotated[str, Field(description="Text prompt describing the desired image", max_length=300)],
     width: Annotated[int, Field(512, description="Image width in pixels (128-1024, divisible by 8)", ge=128, le=1024, multiple_of=8)] = 512,
     height: Annotated[int, Field(512, description="Image height in pixels (128-1024, divisible by 8)", ge=128, le=1024, multiple_of=8)] = 512,
     num_images: Annotated[int, Field(1, description="Number of images to generate (1-4)", ge=1, le=4)] = 1,
