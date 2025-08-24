@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import io
-import logging
 import os
 import ssl
 from typing import Dict, List
@@ -21,8 +20,18 @@ from tweepy import API, OAuth1UserHandler
 from tweepy.asynchronous import AsyncClient
 from tweepy.errors import TweepyException
 
-logger = logging.getLogger(__name__)
+from mcp_server_twitter.logging_config import get_logger, log_performance
+from mcp_server_twitter.metrics import async_timed, async_operation_timer
+from mcp_server_twitter.errors import (
+    TwitterClientError,
+    TwitterAPIError, 
+    TwitterAuthenticationError,
+    TwitterMediaUploadError,
+    map_tweepy_error,
+    map_aiohttp_error
+)
 
+logger = get_logger(__name__)
 
 def is_retryable_tweepy_error(exception: Exception) -> bool:
     """Return True if the exception is a TweepyException with a 5xx status code."""
@@ -33,15 +42,141 @@ def is_retryable_tweepy_error(exception: Exception) -> bool:
     if response is None:
         return False
 
-    return 500 <= response.status_code < 600
+    is_retryable = 500 <= response.status_code < 600
+    
+    logger.debug(
+        f"Checking if Tweepy error is retryable",
+        extra={
+            'error_type': type(exception).__name__,
+            'status_code': response.status_code,
+            'is_retryable': is_retryable
+        }
+    )
+    
+    return is_retryable
 
+def log_retry_attempt(retry_state):
+    """Enhanced retry logging with comprehensive context and rate limiting."""
+    
+    # Extract retry context
+    attempt_number = retry_state.attempt_number
+    outcome = retry_state.outcome
+    next_action = retry_state.next_action
+    
+    # Get the original exception for context
+    exception = None
+    if outcome and outcome.failed:
+        exception = outcome.exception()
+    
+    # Calculate time until next retry
+    next_sleep = None
+    if next_action and hasattr(next_action, 'sleep'):
+        next_sleep = round(next_action.sleep, 2)
+    
+    # Extract operation context from the function being retried
+    operation_name = "unknown_operation"
+    if hasattr(retry_state.fn, '__name__'):
+        operation_name = retry_state.fn.__name__
+    
+    # Determine if this is approaching final attempts
+    is_approaching_final = attempt_number >= 3  # Log more frequently near the end
+    
+    # Create structured log context
+    retry_context = {
+        'operation': operation_name,
+        'attempt_number': attempt_number,
+        'retry_reason': str(exception) if exception else 'Unknown error',
+        'exception_type': type(exception).__name__ if exception else None,
+        'next_sleep_seconds': next_sleep,
+        'total_elapsed_time': getattr(retry_state, 'seconds_since_start', None)
+    }
+    
+    # Rate limiting for retry logs to prevent flooding
+    # Use a simple approach - only log every few attempts for the same operation
+    should_log_attempt = (
+        attempt_number == 1 or  # Always log first retry
+        attempt_number % 3 == 0 or  # Log every 3rd attempt
+        is_approaching_final or  # Log more frequently near the end
+        (next_sleep and next_sleep >= 5)  # Log if waiting 5+ seconds
+    )
+    
+    if should_log_attempt:
+        logger.warning(
+            f"Retrying {operation_name} after failure (attempt {attempt_number})",
+            extra=retry_context
+        )
+    else:
+        # Still log at debug level for full traceability
+        logger.debug(
+            f"Retry attempt {attempt_number} for {operation_name} (rate-limited)",
+            extra=retry_context
+        )
 
+def create_final_retry_exception(retry_state, base_exception_class=TwitterAPIError):
+    """Create a descriptive exception after all retry attempts are exhausted."""
+    
+    attempt_number = retry_state.attempt_number
+    outcome = retry_state.outcome
+    operation_name = getattr(retry_state.fn, '__name__', 'unknown_operation')
+    
+    # Get the original exception
+    original_exception = None
+    if outcome and outcome.failed:
+        original_exception = outcome.exception()
+    
+    # Create detailed error message
+    error_message = (
+        f"Operation '{operation_name}' failed after {attempt_number} attempts. "
+        f"Final error: {str(original_exception)}"
+    )
+    
+    # Create context for the exception
+    context = {
+        'operation': operation_name,
+        'total_attempts': attempt_number,
+        'final_error_type': type(original_exception).__name__ if original_exception else 'Unknown',
+        'elapsed_time_seconds': getattr(retry_state, 'seconds_since_start', None)
+    }
+    
+    # Return appropriately typed exception
+    return base_exception_class(
+        message=error_message,
+        context=context,
+        original_exception=original_exception
+    )
+
+def on_final_retry_failure(retry_state):
+    """Called when all retry attempts are exhausted - logs final failure."""
+    operation_name = getattr(retry_state.fn, '__name__', 'unknown_operation')
+    
+    # Get the original exception for context
+    original_exception = None
+    if retry_state.outcome and retry_state.outcome.failed:
+        original_exception = retry_state.outcome.exception()
+    
+    logger.error(
+        f"All retry attempts exhausted for {operation_name}",
+        extra={
+            'operation': operation_name,
+            'total_attempts': retry_state.attempt_number,
+            'total_elapsed_time': getattr(retry_state, 'seconds_since_start', None),
+            'final_exception_type': type(original_exception).__name__ if original_exception else 'Unknown',
+            'final_error_message': str(original_exception) if original_exception else 'Unknown error'
+        }
+    )
+    
+    # Create and raise the final descriptive exception
+    final_exception = create_final_retry_exception(retry_state, TwitterAPIError)
+    raise final_exception
+
+# Enhanced retry wrappers with proper final failure handling
 retry_async_wrapper = retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(min=0.5, max=10),
     retry=retry_if_exception_type(aiohttp.ClientError)
     | retry_if_exception(is_retryable_tweepy_error),
-    before_sleep=before_sleep_log(logger, logging.WARNING),
+    before_sleep=log_retry_attempt,
+    retry_error_callback=on_final_retry_failure,
     reraise=True,
 )
 
@@ -50,54 +185,127 @@ retry_sync_in_async_wrapper = retry(
     wait=wait_exponential(min=0.5, max=10),
     retry=retry_if_exception_type(requests.exceptions.RequestException)
     | retry_if_exception(is_retryable_tweepy_error),
-    before_sleep=before_sleep_log(logger, logging.WARNING),
+    before_sleep=log_retry_attempt,
+    retry_error_callback=on_final_retry_failure,
     reraise=True,
 )
 
-
 class AsyncTwitterClient:
     def __init__(self, config):
-        """
-        Initialize Twitter API client with provided configuration.
-        """
+        """Initialize Twitter API client with enhanced logging."""
         self.config = config
+        
+        logger.info(
+            "Initializing AsyncTwitterClient",
+            extra={
+                'media_upload_enabled': config.media_upload_enabled,
+                'max_tweet_length': config.max_tweet_length,
+                'poll_max_options': config.poll_max_options,
+                'poll_max_duration': config.poll_max_duration
+            }
+        )
 
         # Create a custom SSL context
         self.ssl_context = ssl.create_default_context()
         self.ssl_context.check_hostname = True
         self.ssl_context.verify_mode = ssl.CERT_REQUIRED
 
-        self.client = AsyncClient(
-            consumer_key=config.API_KEY,
-            consumer_secret=config.API_SECRET_KEY,
-            access_token=config.ACCESS_TOKEN,
-            access_token_secret=config.ACCESS_TOKEN_SECRET,
-            bearer_token=config.BEARER_TOKEN,
-            wait_on_rate_limit=True,
-        )
+        try:
+            self.client = AsyncClient(
+                consumer_key=config.API_KEY,
+                consumer_secret=config.API_SECRET_KEY,
+                access_token=config.ACCESS_TOKEN,
+                access_token_secret=config.ACCESS_TOKEN_SECRET,
+                bearer_token=config.BEARER_TOKEN,
+                wait_on_rate_limit=True,
+            )
+            
+            logger.debug("AsyncClient created successfully")
 
-        auth = OAuth1UserHandler(config.API_KEY, config.API_SECRET_KEY)
-        auth.set_access_token(config.ACCESS_TOKEN, config.ACCESS_TOKEN_SECRET)
-        self._sync_api = API(auth, wait_on_rate_limit=True)
+            auth = OAuth1UserHandler(config.API_KEY, config.API_SECRET_KEY)
+            auth.set_access_token(config.ACCESS_TOKEN, config.ACCESS_TOKEN_SECRET)
+            self._sync_api = API(auth, wait_on_rate_limit=True)
+            
+            logger.debug("Sync API client created successfully")
+            
+        except Exception as e:
+            logger.error(
+                "Failed to initialize Twitter clients",
+                extra={'error_type': type(e).__name__},
+                exc_info=True
+            )
+            raise TwitterClientError(
+                "Failed to initialize Twitter API clients",
+                context={'config_keys_present': bool(config.API_KEY and config.API_SECRET_KEY)},
+                original_exception=e
+            )
 
     @retry_sync_in_async_wrapper
+    @async_timed("media_upload")
     async def _upload_media(self, image_content_str: str):
-        """
-        Internal method to upload media to Twitter.
-        Note: Using sync client as Tweepy doesn't support async media upload yet.
-        """
-        image_content = base64.b64decode(image_content_str)
-        image_file = io.BytesIO(image_content)
-        image_file.name = "image.png"
-
-        media = await anyio.to_thread.run_sync(
-            lambda: self._sync_api.media_upload(
-                filename=image_file.name, file=image_file
+        """Upload media to Twitter with comprehensive logging."""
+        logger.debug("Starting media upload")
+        
+        try:
+            image_content = base64.b64decode(image_content_str)
+            image_size = len(image_content)
+            
+            logger.debug(
+                "Media decoded successfully",
+                extra={
+                    'original_base64_size': len(image_content_str),
+                    'decoded_image_size': image_size
+                }
             )
-        )
-        return media
+            
+            if image_size > 5 * 1024 * 1024:  # 5MB limit
+                raise TwitterMediaUploadError(
+                    "Image size exceeds 5MB limit",
+                    media_size=image_size,
+                    context={'limit_bytes': 5 * 1024 * 1024}
+                )
+            
+            image_file = io.BytesIO(image_content)
+            image_file.name = "image.png"
+
+            logger.debug("Uploading media via sync API")
+            
+            media = await anyio.to_thread.run_sync(
+                lambda: self._sync_api.media_upload(
+                    filename=image_file.name, file=image_file
+                )
+            )
+            
+            logger.info(
+                "Media uploaded successfully",
+                extra={
+                    'media_id': media.media_id,
+                    'media_size': image_size
+                }
+            )
+            
+            return media
+            
+        except Exception as e:
+            logger.error(
+                "Media upload failed",
+                extra={
+                    'error_type': type(e).__name__,
+                    'image_size': len(image_content_str) if 'image_content_str' in locals() else None
+                },
+                exc_info=True
+            )
+            
+            if isinstance(e, TwitterMediaUploadError):
+                raise
+            else:
+                raise TwitterMediaUploadError(
+                    f"Media upload failed: {str(e)}",
+                    original_exception=e
+                )
 
     @retry_async_wrapper
+    @async_timed("create_tweet")
     async def create_tweet(
         self,
         text: str,
@@ -107,159 +315,258 @@ class AsyncTwitterClient:
         in_reply_to_tweet_id: str | None = None,
         quote_tweet_id: str | None = None,
     ):
-        """
-        Create a new tweet with optional media, polls, replies or quotes.
-
-        Args:
-            text (str): The text content of the tweet. Will be truncated to the
-                configured maximum tweet length if necessary.
-            image_content_str (str, optional): A Base64-encoded string of image data
-                to attach as media. Requires media uploads to be enabled in config.
-            poll_options (list[str], optional): A list of 2 to N options (where N is
-                config.poll_max_options) to include in a poll.
-            poll_duration (int, optional): Duration of the poll in minutes (must be
-                between 5 and config.poll_max_duration).
-            in_reply_to_tweet_id (str, optional): The ID of an existing tweet to reply to.
-                Note: Your `text` must include "@username" of the tweet's author.
-            quote_tweet_id (str, optional): The ID of an existing tweet to quote. The
-                quoted tweet will appear inline, with your `text` shown above it.
-
-        Returns:
-            tweepy.Response: The response from Twitter API containing the created tweet data.
-
-        Raises:
-            ValueError: If poll_options length is out of bounds or poll_duration is invalid.
-            Exception: Propagates any error from the Twitter API client or media upload.
-
-        """
+        """Create a new tweet with comprehensive logging and error handling."""
+        logger.info(
+            "Creating tweet",
+            extra={
+                'text_length': len(text),
+                'has_media': bool(image_content_str),
+                'has_poll': bool(poll_options),
+                'is_reply': bool(in_reply_to_tweet_id),
+                'is_quote': bool(quote_tweet_id),
+                'poll_options_count': len(poll_options) if poll_options else 0
+            }
+        )
+        
         try:
             media_ids = []
             if image_content_str and self.config.media_upload_enabled:
-                media = await self._upload_media(image_content_str)
-                media_ids.append(media.media_id)
+                logger.debug("Media upload requested")
+                async with async_operation_timer("tweet_media_upload"):
+                    media = await self._upload_media(image_content_str)
+                    media_ids.append(media.media_id)
+                    logger.debug(f"Media ID added: {media.media_id}")
 
             poll_params = {}
             if poll_options:
-                if (
-                    len(poll_options) < 2
-                    or len(poll_options) > self.config.poll_max_options
-                ):
-                    raise ValueError(
-                        f"Poll must have 2-{self.config.poll_max_options} options"
+                logger.debug(f"Setting up poll with {len(poll_options)} options")
+                
+                if (len(poll_options) < 2 or len(poll_options) > self.config.poll_max_options):
+                    raise TwitterAPIError(
+                        f"Poll must have 2-{self.config.poll_max_options} options",
+                        context={
+                            'provided_options': len(poll_options),
+                            'max_allowed': self.config.poll_max_options
+                        }
                     )
-                if (
-                    not poll_duration
-                    or not 5 <= poll_duration <= self.config.poll_max_duration
-                ):
-                    raise ValueError(
-                        f"Poll duration must be 5-{self.config.poll_max_duration} minutes"
+                    
+                if (not poll_duration or not 5 <= poll_duration <= self.config.poll_max_duration):
+                    raise TwitterAPIError(
+                        f"Poll duration must be 5-{self.config.poll_max_duration} minutes",
+                        context={
+                            'provided_duration': poll_duration,
+                            'max_allowed': self.config.poll_max_duration
+                        }
                     )
 
                 poll_params = {
                     "poll_options": poll_options,
                     "poll_duration_minutes": poll_duration,
                 }
+                
+                logger.debug(
+                    "Poll configured",
+                    extra={
+                        'poll_options': poll_options,
+                        'poll_duration_minutes': poll_duration
+                    }
+                )
+
+            # Truncate text if needed
+            final_text = text[:self.config.max_tweet_length]
+            if len(text) > self.config.max_tweet_length:
+                logger.warning(
+                    f"Tweet text truncated from {len(text)} to {self.config.max_tweet_length} characters"
+                )
+            
+            logger.debug("Sending tweet to Twitter API")
+            
             response = await self.client.create_tweet(
-                text=text[: self.config.max_tweet_length],
+                text=final_text,
                 media_ids=media_ids or None,
                 in_reply_to_tweet_id=in_reply_to_tweet_id,
                 quote_tweet_id=quote_tweet_id,
                 **poll_params,
             )
-            return response.data["id"]
+            
+            tweet_id = response.data["id"]
+            
+            logger.info(
+                "Tweet created successfully",
+                extra={
+                    'tweet_id': tweet_id,
+                    'final_text_length': len(final_text),
+                    'media_count': len(media_ids)
+                }
+            )
+            
+            return tweet_id
 
         except Exception as e:
-            logger.error(f"Failed to create tweet: {e}", exc_info=True)
-            raise
+            logger.error(
+                "Tweet creation failed",
+                extra={'error_type': type(e).__name__},
+                exc_info=True
+            )
+            
+            # Re-raise our custom exceptions
+            if isinstance(e, (TwitterAPIError, TwitterMediaUploadError)):
+                raise
+                
+            # Map external exceptions
+            if isinstance(e, TweepyException):
+                raise map_tweepy_error(e, context={'operation': 'create_tweet'})
+            else:
+                raise TwitterAPIError(
+                    f"Failed to create tweet: {str(e)}",
+                    original_exception=e
+                )
 
     @retry_async_wrapper
+    @async_timed("retweet_tweet")
     async def retweet_tweet(self, tweet_id: str):
-        """
-        Retweet an existing tweet asynchronously.
-
-        Args:
-            tweet_id (str): The ID of the tweet to retweet
-
-        Returns:
-            str: Success message
-
-        """
+        """Retweet an existing tweet with comprehensive logging."""
+        logger.info(f"Retweeting tweet", extra={'tweet_id': tweet_id})
+        
         try:
             await self.client.retweet(tweet_id=tweet_id)
+            
+            logger.info(
+                "Tweet retweeted successfully",
+                extra={'tweet_id': tweet_id}
+            )
+            
             return f"Successfully retweet post {tweet_id}"
+            
         except Exception as e:
-            logger.error(f"Failed to retweet tweet {tweet_id}: {e}", exc_info=True)
-            raise
+            logger.error(
+                f"Failed to retweet tweet",
+                extra={
+                    'tweet_id': tweet_id,
+                    'error_type': type(e).__name__
+                },
+                exc_info=True
+            )
+            
+            if isinstance(e, TweepyException):
+                raise map_tweepy_error(e, context={'operation': 'retweet', 'tweet_id': tweet_id})
+            else:
+                raise TwitterAPIError(
+                    f"Failed to retweet tweet {tweet_id}: {str(e)}",
+                    original_exception=e
+                )
 
     @retry_async_wrapper
+    @async_timed("get_user_tweets")
     async def get_user_tweets(self, user_id: str, max_results: int = 10):
-        """
-        Retrieve recent tweets posted by a specified user asynchronously.
-
-        Args:
-            user_id (str): The ID of the user
-            max_results (int, optional): Maximum number of tweets to return
-
-        Returns:
-            tweepy.Response: Response object with tweet data, or raises exception on error
-
-        """
+        """Retrieve recent tweets with comprehensive logging."""
+        logger.info(
+            "Retrieving user tweets",
+            extra={
+                'user_id': user_id,
+                'max_results': max_results
+            }
+        )
+        
         try:
             tweets = await self.client.get_users_tweets(
                 id=user_id,
                 max_results=max_results,
                 tweet_fields=["id", "text", "created_at"],
             )
+            
+            tweet_count = len(tweets.data) if tweets and tweets.data else 0
+            
+            logger.info(
+                "User tweets retrieved successfully",
+                extra={
+                    'user_id': user_id,
+                    'tweets_retrieved': tweet_count
+                }
+            )
+            
             return tweets
+            
         except Exception as e:
-            logger.error(f"Error getting user tweets for user_id {user_id}: {str(e)}")
+            logger.error(
+                "Failed to retrieve user tweets",
+                extra={
+                    'user_id': user_id,
+                    'error_type': type(e).__name__
+                },
+                exc_info=True
+            )
+            
+            # Provide detailed guidance for common auth issues
             if "401" in str(e) or "Unauthorized" in str(e):
-                logger.error("Twitter API 401 Unauthorized - This usually means:")
-                logger.error("1. Your Twitter app doesn't have 'Read' permissions")
-                logger.error("2. Your app needs Twitter API v2 'tweet.read' scope")
                 logger.error(
-                    "3. You may need to regenerate your access tokens after changing permissions"
+                    "Twitter API 401 Unauthorized - Common causes:",
+                    extra={
+                        'possible_causes': [
+                            "Twitter app doesn't have 'Read' permissions",
+                            "App needs Twitter API v2 'tweet.read' scope",
+                            "Access tokens need regeneration after permission changes",
+                            "Elevated access required for reading other users' tweets"
+                        ]
+                    }
                 )
-                logger.error(
-                    "4. For reading other users' tweets, you may need elevated access"
+            
+            if isinstance(e, TweepyException):
+                raise map_tweepy_error(e, context={'operation': 'get_user_tweets', 'user_id': user_id})
+            else:
+                raise TwitterAPIError(
+                    f"Failed to get user tweets for {user_id}: {str(e)}",
+                    original_exception=e
                 )
-            raise
 
     @retry_async_wrapper
+    @async_timed("follow_user")
     async def follow_user(self, user_id: str):
-        """
-        Follow another Twitter user asynchronously.
-
-        Args:
-            user_id (str): The ID of the user to follow
-
-        Returns:
-            str: Success message
-
-        """
+        """Follow another Twitter user with comprehensive logging."""
+        logger.info(f"Following user", extra={'user_id': user_id})
+        
         try:
             await self.client.follow_user(user_id=user_id)
+            
+            logger.info(
+                "User followed successfully",
+                extra={'user_id': user_id}
+            )
+            
             return f"Successfully followed user: {user_id}"
+            
         except Exception as e:
-            logger.error(f"Failed to follow user {user_id}: {e}", exc_info=True)
-            raise
+            logger.error(
+                "Failed to follow user",
+                extra={
+                    'user_id': user_id,
+                    'error_type': type(e).__name__
+                },
+                exc_info=True
+            )
+            
+            if isinstance(e, TweepyException):
+                raise map_tweepy_error(e, context={'operation': 'follow_user', 'user_id': user_id})
+            else:
+                raise TwitterAPIError(
+                    f"Failed to follow user {user_id}: {str(e)}",
+                    original_exception=e
+                )
 
     @retry_async_wrapper
+    @async_timed("get_trends")
     async def get_trends(
         self, countries: list[str], max_trends: int = 50
     ) -> dict[str, list[str]]:
-        """
-        Retrieve trending topics for each provided WOEID.
-
-        Args:
-            countries: List of countries
-            max_trends: Maximum number of trends to return per WOEID (1-50).
-
-        Returns:
-            Dict mapping WOEID to a list of trending topic names.
-            If an error occurs for a WOEID, the list contains a single error string.
-
-        """
+        """Retrieve trending topics with comprehensive logging."""
+        logger.info(
+            "Retrieving trends",
+            extra={
+                'countries': countries,
+                'max_trends_per_country': max_trends
+            }
+        )
+        
         trends_result: dict[str, list[str]] = {}
         woeid_by_country = {
             "Worldwide": 1,
@@ -323,67 +630,124 @@ class AsyncTwitterClient:
             "Vietnam": 23424984,
         }
 
-        bearer_token = getattr(self.config, "BEARER_TOKEN", None) or os.getenv(
-            "BEARER_TOKEN"
-        )
+        bearer_token = getattr(self.config, "BEARER_TOKEN", None) or os.getenv("BEARER_TOKEN")
         if not bearer_token:
-            raise ValueError("Bearer token not configured for trends endpoint")
+            raise TwitterAPIError(
+                "Bearer token not configured for trends endpoint",
+                error_code="TWITTER_CONFIG_ERROR"
+            )
 
         headers = {"Authorization": f"Bearer {bearer_token}"}
         timeout = aiohttp.ClientTimeout(total=30)
 
-        async with aiohttp.ClientSession(
-            timeout=timeout, connector=aiohttp.TCPConnector(ssl=self.ssl_context)
-        ) as session:
-            for country in countries:
-                if country in woeid_by_country:
+        try:
+            async with aiohttp.ClientSession(
+                timeout=timeout, 
+                connector=aiohttp.TCPConnector(ssl=self.ssl_context)
+            ) as session:
+                
+                for country in countries:
+                    country_logger = get_logger(
+                        f"{__name__}.get_trends",
+                        country=country
+                    )
+                    
+                    if country not in woeid_by_country:
+                        country_logger.warning(f"WOEID not found for country: {country}")
+                        trends_result[country] = [f"Error: WOEID not found for country {country}"]
+                        continue
+                    
                     woeid = woeid_by_country[country]
                     url = f"https://api.twitter.com/2/trends/by/woeid/{woeid}"
                     params = {"max_trends": max_trends}
+                    
+                    country_logger.debug(
+                        f"Fetching trends for {country}",
+                        extra={'woeid': woeid, 'url': url}
+                    )
+                    
                     try:
-                        async with session.get(
-                            url, headers=headers, params=params
-                        ) as resp:
-                            if resp.status != 200:
-                                trends_result[str(country)] = [
-                                    f"Error: {resp.status} {await resp.text()}"
+                        async with async_operation_timer(
+                            f"get_trends.{country}",
+                            context={'country': country, 'woeid': woeid}
+                        ):
+                            async with session.get(url, headers=headers, params=params) as resp:
+                                if resp.status != 200:
+                                    error_text = await resp.text()
+                                    country_logger.error(
+                                        f"Trends API returned error for {country}",
+                                        extra={
+                                            'status_code': resp.status,
+                                            'error_text': error_text[:200]
+                                        }
+                                    )
+                                    trends_result[country] = [f"Error: {resp.status} {error_text[:100]}"]
+                                    continue
+
+                                data = await resp.json()
+                                trends = [
+                                    t.get("trend_name")
+                                    for t in data.get("data", [])
+                                    if isinstance(t, dict) and t.get("trend_name")
                                 ]
-                                continue
+                                
+                                trends_result[country] = trends
+                                country_logger.info(
+                                    f"Retrieved {len(trends)} trends for {country}"
+                                )
+                                
+                    except Exception as country_error:
+                        country_logger.error(
+                            f"Error retrieving trends for {country}",
+                            extra={'error_type': type(country_error).__name__},
+                            exc_info=True
+                        )
+                        trends_result[country] = [f"Error retrieving trends: {str(country_error)}"]
 
-                            data = await resp.json()
-                            trends = [
-                                t.get("trend_name")
-                                for t in data.get("data", [])
-                                if isinstance(t, dict) and t.get("trend_name")
-                            ]
-                            trends_result[str(country)] = trends
-                    except Exception as e:
-                        trends_result[str(country)] = [
-                            f"Error retrieving trends: {str(e)}"
-                        ]
-                else:
-                    logger.error(f"woeid for {country} not found")
-
-        return trends_result
+            logger.info(
+                "Trends retrieval completed",
+                extra={
+                    'countries_requested': len(countries),
+                    'countries_successful': len([c for c, trends in trends_result.items() 
+                                               if not any('Error:' in str(t) for t in trends)]),
+                    'total_trends_retrieved': sum(len(trends) for trends in trends_result.values()
+                                                if not any('Error:' in str(t) for t in trends))
+                }
+            )
+            
+            return trends_result
+            
+        except Exception as e:
+            logger.error(
+                "Trends retrieval failed",
+                extra={'error_type': type(e).__name__},
+                exc_info=True
+            )
+            
+            if isinstance(e, aiohttp.ClientError):
+                raise map_aiohttp_error(e, context={'operation': 'get_trends'})
+            else:
+                raise TwitterAPIError(
+                    f"Failed to retrieve trends: {str(e)}",
+                    original_exception=e
+                )
 
     @retry_async_wrapper
+    @async_timed("search_hashtag")
     async def search_hashtag(self, hashtag: str, max_results: int = 10) -> list[str]:
-        """
-        Search recent tweets containing a specific hashtag and return their texts,
-        ordered by popularity (likes + retweets).
-
-        Args:
-            hashtag: Hashtag to search for (with or without '#').
-            max_results: Maximum number of tweets to return (10-100).
-
-        Returns:
-            List of tweet texts.
-
-        """
+        """Search recent tweets containing a hashtag with comprehensive logging."""
         if not hashtag.startswith("#"):
             hashtag = f"#{hashtag}"
 
         max_results = max(10, min(max_results, 100))
+        
+        logger.info(
+            "Searching hashtag",
+            extra={
+                'hashtag': hashtag,
+                'max_results': max_results
+            }
+        )
 
         try:
             resp = await self.client.search_recent_tweets(
@@ -394,44 +758,117 @@ class AsyncTwitterClient:
             )
 
             if not resp or not resp.data:
+                logger.info(f"No tweets found for hashtag {hashtag}")
                 return []
 
             tweets = resp.data
+            tweet_texts = [t.text for t in tweets]
+            
+            logger.info(
+                f"Hashtag search completed",
+                extra={
+                    'hashtag': hashtag,
+                    'tweets_found': len(tweet_texts)
+                }
+            )
 
-            return [t.text for t in tweets]
+            return tweet_texts
 
         except Exception as e:
-            logger.error(f"Error searching hashtag {hashtag}: {str(e)}", exc_info=True)
-            raise
+            logger.error(
+                f"Hashtag search failed",
+                extra={
+                    'hashtag': hashtag,
+                    'error_type': type(e).__name__
+                },
+                exc_info=True
+            )
+            
+            if isinstance(e, TweepyException):
+                raise map_tweepy_error(e, context={'operation': 'search_hashtag', 'hashtag': hashtag})
+            else:
+                raise TwitterAPIError(
+                    f"Failed to search hashtag {hashtag}: {str(e)}",
+                    original_exception=e
+                )
 
     @retry_async_wrapper
+    @async_timed("initialize_client")
     async def initialize(self):
-        """
-        Initialize and test the Twitter client connection.
-        """
+        """Initialize and test the Twitter client connection with comprehensive logging."""
+        logger.info("Initializing Twitter client connection")
+        
         try:
             user = await self.client.get_me()
-            logger.info(f"Successfully authenticated as: {user.data['username']}")
+            username = user.data['username'] if user and user.data else "Unknown"
+            
+            logger.info(
+                "Twitter client authenticated successfully",
+                extra={
+                    'authenticated_user': username,
+                    'user_id': user.data.get('id') if user and user.data else None
+                }
+            )
+            
             return self
+            
         except Exception as e:
-            logger.error(f"Failed to authenticate: {str(e)}")
-            raise
+            logger.error(
+                "Twitter client authentication failed",
+                extra={'error_type': type(e).__name__},
+                exc_info=True
+            )
+            
+            if isinstance(e, TweepyException):
+                raise map_tweepy_error(e, context={'operation': 'initialize'})
+            else:
+                raise TwitterAuthenticationError(
+                    f"Failed to authenticate Twitter client: {str(e)}",
+                    original_exception=e
+                )
 
-
+# Global client management with enhanced logging
 _twitter_client: AsyncTwitterClient | None = None
 _client_lock = asyncio.Lock()
 
-
+@async_timed("get_twitter_client")
 async def get_twitter_client() -> AsyncTwitterClient:
+    """Get or create the global Twitter client instance with comprehensive logging."""
     global _twitter_client
+    
     if _twitter_client is not None:
+        logger.debug("Returning existing Twitter client instance")
         return _twitter_client
+    
     async with _client_lock:
         if _twitter_client is None:
-            logger.info("Creating AsyncTwitterClient instance…")
-            from .config import TwitterConfig
-
-            config = TwitterConfig()
-            client = AsyncTwitterClient(config=config)
-            _twitter_client = await client.initialize()
+            logger.info("Creating new AsyncTwitterClient instance")
+            
+            try:
+                from .config import TwitterConfig
+                config = TwitterConfig()
+                
+                logger.debug(
+                    "Twitter configuration loaded",
+                    extra={
+                        'media_upload_enabled': config.media_upload_enabled,
+                        'max_tweet_length': config.max_tweet_length,
+                        'has_api_key': bool(config.API_KEY),
+                        'has_bearer_token': bool(config.BEARER_TOKEN)
+                    }
+                )
+                
+                client = AsyncTwitterClient(config=config)
+                _twitter_client = await client.initialize()
+                
+                logger.info("Global Twitter client instance created and initialized successfully")
+                
+            except Exception as e:
+                logger.error(
+                    "Failed to create global Twitter client",
+                    extra={'error_type': type(e).__name__},
+                    exc_info=True
+                )
+                raise
+        
         return _twitter_client
