@@ -20,16 +20,17 @@ from tweepy import API, OAuth1UserHandler
 from tweepy.asynchronous import AsyncClient
 from tweepy.errors import TweepyException
 
-from mcp_server_twitter.logging_config import get_logger, log_performance
-from mcp_server_twitter.metrics import async_timed, async_operation_timer
+from mcp_server_twitter.utils.metrics import async_timed, async_operation_timer
 from mcp_server_twitter.errors import (
     TwitterClientError,
     TwitterAPIError, 
     TwitterAuthenticationError,
     TwitterMediaUploadError,
     map_tweepy_error,
-    map_aiohttp_error
+    map_aiohttp_error,
+    on_final_retry_failure
 )
+from mcp_server_twitter.logging_config import get_logger, log_retry_attempt
 
 logger = get_logger(__name__)
 
@@ -54,120 +55,6 @@ def is_retryable_tweepy_error(exception: Exception) -> bool:
     )
     
     return is_retryable
-
-def log_retry_attempt(retry_state):
-    """Enhanced retry logging with comprehensive context and rate limiting."""
-    
-    # Extract retry context
-    attempt_number = retry_state.attempt_number
-    outcome = retry_state.outcome
-    next_action = retry_state.next_action
-    
-    # Get the original exception for context
-    exception = None
-    if outcome and outcome.failed:
-        exception = outcome.exception()
-    
-    # Calculate time until next retry
-    next_sleep = None
-    if next_action and hasattr(next_action, 'sleep'):
-        next_sleep = round(next_action.sleep, 2)
-    
-    # Extract operation context from the function being retried
-    operation_name = "unknown_operation"
-    if hasattr(retry_state.fn, '__name__'):
-        operation_name = retry_state.fn.__name__
-    
-    # Determine if this is approaching final attempts
-    is_approaching_final = attempt_number >= 3  # Log more frequently near the end
-    
-    # Create structured log context
-    retry_context = {
-        'operation': operation_name,
-        'attempt_number': attempt_number,
-        'retry_reason': str(exception) if exception else 'Unknown error',
-        'exception_type': type(exception).__name__ if exception else None,
-        'next_sleep_seconds': next_sleep,
-        'total_elapsed_time': getattr(retry_state, 'seconds_since_start', None)
-    }
-    
-    # Rate limiting for retry logs to prevent flooding
-    # Use a simple approach - only log every few attempts for the same operation
-    should_log_attempt = (
-        attempt_number == 1 or  # Always log first retry
-        attempt_number % 3 == 0 or  # Log every 3rd attempt
-        is_approaching_final or  # Log more frequently near the end
-        (next_sleep and next_sleep >= 5)  # Log if waiting 5+ seconds
-    )
-    
-    if should_log_attempt:
-        logger.warning(
-            f"Retrying {operation_name} after failure (attempt {attempt_number})",
-            extra=retry_context
-        )
-    else:
-        # Still log at debug level for full traceability
-        logger.debug(
-            f"Retry attempt {attempt_number} for {operation_name} (rate-limited)",
-            extra=retry_context
-        )
-
-def create_final_retry_exception(retry_state, base_exception_class=TwitterAPIError):
-    """Create a descriptive exception after all retry attempts are exhausted."""
-    
-    attempt_number = retry_state.attempt_number
-    outcome = retry_state.outcome
-    operation_name = getattr(retry_state.fn, '__name__', 'unknown_operation')
-    
-    # Get the original exception
-    original_exception = None
-    if outcome and outcome.failed:
-        original_exception = outcome.exception()
-    
-    # Create detailed error message
-    error_message = (
-        f"Operation '{operation_name}' failed after {attempt_number} attempts. "
-        f"Final error: {str(original_exception)}"
-    )
-    
-    # Create context for the exception
-    context = {
-        'operation': operation_name,
-        'total_attempts': attempt_number,
-        'final_error_type': type(original_exception).__name__ if original_exception else 'Unknown',
-        'elapsed_time_seconds': getattr(retry_state, 'seconds_since_start', None)
-    }
-    
-    # Return appropriately typed exception
-    return base_exception_class(
-        message=error_message,
-        context=context,
-        original_exception=original_exception
-    )
-
-def on_final_retry_failure(retry_state):
-    """Called when all retry attempts are exhausted - logs final failure."""
-    operation_name = getattr(retry_state.fn, '__name__', 'unknown_operation')
-    
-    # Get the original exception for context
-    original_exception = None
-    if retry_state.outcome and retry_state.outcome.failed:
-        original_exception = retry_state.outcome.exception()
-    
-    logger.error(
-        f"All retry attempts exhausted for {operation_name}",
-        extra={
-            'operation': operation_name,
-            'total_attempts': retry_state.attempt_number,
-            'total_elapsed_time': getattr(retry_state, 'seconds_since_start', None),
-            'final_exception_type': type(original_exception).__name__ if original_exception else 'Unknown',
-            'final_error_message': str(original_exception) if original_exception else 'Unknown error'
-        }
-    )
-    
-    # Create and raise the final descriptive exception
-    final_exception = create_final_retry_exception(retry_state, TwitterAPIError)
-    raise final_exception
 
 # Enhanced retry wrappers with proper final failure handling
 retry_async_wrapper = retry(

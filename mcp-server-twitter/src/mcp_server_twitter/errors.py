@@ -1,5 +1,4 @@
-# errors.py - Custom error classes for better error handling and logging
-from typing import Optional, Dict, Any
+from typing import dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,8 +10,8 @@ class TwitterMCPError(Exception):
         self, 
         message: str, 
         error_code: str = "TWITTER_MCP_ERROR",
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         super().__init__(message)
         self.message = message
@@ -20,27 +19,16 @@ class TwitterMCPError(Exception):
         self.context = context or {}
         self.original_exception = original_exception
         
-        # Log the error with structured context
-        logger.error(
-            f"TwitterMCPError: {message}",
-            extra={
-                'error_code': error_code,
-                'error_context': context,
-                'original_exception': str(original_exception) if original_exception else None
-            },
-            exc_info=original_exception is not None
-        )
-
 class TwitterAPIError(TwitterMCPError):
     """Exception for Twitter API related errors."""
     
     def __init__(
         self, 
         message: str, 
-        status_code: Optional[int] = None,
+        status_code: int | None = None,
         error_code: str = "TWITTER_API_ERROR",
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         self.status_code = status_code
         context = context or {}
@@ -55,8 +43,8 @@ class TwitterAuthenticationError(TwitterAPIError):
     def __init__(
         self, 
         message: str = "Twitter authentication failed",
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         super().__init__(
             message, 
@@ -72,9 +60,9 @@ class TwitterRateLimitError(TwitterAPIError):
     def __init__(
         self, 
         message: str = "Twitter API rate limit exceeded",
-        retry_after: Optional[int] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        retry_after: int | None = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         context = context or {}
         if retry_after:
@@ -94,8 +82,8 @@ class TwitterForbiddenError(TwitterAPIError):
     def __init__(
         self, 
         message: str = "Twitter API access forbidden",
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         super().__init__(
             message,
@@ -111,10 +99,10 @@ class TwitterNotFoundError(TwitterAPIError):
     def __init__(
         self, 
         message: str = "Twitter resource not found",
-        resource_type: Optional[str] = None,
-        resource_id: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         context = context or {}
         if resource_type:
@@ -136,10 +124,10 @@ class TwitterValidationError(TwitterMCPError):
     def __init__(
         self, 
         message: str,
-        field_name: Optional[str] = None,
-        field_value: Optional[Any] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        field_name: str | None = None,
+        field_value: Any | None = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         context = context or {}
         if field_name:
@@ -160,9 +148,9 @@ class TwitterConfigurationError(TwitterMCPError):
     def __init__(
         self, 
         message: str,
-        config_key: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        config_key: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         context = context or {}
         if config_key:
@@ -181,10 +169,10 @@ class TwitterMediaUploadError(TwitterMCPError):
     def __init__(
         self, 
         message: str,
-        media_size: Optional[int] = None,
-        media_type: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        media_size: int | None = None,
+        media_type: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         context = context or {}
         if media_size:
@@ -205,8 +193,8 @@ class TwitterClientError(TwitterMCPError):
     def __init__(
         self, 
         message: str,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None
     ):
         super().__init__(
             message,
@@ -215,8 +203,64 @@ class TwitterClientError(TwitterMCPError):
             original_exception=original_exception
         )
 
-# Error mapping functions for converting external exceptions
-def map_tweepy_error(exception: Exception, context: Optional[Dict[str, Any]] = None) -> TwitterMCPError:
+def create_final_retry_exception(retry_state, base_exception_class=TwitterAPIError):
+    """Create a descriptive exception after all retry attempts are exhausted."""
+    
+    attempt_number = retry_state.attempt_number
+    outcome = retry_state.outcome
+    operation_name = getattr(retry_state.fn, '__name__', 'unknown_operation')
+    
+    # Get the original exception
+    original_exception = None
+    if outcome and outcome.failed:
+        original_exception = outcome.exception()
+    
+    # Create detailed error message
+    error_message = (
+        f"Operation '{operation_name}' failed after {attempt_number} attempts. "
+        f"Final error: {str(original_exception)}"
+    )
+    
+    # Create context for the exception
+    context = {
+        'operation': operation_name,
+        'total_attempts': attempt_number,
+        'final_error_type': type(original_exception).__name__ if original_exception else 'Unknown',
+        'elapsed_time_seconds': getattr(retry_state, 'seconds_since_start', None)
+    }
+    
+    # Return appropriately typed exception
+    return base_exception_class(
+        message=error_message,
+        context=context,
+        original_exception=original_exception
+    )
+
+def on_final_retry_failure(retry_state):
+    """Called when all retry attempts are exhausted - logs final failure."""
+    operation_name = getattr(retry_state.fn, '__name__', 'unknown_operation')
+    
+    # Get the original exception for context
+    original_exception = None
+    if retry_state.outcome and retry_state.outcome.failed:
+        original_exception = retry_state.outcome.exception()
+    
+    logger.error(
+        f"All retry attempts exhausted for {operation_name}",
+        extra={
+            'operation': operation_name,
+            'total_attempts': retry_state.attempt_number,
+            'total_elapsed_time': getattr(retry_state, 'seconds_since_start', None),
+            'final_exception_type': type(original_exception).__name__ if original_exception else 'Unknown',
+            'final_error_message': str(original_exception) if original_exception else 'Unknown error'
+        }
+    )
+    
+    # Create and raise the final descriptive exception
+    final_exception = create_final_retry_exception(retry_state, TwitterAPIError)
+    raise final_exception
+
+def map_tweepy_error(exception: Exception, context: dict[str, Any] | None = None) -> TwitterMCPError:
     """Map Tweepy exceptions to our custom error hierarchy."""
     from tweepy.errors import TweepyException
     
@@ -276,7 +320,7 @@ def map_tweepy_error(exception: Exception, context: Optional[Dict[str, Any]] = N
             original_exception=exception
         )
 
-def map_aiohttp_error(exception: Exception, context: Optional[Dict[str, Any]] = None) -> TwitterMCPError:
+def map_aiohttp_error(exception: Exception, context: dict[str, Any] | None = None) -> TwitterMCPError:
     """Map aiohttp exceptions to our custom error hierarchy."""
     import aiohttp
     

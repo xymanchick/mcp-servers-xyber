@@ -1,6 +1,3 @@
-# This template file mostly will stay the same for all MCP servers
-# It is responsible for launching a uvicorn server with the given MCP server
-
 import argparse
 import logging
 import os
@@ -8,15 +5,12 @@ import os
 import uvicorn
 from fastapi import FastAPI
 from mcp_server_twitter.logging_config import configure_logging, logging_level
-from mcp_server_twitter.server import mcp_server
+from mcp_server_twitter.server import mcp_server, get_health_status, get_metrics
 
-# Configure enhanced logging before any other imports
 configure_logging()
 logger = logging.getLogger(__name__)
 
 # --- Application Factory --- #
-
-
 def create_app() -> FastAPI:
     """Create a FastAPI application that can serve the provided mcp server with SSE."""
     # Create the MCP ASGI app
@@ -32,6 +26,10 @@ def create_app() -> FastAPI:
 
     # Mount MCP server
     app.mount("/mcp-server", mcp_app)
+
+    # Add health and metrics endpoints
+    app.add_api_route("/health", get_health_status, methods=["GET"])
+    app.add_api_route("/metrics", get_metrics, methods=["GET"])
 
     return app
 
@@ -57,18 +55,16 @@ if __name__ == "__main__":
         help="Enable hot reload (env: TWITTER_HOT_RELOAD)",
     )
     parser.add_argument(
-        "--log-level",
-        default=os.getenv("LOG_LEVEL", "INFO").upper(),
+        "--logging-level",
+        default=os.getenv("LOGGING_LEVEL", "INFO").upper(),
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Set logging level (env: LOG_LEVEL)",
+        help="Set logging level (env: LOGGING_LEVEL)",
     )
 
     args = parser.parse_args()
     
-    # Update log level if provided via command line
-    if args.log_level != os.getenv("LOG_LEVEL", "INFO").upper():
-        os.environ["LOG_LEVEL"] = args.log_level
-        # Reconfigure logging with new level
+    if args.logging_level != os.getenv("LOGGING_LEVEL", "INFO").upper():
+        os.environ["LOGGING_LEVEL"] = args.logging_level
         configure_logging()
         logger = logging.getLogger(__name__)
     

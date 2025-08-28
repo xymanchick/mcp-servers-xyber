@@ -107,7 +107,7 @@ async def search_youtube_videos(request: Request):
                         video_id=f'test{i:02d}1234567890'[:11],  # Generate valid YouTube ID format (11 chars)
                         title=f'Test Video - {query[:20]} {i}',
                         channel='Test Channel',
-                        published_at=published_after or datetime.utcnow().isoformat(),
+                        published_at=published_after or datetime.now(timezone.utc).isoformat().isoformat(),
                         thumbnail='https://example.com/thumbnail.jpg',
                         description='Test video description',
                         transcript=f'Test transcript in {language}'
@@ -239,7 +239,7 @@ async def sse_endpoint(request: Request, query: str = 'latest'):
 
                 # Format results
                 data = {
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat().isoformat(),
                     'query': query,
                     'results': [
                         {
@@ -264,7 +264,7 @@ async def sse_endpoint(request: Request, query: str = 'latest'):
                     'data': json.dumps({
                         'error': str(e),
                         'code': 'SERVER_ERROR',
-                        'timestamp': datetime.utcnow().isoformat()
+                        'timestamp': datetime.now(timezone.utc).isoformat().isoformat()
                     })
                 }
                 logger.error(f'Error in SSE event generator: {str(e)}', exc_info=True)

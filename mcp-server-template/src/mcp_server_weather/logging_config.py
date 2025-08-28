@@ -3,9 +3,12 @@
 # Or add/edit handlers as needed
 import os
 from logging.config import dictConfig
+from typing import Literal
 
 """Configures basic logging for the application."""
-logging_level = os.getenv("LOGGING_LEVEL", "INFO")
+logging_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = (
+    os.getenv("LOGGING_LEVEL", "INFO").upper()
+)
 
 LOGGING_CONFIG = {
     "version": 1,
@@ -20,7 +23,7 @@ LOGGING_CONFIG = {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
-            "level": "INFO",
+            "level": logging_level,
             "stream": "ext://sys.stdout",
         },
         "file": {

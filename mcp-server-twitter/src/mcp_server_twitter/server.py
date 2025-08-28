@@ -9,7 +9,7 @@ from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 
 from mcp_server_twitter.twitter import AsyncTwitterClient, get_twitter_client
-from mcp_server_twitter.logging_config import get_logger, log_performance
+from mcp_server_twitter.logging_config import get_logger
 from mcp_server_twitter.errors import (
     TwitterMCPError, 
     TwitterValidationError, 
@@ -196,43 +196,16 @@ async def create_tweet(
         
         return f"Tweet created successfully with ID: {tweet_id}"
 
-    except TwitterMCPError:
-        operation_logger.warning("Tweet creation failed with known error")
-        raise
+    except TwitterMCPError as e:
+        operation_logger.warning(f"A known Twitter MCP error occurred: {e.message}", extra={'error_code': e.error_code})
+        raise ToolError(str(e)) from e
     except Exception as e:
         operation_logger.error(
-            "Unexpected error during tweet creation",
+            "An unexpected error occurred during tweet creation",
             extra={'error_type': type(e).__name__},
             exc_info=True
         )
-        
-        # Map external exceptions to our error types
-        try:
-            from tweepy.errors import TweepyException
-            if isinstance(e, TweepyException):
-                mapped_error = map_tweepy_error(e, context={'operation': 'create_tweet'})
-                raise ToolError(str(mapped_error))
-        except ImportError:
-            pass
-            
-        try:
-            import aiohttp
-            if isinstance(e, aiohttp.ClientError):
-                mapped_error = map_aiohttp_error(e, context={'operation': 'create_tweet'})
-                raise ToolError(str(mapped_error))
-        except ImportError:
-            pass
-        
-        # Generic error handling
-        msg = str(e)
-        if "403" in msg or "Forbidden" in msg:
-            raise ToolError("Tweet creation forbidden. Check content policy or API permissions")
-        elif "401" in msg or "Unauthorized" in msg:
-            raise ToolError("Unauthorized. Check Twitter API credentials")
-        elif "duplicate" in msg.lower():
-            raise ToolError("Duplicate tweet. This content has already been posted")
-        else:
-            raise ToolError(f"Error creating tweet: {msg}")
+        raise ToolError(f"An unexpected error occurred: {e}") from e
 
 @mcp_server.tool()
 @async_timed("get_user_tweets")
@@ -286,30 +259,20 @@ async def get_user_tweets(
                         tweets_dict[uid] = []
                         user_logger.warning(f"No tweets found for user {uid}")
 
-            except Exception as user_error:
-                error_msg = str(user_error)
-                user_logger.error(
-                    f"Error retrieving tweets for user {uid}",
-                    extra={'error_message': error_msg},
+            except TwitterMCPError as e:
+                operation_logger.error(
+                    "A known Twitter MCP error occurred during user tweets retrieval",
+                    extra={'error_type': type(e).__name__, 'error_code': e.error_code},
                     exc_info=True
                 )
-                
-                if "401" in error_msg or "Unauthorized" in error_msg:
-                    tweets_dict[uid] = [
-                        f"Error: Unauthorized access. Twitter API permissions may be insufficient to read tweets for user {uid}"
-                    ]
-                elif "404" in error_msg or "Not Found" in error_msg:
-                    tweets_dict[uid] = [
-                        f"Error: User {uid} not found or account is private/suspended"
-                    ]
-                elif "403" in error_msg or "Forbidden" in error_msg:
-                    tweets_dict[uid] = [
-                        f"Error: Access forbidden for user {uid}. Account may be private or protected"
-                    ]
-                else:
-                    tweets_dict[uid] = [
-                        f"Error retrieving tweets for user {uid}: {error_msg}"
-                    ]
+                raise ToolError(f"Error retrieving tweets: {str(e)}") from e
+            except Exception as e:
+                operation_logger.error(
+                    "Unexpected error during user tweets retrieval",
+                    extra={'error_type': type(e).__name__},
+                    exc_info=True
+                )
+                raise ToolError(f"An unexpected error occurred while retrieving tweets: {str(e)}") from e
 
         operation_logger.info(
             "User tweets retrieval completed",
@@ -355,22 +318,20 @@ async def follow_user(ctx: Context, request: FollowUserRequest) -> str:
         
         return f"Following user: {response}"
 
-    except Exception as follow_error:
+    except TwitterMCPError as e:
         operation_logger.error(
-            f"Error following user {request.user_id}",
-            extra={'error_type': type(follow_error).__name__},
+            f"A known Twitter MCP error occurred while following user {request.user_id}",
+            extra={'error_type': type(e).__name__, 'error_code': e.error_code},
             exc_info=True
         )
-        
-        msg = str(follow_error)
-        if "404" in msg or "Not Found" in msg:
-            raise ToolError(f"User {request.user_id} not found")
-        elif "403" in msg or "Forbidden" in msg:
-            raise ToolError("Cannot follow user. Account may be private or already followed")
-        elif "401" in msg or "Unauthorized" in msg:
-            raise ToolError("Unauthorized. Check Twitter API permissions")
-        else:
-            raise ToolError(f"Error following user {request.user_id}: {msg}")
+        raise ToolError(f"Error following user {request.user_id}: {str(e)}") from e
+    except Exception as e:
+        operation_logger.error(
+            f"Unexpected error following user {request.user_id}",
+            extra={'error_type': type(e).__name__},
+            exc_info=True
+        )
+        raise ToolError(f"An unexpected error occurred while following user {request.user_id}: {str(e)}") from e
 
 @mcp_server.tool()
 @async_timed("retweet_tweet")
@@ -397,22 +358,20 @@ async def retweet_tweet(ctx: Context, request: RetweetTweetRequest) -> str:
         
         return f"Retweeting tweet: {response}"
 
-    except Exception as retweet_error:
+    except TwitterMCPError as e:
         operation_logger.error(
-            f"Error retweeting {request.tweet_id}",
-            extra={'error_type': type(retweet_error).__name__},
+            f"A known Twitter MCP error occurred while retweeting {request.tweet_id}",
+            extra={'error_type': type(e).__name__, 'error_code': e.error_code},
             exc_info=True
         )
-        
-        msg = str(retweet_error)
-        if "404" in msg or "Not Found" in msg:
-            raise ToolError(f"Tweet {request.tweet_id} not found or has been deleted")
-        elif "403" in msg or "Forbidden" in msg:
-            raise ToolError("Cannot retweet. Already retweeted or tweet is private")
-        elif "401" in msg or "Unauthorized" in msg:
-            raise ToolError("Unauthorized. Check Twitter API permissions")
-        else:
-            raise ToolError(f"Error retweeting {request.tweet_id}: {msg}")
+        raise ToolError(f"Error retweeting {request.tweet_id}: {str(e)}") from e
+    except Exception as e:
+        operation_logger.error(
+            f"Unexpected error retweeting {request.tweet_id}",
+            extra={'error_type': type(e).__name__},
+            exc_info=True
+        )
+        raise ToolError(f"An unexpected error occurred while retweeting {request.tweet_id}: {str(e)}") from e
 
 @mcp_server.tool()
 @async_timed("get_trends")
@@ -452,13 +411,20 @@ async def get_trends(ctx: Context, request: GetTrendsRequest) -> str:
         
         return json.dumps(trends, ensure_ascii=False, indent=2)
         
+    except TwitterMCPError as e:
+        operation_logger.error(
+            "A known Twitter MCP error occurred while retrieving trends",
+            extra={'error_type': type(e).__name__, 'error_code': e.error_code},
+            exc_info=True
+        )
+        raise ToolError(f"Error retrieving trends: {str(e)}") from e
     except Exception as e:
         operation_logger.error(
-            "Error retrieving trends",
+            "Unexpected error while retrieving trends",
             extra={'error_type': type(e).__name__},
             exc_info=True
         )
-        raise ToolError(f"Error retrieving trends: {str(e)}")
+        raise ToolError(f"An unexpected error occurred while retrieving trends: {str(e)}") from e
 
 @mcp_server.tool()
 @async_timed("search_hashtag")
@@ -492,31 +458,36 @@ async def search_hashtag(ctx: Context, request: SearchHashtagRequest) -> str:
         
         return json.dumps(tweets, ensure_ascii=False, indent=2)
         
+    except TwitterMCPError as e:
+        operation_logger.error(
+            f"A known Twitter MCP error occurred while searching hashtag #{request.hashtag}",
+            extra={'error_type': type(e).__name__, 'error_code': e.error_code},
+            exc_info=True
+        )
+        raise ToolError(f"Error searching hashtag: {str(e)}") from e
     except Exception as e:
         operation_logger.error(
-            f"Error searching hashtag #{request.hashtag}",
+            f"Unexpected error searching hashtag #{request.hashtag}",
             extra={'error_type': type(e).__name__},
             exc_info=True
         )
-        raise ToolError(f"Error searching hashtag: {str(e)}")
+        raise ToolError(f"An unexpected error occurred while searching for a hashtag: {str(e)}") from e
 
 # --- Health Check Endpoint --- #
-@mcp_server.tool()
-async def get_health_status(ctx: Context) -> str:
+async def get_health_status() -> dict:
     """Get server health status and metrics."""
     health_checker = get_health_checker()
     health_status = health_checker.get_health_status()
     
     logger.debug("Health status requested", extra={'health_status': health_status})
     
-    return json.dumps(health_status, ensure_ascii=False, indent=2)
+    return health_status
 
-@mcp_server.tool()
-async def get_metrics(ctx: Context) -> str:
+async def get_metrics() -> dict:
     """Get server performance metrics."""
     metrics_collector = get_metrics_collector()
     metrics = metrics_collector.get_all_metrics()
     
     logger.debug("Metrics requested", extra={'metrics_summary': metrics})
     
-    return json.dumps(metrics, ensure_ascii=False, indent=2)
+    return metrics

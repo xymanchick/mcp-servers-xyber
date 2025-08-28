@@ -1,12 +1,11 @@
 import time
-import asyncio
 import logging
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Callable
 from functools import wraps
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from collections import defaultdict, deque
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -16,12 +15,12 @@ class OperationMetrics:
     name: str
     total_calls: int = 0
     total_duration_ms: float = 0.0
-    min_duration_ms: float = float('inf')
+    min_duration_ms: float = float("inf")
     max_duration_ms: float = 0.0
     success_count: int = 0
     error_count: int = 0
     recent_durations: deque = field(default_factory=lambda: deque(maxlen=100))
-    last_called: Optional[datetime] = None
+    last_called: datetime | None = None
     
     @property
     def avg_duration_ms(self) -> float:
@@ -53,14 +52,14 @@ class MetricsCollector:
         self.operations: Dict[str, OperationMetrics] = defaultdict(
             lambda: OperationMetrics(name="unknown")
         )
-        self._start_time = datetime.utcnow()
+        self._start_time = datetime.now(timezone.utc).isoformat()
         
     def record_operation(
         self, 
         operation_name: str, 
         duration_ms: float, 
         success: bool = True,
-        context: Optional[Dict[str, Any]] = None
+        context: dict[str, Any] | None = None
     ):
         """Record metrics for an operation."""
         metrics = self.operations[operation_name]
@@ -70,26 +69,13 @@ class MetricsCollector:
         metrics.min_duration_ms = min(metrics.min_duration_ms, duration_ms)
         metrics.max_duration_ms = max(metrics.max_duration_ms, duration_ms)
         metrics.recent_durations.append(duration_ms)
-        metrics.last_called = datetime.utcnow()
+        metrics.last_called = datetime.now(timezone.utc).isoformat()
         
         if success:
             metrics.success_count += 1
         else:
             metrics.error_count += 1
         
-        # Log performance metrics
-        logger.debug(
-            f"Operation metrics recorded: {operation_name}",
-            extra={
-                'operation': operation_name,
-                'duration_ms': round(duration_ms, 2),
-                'success': success,
-                'total_calls': metrics.total_calls,
-                'avg_duration_ms': round(metrics.avg_duration_ms, 2),
-                **(context or {})
-            }
-        )
-    
     def get_operation_metrics(self, operation_name: str) -> OperationMetrics:
         """Get metrics for a specific operation."""
         return self.operations.get(operation_name, OperationMetrics(operation_name))
@@ -97,7 +83,7 @@ class MetricsCollector:
     def get_all_metrics(self) -> Dict[str, Dict[str, Any]]:
         """Get all collected metrics as a dictionary."""
         result = {
-            "server_uptime_seconds": (datetime.utcnow() - self._start_time).total_seconds(),
+            "server_uptime_seconds": (datetime.now(timezone.utc) - self._start_time).total_seconds(),
             "operations": {}
         }
         
@@ -118,33 +104,7 @@ class MetricsCollector:
     
     def log_summary(self):
         """Log a summary of all metrics."""
-        summary = self.get_all_metrics()
-        
-        logger.info(
-            f"Metrics Summary - Uptime: {summary['server_uptime_seconds']:.1f}s",
-            extra={
-                'metrics_summary': summary,
-                'operation_count': len(summary['operations'])
-            }
-        )
-        
-        # Log top operations by call count
-        top_ops = sorted(
-            summary['operations'].items(),
-            key=lambda x: x[1]['total_calls'],
-            reverse=True
-        )[:5]
-        
-        for op_name, op_metrics in top_ops:
-            logger.info(
-                f"Top Operation: {op_name}",
-                extra={
-                    'operation': op_name,
-                    'total_calls': op_metrics['total_calls'],
-                    'success_rate': op_metrics['success_rate_percent'],
-                    'avg_duration_ms': op_metrics['avg_duration_ms']
-                }
-            )
+        pass
 
 # Global metrics collector instance
 _metrics_collector = MetricsCollector()
@@ -156,13 +116,11 @@ def get_metrics_collector() -> MetricsCollector:
 @asynccontextmanager
 async def async_operation_timer(
     operation_name: str, 
-    context: Optional[Dict[str, Any]] = None
+    context: dict[str, Any] | None = None
 ):
     """Async context manager for timing operations."""
     start_time = time.perf_counter()
     success = True
-    
-    logger.debug(f"Starting operation: {operation_name}", extra={'operation': operation_name})
     
     try:
         yield
@@ -182,26 +140,7 @@ async def async_operation_timer(
         duration_ms = (time.perf_counter() - start_time) * 1000
         _metrics_collector.record_operation(operation_name, duration_ms, success, context)
         
-        log_level = logging.DEBUG
-        if not success:
-            log_level = logging.ERROR
-        elif duration_ms > 5000:
-            log_level = logging.WARNING
-        elif duration_ms > 1000:
-            log_level = logging.INFO
-            
-        logger.log(
-            log_level,
-            f"Operation completed: {operation_name} in {duration_ms:.2f}ms",
-            extra={
-                'operation': operation_name,
-                'duration_ms': round(duration_ms, 2),
-                'success': success,
-                **(context or {})
-            }
-        )
-
-def async_timed(operation_name: Optional[str] = None):
+def async_timed(operation_name: str | None = None):
     """Decorator for timing async functions."""
     def decorator(func: Callable):
         op_name = operation_name or f"{func.__module__}.{func.__name__}"
@@ -222,7 +161,7 @@ def async_timed(operation_name: Optional[str] = None):
         return wrapper
     return decorator
 
-def sync_timed(operation_name: Optional[str] = None):
+def sync_timed(operation_name: str | None = None):
     """Decorator for timing synchronous functions."""
     def decorator(func: Callable):
         op_name = operation_name or f"{func.__module__}.{func.__name__}"
@@ -231,8 +170,6 @@ def sync_timed(operation_name: Optional[str] = None):
         def wrapper(*args, **kwargs):
             start_time = time.perf_counter()
             success = True
-            
-            logger.debug(f"Starting operation: {op_name}")
             
             try:
                 result = func(*args, **kwargs)
@@ -273,9 +210,9 @@ class HealthChecker:
     def __init__(self, metrics_collector: MetricsCollector):
         self.metrics = metrics_collector
     
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> dict[str, Any]:
         """Get comprehensive health status."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).isoformat()
         uptime = (now - self.metrics._start_time).total_seconds()
         
         health_status = {

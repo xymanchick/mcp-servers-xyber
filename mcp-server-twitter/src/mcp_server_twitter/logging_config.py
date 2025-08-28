@@ -3,108 +3,52 @@ import sys
 import json
 import logging
 from logging.config import dictConfig
-from typing import Dict, Any
-from datetime import datetime
+from typing import Dict, Any, Literal
+from datetime import datetime, timezone
 
-# Get log level from environment with fallback
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+# Get log level from environment
+logging_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = (
+    os.getenv("LOGGING_LEVEL", "INFO").upper()
+)
 
-# Validate log level
-VALID_LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-if LOG_LEVEL not in VALID_LOG_LEVELS:
-    LOG_LEVEL = "INFO"
 
 class StructuredFormatter(logging.Formatter):
     """Custom formatter that outputs structured JSON logs."""
-    
+
     def format(self, record: logging.LogRecord) -> str:
         # Base log structure
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
-            "logger": record.name,
             "message": record.getMessage(),
             "module": record.module,
             "function": record.funcName,
             "line": record.lineno,
         }
-        
+
         # Add exception info if present
         if record.exc_info:
             log_entry["exception"] = self.formatException(record.exc_info)
-        
+
         # Add extra fields from LoggerAdapter or custom fields
         if hasattr(record, 'extra_fields'):
             log_entry.update(record.extra_fields)
-        
+
         # Add performance metrics if present
         if hasattr(record, 'duration_ms'):
             log_entry["duration_ms"] = record.duration_ms
-        
+
         if hasattr(record, 'operation'):
             log_entry["operation"] = record.operation
-            
+
         if hasattr(record, 'user_id'):
             log_entry["user_id"] = record.user_id
-            
+
         if hasattr(record, 'tweet_id'):
             log_entry["tweet_id"] = record.tweet_id
-        
+
         return json.dumps(log_entry, ensure_ascii=False)
 
-class StandardFormatter(logging.Formatter):
-    """Human-readable formatter for development."""
-    
-    def format(self, record: logging.LogRecord) -> str:
-        # Color codes for different log levels
-        colors = {
-            'DEBUG': '\033[36m',    # Cyan
-            'INFO': '\033[32m',     # Green  
-            'WARNING': '\033[33m',  # Yellow
-            'ERROR': '\033[31m',    # Red
-            'CRITICAL': '\033[35m', # Magenta
-        }
-        reset = '\033[0m'
-        
-        color = colors.get(record.levelname, '')
-        
-        # Format timestamp
-        timestamp = datetime.fromtimestamp(record.created).strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Base format
-        base_format = f"{color}[{timestamp}] {record.levelname:8} {record.name}:{record.funcName}:{record.lineno}{reset} - {record.getMessage()}"
-        
-        # Add extra context if available
-        extras = []
-        if hasattr(record, 'operation'):
-            extras.append(f"op={record.operation}")
-        if hasattr(record, 'duration_ms'):
-            extras.append(f"duration={record.duration_ms}ms")
-        if hasattr(record, 'user_id'):
-            extras.append(f"user={record.user_id}")
-        if hasattr(record, 'tweet_id'):
-            extras.append(f"tweet={record.tweet_id}")
-            
-        if extras:
-            base_format += f" [{', '.join(extras)}]"
-        
-        # Add exception if present
-        if record.exc_info:
-            base_format += f"\n{self.formatException(record.exc_info)}"
-            
-        return base_format
-
-# Determine output format based on environment
-STRUCTURED_LOGGING = os.getenv("STRUCTURED_LOGGING", "false").lower() in ("true", "1", "yes")
-USE_JSON_LOGS = os.getenv("JSON_LOGS", "false").lower() in ("true", "1", "yes")
-
-# Choose formatter based on environment
-if USE_JSON_LOGS or STRUCTURED_LOGGING:
-    formatter_class = StructuredFormatter
-    format_string = None  # Not used with custom formatter
-else:
-    formatter_class = StandardFormatter
-    format_string = None  # Not used with custom formatter
 
 LOGGING_CONFIG = {
     "version": 1,
@@ -113,19 +57,16 @@ LOGGING_CONFIG = {
         "structured": {
             "()": StructuredFormatter,
         },
-        "standard": {
-            "()": StandardFormatter,
-        },
         "simple": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "format": "%%(asctime)s - %%(name)s - %%(levelname)s - %%(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         }
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "structured" if (USE_JSON_LOGS or STRUCTURED_LOGGING) else "standard",
-            "level": LOG_LEVEL,
+            "formatter": "structured",
+            "level": logging_level,
             "stream": "ext://sys.stdout",
         },
         "file": {
@@ -134,7 +75,7 @@ LOGGING_CONFIG = {
             "filename": "mcp_twitter_server.log",
             "maxBytes": 50 * 1024 * 1024,  # 50MB
             "backupCount": 10,
-            "level": LOG_LEVEL,
+            "level": logging_level,
         },
         "error_file": {
             "class": "logging.handlers.RotatingFileHandler",
@@ -147,81 +88,102 @@ LOGGING_CONFIG = {
     },
     "loggers": {
         "mcp_server_twitter": {
-            "level": LOG_LEVEL,
-            "handlers": ["console", "file"],
-            "propagate": False,
-        },
-        "mcp_server_twitter.server": {
-            "level": LOG_LEVEL,
-            "handlers": ["console", "file"],
-            "propagate": False,
-        },
-        "mcp_server_twitter.twitter": {
-            "level": LOG_LEVEL,
-            "handlers": ["console", "file"],
-            "propagate": False,
-        },
-        "tweepy": {
-            "level": "WARNING",  # Reduce noise from tweepy
-            "handlers": ["console", "file"],
-            "propagate": False,
-        },
-        "aiohttp": {
-            "level": "WARNING",  # Reduce noise from aiohttp
+            "level": logging_level,
             "handlers": ["console", "file"],
             "propagate": False,
         },
     },
     "root": {
-        "handlers": ["console", "error_file"], 
-        "level": LOG_LEVEL
+        "handlers": ["console", "error_file"],
+        "level": logging_level
     },
 }
 
+
 class TwitterLoggerAdapter(logging.LoggerAdapter):
     """Custom logger adapter for Twitter operations with structured context."""
-    
+
     def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
         """Add extra context to log records."""
         extra = kwargs.get('extra', {})
-        
+
         # Merge adapter context with record-specific extra
         if self.extra:
             extra.update(self.extra)
-            
+
         kwargs['extra'] = extra
         return msg, kwargs
 
+
+def log_retry_attempt(retry_state):
+    """Enhanced retry logging with comprehensive context and rate limiting."""
+    
+    # Extract retry context
+    attempt_number = retry_state.attempt_number
+    outcome = retry_state.outcome
+    next_action = retry_state.next_action
+    
+    # Get the original exception for context
+    exception = None
+    if outcome and outcome.failed:
+        exception = outcome.exception()
+    
+    # Calculate time until next retry
+    next_sleep = None
+    if next_action and hasattr(next_action, 'sleep'):
+        next_sleep = round(next_action.sleep, 2)
+    
+    # Extract operation context from the function being retried
+    operation_name = "unknown_operation"
+    if hasattr(retry_state.fn, '__name__'):
+        operation_name = retry_state.fn.__name__
+    
+    # Determine if this is approaching final attempts
+    is_approaching_final = attempt_number >= 3  # Log more frequently near the end
+    
+    # Create structured log context
+    retry_context = {
+        'operation': operation_name,
+        'attempt_number': attempt_number,
+        'retry_reason': str(exception) if exception else 'Unknown error',
+        'exception_type': type(exception).__name__ if exception else None,
+        'next_sleep_seconds': next_sleep,
+        'total_elapsed_time': getattr(retry_state, 'seconds_since_start', None)
+    }
+    
+    # Rate limiting for retry logs to prevent flooding
+    # Use a simple approach - only log every few attempts for the same operation
+    should_log_attempt = (
+        attempt_number == 1 or  # Always log first retry
+        attempt_number % 3 == 0 or  # Log every 3rd attempt
+        is_approaching_final or  # Log more frequently near the end
+        (next_sleep and next_sleep >= 5)  # Log if waiting 5+ seconds
+    )
+    
+    if should_log_attempt:
+        logger.warning(
+            f"Retrying {operation_name} after failure (attempt {attempt_number})",
+            extra=retry_context
+        )
+    else:
+        # Still log at debug level for full traceability
+        logger.debug(
+            f"Retry attempt {attempt_number} for {operation_name} (rate-limited)",
+            extra=retry_context
+        )
+
 def configure_logging():
     """Apply enhanced logging configuration."""
-    os.makedirs(os.path.dirname("mcp_twitter_server.log"), exist_ok=True) 
+    os.makedirs(os.path.dirname("mcp_twitter_server.log"), exist_ok=True)
     dictConfig(LOGGING_CONFIG)
-    
-    # Log the configuration
+
     logger = logging.getLogger("mcp_server_twitter.logging")
     logger.info(
-        f"Logging configured - Level: {LOG_LEVEL}, Structured: {STRUCTURED_LOGGING}, JSON: {USE_JSON_LOGS}"
+        f"Logging configured - Level: {logging_level}, Structured: {True}, JSON: {False}"
     )
+
 
 def get_logger(name: str, **context) -> TwitterLoggerAdapter:
     """Get a configured logger with optional context."""
     base_logger = logging.getLogger(name)
     return TwitterLoggerAdapter(base_logger, context)
-
-def log_performance(logger: logging.Logger, operation: str, duration_ms: float, **context):
-    """Log performance metrics in a structured way."""
-    extra = {
-        'operation': operation,
-        'duration_ms': round(duration_ms, 2),
-        **context
-    }
-    
-    if duration_ms > 5000:  # > 5 seconds
-        logger.warning(f"Slow operation: {operation} took {duration_ms:.2f}ms", extra=extra)
-    elif duration_ms > 1000:  # > 1 second
-        logger.info(f"Operation completed: {operation} took {duration_ms:.2f}ms", extra=extra)
-    else:
-        logger.debug(f"Operation completed: {operation} took {duration_ms:.2f}ms", extra=extra)
-
-# Export the current log level for other modules
-logging_level = LOG_LEVEL
