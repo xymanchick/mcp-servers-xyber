@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, Dict, Optional
-from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
+from typing import Any
+from pydantic import ValidationError as PydanticValidationError
 
 
 from fastmcp import Context, FastMCP
@@ -16,6 +16,7 @@ from mcp_server_cartesia.cartesia_client import (
     _CartesiaService,
     get_cartesia_service,
 )
+from mcp_server_cartesia.schemas import GenerateCartesiaTTSRequest
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +32,7 @@ class ValidationError(ToolError):
         super().__init__(message)
 
 # --- Input Schema Definition --- #
-
-class GenerateCartesiaTTSRequest(BaseModel):
-    """Input schema for the generate_cartesia_tts tool."""
-
-    text: str = Field(..., description="The text content to synthesize into speech")
-    voice: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Optional Cartesia voice configuration to override the default",
-    )
-    model_id: Optional[str] = Field(
-        default=None, description="Optional Cartesia model ID to override the default"
-    )
+# (Schema definitions moved to schemas.py)
 
 
 
@@ -89,36 +79,25 @@ mcp_server = FastMCP(
 @mcp_server.tool()
 async def generate_cartesia_tts(
     ctx: Context,
-    text: str,  # The text content to synthesize into speech
-    voice: (
-        dict | None
-    ) = None,  # Optional Cartesia voice configuration to override the default
-    model_id: str | None = None,  # Optional Cartesia model ID to override the default
+    request: GenerateCartesiaTTSRequest,
 ) -> str:
     """Generates speech from the provided text using Cartesia TTS and saves it as a WAV file. Returns the path to the saved file."""
     cartesia_service = ctx.request_context.lifespan_context["cartesia_service"]
 
     try:
-
-        # Validate input parameters
-        GenerateCartesiaTTSRequest(
-            text=text,
-            voice=voice,
-            model_id=model_id,
-        )
         
         # Log the input parameters
-        logger.info(f"Received request to generate speech for text='{text[:50]}...'")
+        logger.info(f"Received request to generate speech for text='{request.text[:50]}...'")
         
         # Extract voice ID from voice dictionary if present
-        voice_id = voice.get("id") if voice and "id" in voice else None
+        voice_id = request.voice.get("id") if request.voice and "id" in request.voice else None
         logger.info(
-            f"Generating speech for text='{text[:50]}...', voice='{voice_id or 'default'}', model='{model_id or 'default'}'"
+            f"Generating speech for text='{request.text[:50]}...', voice='{voice_id or 'default'}', model='{request.model_id or 'default'}'"
         )
 
         # Execute core logic
         file_path = await cartesia_service.generate_speech(
-            text=text, voice_id=voice_id, model_id=model_id
+            text=request.text, voice_id=voice_id, model_id=request.model_id
         )
 
         logger.info(f"Successfully generated speech and saved to: {file_path}")

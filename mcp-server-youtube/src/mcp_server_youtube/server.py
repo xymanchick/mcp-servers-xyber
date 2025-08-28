@@ -10,7 +10,7 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server import FastMCP
 from mcp_server_youtube.middleware import PerformanceMetricsMiddleware, get_metrics_response
 from mcp_server_youtube.routes import router
-from mcp_server_youtube.youtube.models import YouTubeSearchRequest
+from mcp_server_youtube.schemas import YouTubeSearchRequest
 from mcp_server_youtube.youtube.models import YouTubeSearchResponse
 from mcp_server_youtube.youtube.models import YouTubeVideo
 from mcp_server_youtube.youtube.module import get_youtube_searcher
@@ -118,13 +118,13 @@ logger.info('Global exception handlers registered for structured error responses
 
 # --- Regular HTTP Endpoint --- #
 @mcp_server.tool()
-async def youtube_search_and_transcript(ctx, request):
+async def youtube_search_and_transcript(ctx, request: YouTubeSearchRequest):
     """Search YouTube videos and retrieve transcripts."""
     logger.debug(f'Received MCP tool request: {request}')
     youtube_searcher = ctx.lifespan_context['youtube_searcher']
 
     try:
-        validated_request = YouTubeSearchRequest(**request)
+        validated_request = request
         logger.debug(f'Request validated successfully: query="{validated_request.query}", max_results={validated_request.max_results}')
         
         search_result = await youtube_searcher.search_videos(

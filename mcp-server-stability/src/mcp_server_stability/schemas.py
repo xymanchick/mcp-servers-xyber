@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Literal
 
 
 class ImageGenerationRequest(BaseModel):
@@ -7,7 +7,7 @@ class ImageGenerationRequest(BaseModel):
 
     prompt: str = Field(..., description="Text description of the image to generate")
 
-    negative_prompt: Optional[str] = Field(
+    negative_prompt: str | None = Field(
         default="ugly, inconsistent",
         max_length=10000,
         description="Text describing what you do not wish to see in the output image",
@@ -22,33 +22,31 @@ class ImageGenerationRequest(BaseModel):
         ),
     )
 
-    seed: Optional[int] = Field(
+    seed: int | None = Field(
         default=42,
         ge=0,
         description="Seed for reproducible generation. Set to 0 for a random seed.",
     )
 
-    style_preset: Optional[
-        Literal[
-            "3d-model",
-            "analog-film",
-            "anime",
-            "cinematic",
-            "comic-book",
-            "digital-art",
-            "enhance",
-            "fantasy-art",
-            "isometric",
-            "line-art",
-            "low-poly",
-            "modeling-compound",
-            "neon-punk",
-            "origami",
-            "photographic",
-            "pixel-art",
-            "tile-texture",
-        ]
-    ] = Field(
+    style_preset: Literal[
+        "3d-model",
+        "analog-film",
+        "anime",
+        "cinematic",
+        "comic-book",
+        "digital-art",
+        "enhance",
+        "fantasy-art",
+        "isometric",
+        "line-art",
+        "low-poly",
+        "modeling-compound",
+        "neon-punk",
+        "origami",
+        "photographic",
+        "pixel-art",
+        "tile-texture",
+    ] | None = Field(
         default=None,
         description="Predefined style preset to guide the image generation. E.g., 'photographic', 'anime'.",
     )

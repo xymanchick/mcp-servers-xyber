@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class TavilySearchRequest(BaseModel):
@@ -11,7 +10,7 @@ class TavilySearchRequest(BaseModel):
         max_length=512,
         description="The search query string for Tavily",
     )
-    max_results: Optional[int] = Field(
+    max_results: int | None = Field(
         None,
         ge=1,
         le=50,

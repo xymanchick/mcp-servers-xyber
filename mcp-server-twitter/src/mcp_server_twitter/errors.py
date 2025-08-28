@@ -18,7 +18,7 @@ class TwitterMCPError(Exception):
         self.error_code = error_code
         self.context = context or {}
         self.original_exception = original_exception
-        
+
 class TwitterAPIError(TwitterMCPError):
     """Exception for Twitter API related errors."""
     

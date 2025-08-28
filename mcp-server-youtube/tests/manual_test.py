@@ -20,7 +20,8 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from mcp_server_youtube.server import youtube_search_and_transcript
-from mcp_server_youtube.youtube.models import YouTubeSearchRequest, YouTubeVideo
+from mcp_server_youtube.schemas import YouTubeSearchRequest
+from mcp_server_youtube.youtube.models import YouTubeVideo
 from mcp_server_youtube.youtube.youtube_errors import YouTubeClientError, YouTubeApiError
 from fastmcp.exceptions import ToolError
 

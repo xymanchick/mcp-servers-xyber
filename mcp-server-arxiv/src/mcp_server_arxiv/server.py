@@ -1,9 +1,7 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, Optional
-
-from pydantic import BaseModel, Field, ValidationError as PydanticValidationError
+from pydantic import ValidationError as PydanticValidationError
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -15,6 +13,7 @@ from mcp_server_arxiv.arxiv import (
     _ArxivService,
     get_arxiv_service,
 )
+from mcp_server_arxiv.schemas import ArxivSearchRequest
 
 logger = logging.getLogger(__name__)
 
@@ -31,24 +30,7 @@ class ValidationError(ToolError):
         super().__init__(message)
 
 # --- Input Schema Definition --- #
-
-class ArxivSearchRequest(BaseModel):
-    """Input schema for the arxiv_search tool."""
-    
-    query: str = Field(
-        ..., max_length=512, description="The search query string for ArXiv"
-    )
-    max_results: Optional[int] = Field(
-        default=None,
-        ge=1,
-        le=50,
-        description="Optional override for the maximum number of results to fetch and process (1-50)",
-    )
-    max_text_length: Optional[int] = Field(
-        default=None,
-        ge=100,
-        description="Optional max characters of full text per paper (minimum 100 characters)",
-    )
+# (Schema definitions moved to schemas.py)
 
 
 
@@ -90,31 +72,18 @@ mcp_server = FastMCP(name="arxiv", lifespan=app_lifespan)
 @mcp_server.tool()
 async def arxiv_search(
     ctx: Context,
-    query: str,  # The search query string for ArXiv
-    max_results: (
-        int | None
-    ) = None,  # Optional override for the maximum number of results to fetch and process (1-50)
-    max_text_length: (
-        int | None
-    ) = None,  # Optional max characters of full text per paper (min 100)
+    request: ArxivSearchRequest,
 ) -> str:
     """Searches arXiv for scientific papers based on a query, downloads PDFs, extracts text, and returns formatted results."""
     arxiv_service = ctx.request_context.lifespan_context["arxiv_service"]
 
     try:
         
-        # Validate input parameters
-        ArxivSearchRequest(
-            query=query,
-            max_results=max_results,
-            max_text_length=max_text_length,
-        )
-        
         # Execute core logic
         search_results: list[ArxivSearchResult] = await arxiv_service.search(
-            query=query,
-            max_results_override=max_results,
-            max_text_length_override=max_text_length,
+            query=request.query,
+            max_results_override=request.max_results,
+            max_text_length_override=request.max_text_length,
         )
 
         # Format response

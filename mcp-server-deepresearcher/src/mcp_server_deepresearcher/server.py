@@ -13,6 +13,7 @@ from mcp_server_deepresearcher.deepresearcher.utils import (
     setup_llm,
     setup_spare_llm,
 )
+from mcp_server_deepresearcher.schemas import DeepResearchRequest
 
 logger = logging.getLogger(__name__)
 
@@ -77,10 +78,10 @@ mcp_server = FastMCP(name="deep_researcher", lifespan=app_lifespan)
 # --- Tool Definitions --- #
 @mcp_server.tool()
 async def deep_research(
-    ctx: Context, research_topic: str, max_web_research_loops: int = 3
+    ctx: Context, request: DeepResearchRequest
 ) -> str:
     """Performs deep research on a topic and returns a structured report."""
-    logger.info(f"Received request for deep_research on topic: '{research_topic}'")
+    logger.info(f"Received request for deep_research on topic: '{request.research_topic}'")
 
     # Retrieve shared resources from lifespan context
     lifespan_ctx = ctx.request_context.lifespan_context
@@ -97,9 +98,9 @@ async def deep_research(
     logger.info("Created new stateless agent for this request.")
 
     try:
-        config = {"configurable": {"max_web_research_loops": max_web_research_loops}}
+        config = {"configurable": {"max_web_research_loops": request.max_web_research_loops}}
         result_dict = await agent.graph.ainvoke(
-            {"research_topic": research_topic}, config=config
+            {"research_topic": request.research_topic}, config=config
         )
 
         final_report = json.dumps(result_dict.get("running_summary", {}), indent=2)

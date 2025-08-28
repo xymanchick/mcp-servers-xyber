@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -25,7 +24,7 @@ class GenerateImageRequest(BaseModel):
     num_images: int = Field(
         1, ge=1, le=4, description="Number of images to generate (1-4)"
     )
-    seed: Optional[int] = Field(None, description="Seed for reproducible generation")
+    seed: int | None = Field(None, description="Seed for reproducible generation")
     guidance_scale: float = Field(
         7.5, ge=1.0, le=20.0, description="Prompt guidance scale (1.0-20.0)"
     )

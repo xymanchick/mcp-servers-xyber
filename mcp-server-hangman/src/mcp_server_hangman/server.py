@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Any
+from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
@@ -16,7 +16,7 @@ from mcp_server_hangman.hangman.module import (
     InvalidGuessError,
     get_hangman_service,
 )
-from pydantic import Field
+from mcp_server_hangman.schemas import StartGameRequest, GuessLetterRequest
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +35,7 @@ mcp_server = FastMCP(name="hangman", lifespan=app_lifespan)
 @mcp_server.tool()
 async def start_game(
     ctx: Context,
-    secret_word: Annotated[
-        str, Field(description="Secret word to guess (letters only)")
-    ],
-    max_attempts: Annotated[
-        int, Field(ge=1, description="Maximum wrong attempts allowed")
-    ] = 6,
+    request: StartGameRequest,
 ) -> GameState:
     """Start or reset a Hangman game and return a new player_id for subsequent guesses."""
     # Generate a unique player/session id
@@ -50,7 +45,7 @@ async def start_game(
             "hangman_service"
         ]
         return service.start_game(
-            player_id=player_id, secret_word=secret_word, max_attempts=max_attempts
+            player_id=player_id, secret_word=request.secret_word, max_attempts=request.max_attempts
         )
     except HangmanError as e:
         logger.error("Failed to start game: %s", e)
@@ -63,19 +58,16 @@ async def start_game(
 @mcp_server.tool()
 async def guess_letter(
     ctx: Context,
-    player_id: Annotated[
-        str, Field(description="Player/session id returned by start_game")
-    ],
-    letter: Annotated[str, Field(description="A single alphabetic character")],
+    request: GuessLetterRequest,
 ) -> GameState:
     """Submit a single-letter guess and return the updated state. Requires the player_id returned from start_game."""
     try:
         service: HangmanService = ctx.request_context.lifespan_context[
             "hangman_service"
         ]
-        return service.guess_letter(player_id=player_id, letter=letter)
+        return service.guess_letter(player_id=request.player_id, letter=request.letter)
     except (GameNotFoundError, InvalidGuessError, HangmanError) as e:
-        logger.warning("Guess error for player %s: %s", player_id, e)
+        logger.warning("Guess error for player %s: %s", request.player_id, e)
         raise ToolError(str(e)) from e
     except Exception as e:  # pragma: no cover - defensive
         logger.error("Unexpected error during guess: %s", e, exc_info=True)

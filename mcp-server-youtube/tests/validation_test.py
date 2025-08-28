@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from mcp_server_youtube.youtube.models import YouTubeSearchRequest
+from mcp_server_youtube.schemas import YouTubeSearchRequest
 from pydantic import ValidationError
 
 
