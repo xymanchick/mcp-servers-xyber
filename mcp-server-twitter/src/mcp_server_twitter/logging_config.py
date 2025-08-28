@@ -6,6 +6,8 @@ from logging.config import dictConfig
 from typing import Dict, Any, Literal
 from datetime import datetime, timezone
 
+logger = logging.getLogger(__name__)
+
 # Get log level from environment
 logging_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = (
     os.getenv("LOGGING_LEVEL", "INFO").upper()
