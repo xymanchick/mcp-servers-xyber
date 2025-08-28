@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from mcp_server_twitter.logging_config import configure_logging, logging_level
 from mcp_server_twitter.server import mcp_server
 
+# Configure enhanced logging before any other imports
 configure_logging()
 logger = logging.getLogger(__name__)
 
@@ -55,8 +56,22 @@ if __name__ == "__main__":
         in ("true", "1", "t", "yes"),
         help="Enable hot reload (env: TWITTER_HOT_RELOAD)",
     )
+    parser.add_argument(
+        "--log-level",
+        default=os.getenv("LOG_LEVEL", "INFO").upper(),
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set logging level (env: LOG_LEVEL)",
+    )
 
     args = parser.parse_args()
+    
+    # Update log level if provided via command line
+    if args.log_level != os.getenv("LOG_LEVEL", "INFO").upper():
+        os.environ["LOG_LEVEL"] = args.log_level
+        # Reconfigure logging with new level
+        configure_logging()
+        logger = logging.getLogger(__name__)
+    
     logger.info(f"Starting Twitter MCP server on {args.host}:{args.port}")
 
     uvicorn.run(
