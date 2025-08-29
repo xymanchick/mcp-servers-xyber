@@ -1,6 +1,3 @@
-# This template file mostly will stay the same for all MCP servers
-# It is responsible for launching a uvicorn server with the given MCP server
-
 import argparse
 import logging
 import os
