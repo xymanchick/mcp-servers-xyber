@@ -20,7 +20,7 @@ from tweepy import API, OAuth1UserHandler
 from tweepy.asynchronous import AsyncClient
 from tweepy.errors import TweepyException
 
-from mcp_server_twitter.utils.metrics import async_timed, async_operation_timer
+from mcp_server_twitter.metrics import async_timed, async_operation_timer
 from mcp_server_twitter.errors import (
     TwitterClientError,
     TwitterAPIError, 
