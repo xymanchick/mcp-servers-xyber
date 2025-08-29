@@ -5,7 +5,7 @@ class GenerateImageRequest(BaseModel):
     """Input schema for the generate_image tool."""
 
     prompt: str = Field(
-        ..., max_length=100, description="Text prompt describing the desired image"
+        ..., max_length=300, description="Text prompt describing the desired image"
     )
     width: int = Field(
         512,
