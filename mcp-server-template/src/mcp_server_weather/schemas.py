@@ -7,12 +7,12 @@ class LocationRequest(BaseModel):
 
     latitude: str = Field(
         ...,
-        regex=r"^-?\d{1,2}\.\d+$",
+        pattern=r"^-?\d{1,2}\.\d+$",
         description="Location latitude as a string, e.g., '37.7749'. Format: decimal degrees with optional negative sign",
     )
     longitude: str = Field(
         ...,
-        regex=r"^-?\d{1,3}\.\d+$",
+        pattern=r"^-?\d{1,3}\.\d+$",
         description="Location longitude as a string, e.g., '-122.4194'. Format: decimal degrees with optional negative sign",
     )
     units: Literal["metric", "imperial"] | None = Field(

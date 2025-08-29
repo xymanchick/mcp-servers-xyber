@@ -15,7 +15,7 @@ class ImageGenerationRequest(BaseModel):
 
     aspect_ratio: str = Field(
         default="1:1",
-        regex=r"^(16:9|1:1|21:9|2:3|3:2|4:5|5:4|9:16|9:21)$",
+        pattern=r"^(16:9|1:1|21:9|2:3|3:2|4:5|5:4|9:16|9:21)$",
         description=(
             "Controls the aspect ratio of the generated image. "
             "Common values: '1:1', '16:9', '9:16', '2:3', '3:2'."
