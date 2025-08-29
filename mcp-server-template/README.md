@@ -10,12 +10,12 @@ This template demonstrates how to create a microservice that exposes functionali
 ## MCP Tools:
 
 1. `get_weather`
-    - **Description:** Retrieves current weather information for a location
+    - **Description:** Retrieves current weather information for a location.
     - **Input:**
-        - latitude (optional): Location latitude
-        - longitude (optional): Location longitude
-        - units (optional): Unit system (metric or imperial)
-    - **Output:** A dictionary containing weather state, temperature, and humidity
+        - `latitude` (optional): Location latitude.
+        - `longitude` (optional): Location longitude.
+        - `units` (optional): Unit system (metric or imperial).
+    - **Output:** A dictionary containing weather state, temperature, and humidity.
 
 ## Requirements
 
@@ -28,11 +28,12 @@ This template demonstrates how to create a microservice that exposes functionali
 
 1. **Clone the Repository**:
    ```bash
+   # path: /path/to/your/projects/
    git clone <repository-url>
-   cd mcp-server-weather
    ```
 
 2. **Create `.env` File based on `.env.example`**:
+   Create a `.env` file inside `./mcp-server-template/`.
    ```dotenv
    # Required environment variables
    WEATHER_API_KEY="your_openweathermap_api_key"
@@ -45,6 +46,7 @@ This template demonstrates how to create a microservice that exposes functionali
 
 3. **Install Dependencies**:
    ```bash
+   # path: ./mcp-servers/mcp-server-template/
    # Using UV (recommended)
    uv sync
    
@@ -54,9 +56,23 @@ This template demonstrates how to create a microservice that exposes functionali
 
 ## Running the Server
 
+### Using Docker Compose (Recommended)
+
+From the root `mcp-servers` directory, you can run the service for production or development.
+
+```bash
+# path: ./mcp-servers
+# Run the production container
+docker compose up mcp_server_weather
+
+# Run the development container with hot-reloading
+docker compose -f docker-compose.debug.yml up mcp_server_weather
+```
+
 ### Locally
 
 ```bash
+# path: ./mcp-servers/mcp-server-template/
 # Basic run
 uv run python -m mcp_server_weather
 
@@ -64,9 +80,10 @@ uv run python -m mcp_server_weather
 uv run python -m mcp_server_weather --port 8000 --reload
 ```
 
-### Using Docker
+### Using Docker (Standalone)
 
 ```bash
+# path: ./mcp-servers/mcp-server-template/
 # Build the image
 docker build -t mcp-server-weather .
 
@@ -76,74 +93,13 @@ docker run --rm -it -p 8000:8000 --env-file .env mcp-server-weather
 
 ## Testing
 
-Run the test suite using UV:
-
 ```bash
+# path: ./mcp-servers/mcp-server-template/
 # Run all tests
 uv run pytest
 
 # Run with verbose output
 uv run pytest -v
-
-# Run specific test files
-uv run pytest tests/test_module.py tests/test_server.py
-
-# Run with coverage
-uv run pytest --cov=mcp_server_weather
-```
-
-## Example Client
-
-When server startup is completed, any MCP client can utilize connection to it.
-
-This example shows how to use the weather service with a LangGraph ReAct agent:
-
-```python
-import os
-import asyncio
-from dotenv import load_dotenv
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.prebuilt import create_react_agent
-from langchain_openai import ChatOpenAI
-
-async def main():
-    # Load environment variables from .env, should contain OPENAI_API_KEY
-    load_dotenv()
-
-    # Initialize LLM
-    model = ChatOpenAI(model="gpt-4")
-
-    # Connect to MCP server
-    client = MultiServerMCPClient(
-        {
-        "weather-service": {
-            "url": "https://localhost:8000",
-            "transport": "streamable_http",}
-        }
-    )
-
-    # !! IMPORTANT : Get tools and modify them to have return_direct=True!!!
-    # Otherwise langgraph agent could fall in an eternal loop,
-    # ignoring tool results
-    tools: list[StructuredTool] = await client.get_tools()
-    for tool in tools:
-        tool.return_direct = True
-
-    # Use case 1: Create agent with tools
-    agent = create_react_agent(model, tools)
-
-    # Example query using the weather service
-    response = await agent.ainvoke({
-        "messages": [{
-            "role": "user",
-            "content": "What's the current weather in London?"
-        }]
-    })
-
-    print(response["messages"][-1].content)
-
-if __name__ == "__main__":
-    asyncio.run(main())
 ```
 
 ## Project Structure
@@ -152,20 +108,20 @@ if __name__ == "__main__":
 mcp-server-weather/
 ├── src/
 │   └── mcp_server_weather/
-        └── weather/ # Contains all the business logic
-            ├── __init__.py # Exposes all needed functionality to server.py
-            ├── config.py # Contains module env settings, custom Error classes
-            ├── models.py # Data models for weather information
-            ├── module.py # Business module core logic
+        └── weather/
+            ├── __init__.py
+            ├── config.py
+            ├── models.py
+            ├── module.py
 │       ├── __init__.py
-│       ├── __main__.py # Contains uvicorn server setup logic
-│       ├── logging_config.py # Contains shared logging configuration
-│       ├── server.py # Contains tool schemas/definitions, sets MCP server up
+│       ├── __main__.py
+│       ├── logging_config.py
+│       ├── server.py
 ├── tests/
-│   ├── conftest.py # Common test fixtures
-│   ├── test_module.py # Tests for the weather client
-│   ├── test_retry_logic.py # Tests for retry mechanism
-│   └── test_server.py # Tests for MCP server
+│   ├── conftest.py
+│   ├── test_module.py
+│   ├── test_retry_logic.py
+│   └── test_server.py
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile

@@ -1,61 +1,134 @@
-# MCP Image Generation Service
+# MCP Image Generation Server
 
-> **Note:** This service is part of the unified `mcp-servers` repository.
-> It is recommended to build and run this service using the top-level Dockerfile
-> located in the root of the `mcp-servers` repository.
-> See the [main README](../../README.md) for instructions.
+> **General:** This repository provides an MCP (Model Context Protocol) server for generating images from text prompts using Google Vertex AI.
 
-This service provides an MCP-compatible server that generates images based on text prompts using Google Vertex AI.
+## Overview
 
-## Features
+This server allows language models and AI agents to create images by providing a descriptive text prompt. It uses Google Vertex AI's image generation models and returns the resulting images encoded in base64.
 
-*   Accepts text prompts and image dimension parameters.
-*   Utilizes Google Vertex AI's FLUX-dev model (or configured equivalent).
-*   Returns generated images encoded in base64.
+## MCP Tools:
 
-## Environment Variables
+1. `generate_image`
+    - **Description:** Generates one or more images based on a text prompt.
+    - **Input:**
+        - `prompt` (required): A text description of the image to generate.
+        - `height` (optional): The height of the image in pixels.
+        - `width` (optional): The width of the image in pixels.
+        - `num_images` (optional): The number of images to generate.
+    - **Output:** A list of base64-encoded PNG images.
 
-This service requires Google Cloud credentials and project information, typically provided via environment variables. See the top-level `.env.example` file in the `mcp-servers` root directory for the full list.
+## Requirements
 
-Key variables include:
+- Python 3.12+
+- UV (for dependency management)
+- Google Cloud Platform (GCP) project and credentials
+- Docker (optional, for containerization)
 
-*   `GOOGLE_PROJECT_ID`
-*   `GOOGLE_LOCATION`
-*   `GOOGLE_ENDPOINT_ID`
-*   `GOOGLE_API_ENDPOINT`
-*   Google Credentials (structured as `GOOGLE_CREDENTIALS_*` variables)
+## Setup
 
-## API
+1. **Clone the Repository**:
+   ```bash
+   # path: /path/to/your/projects/
+   git clone <repository-url>
+   ```
 
-The server exposes the standard MCP `list_tools` and `call_tool` endpoints.
+2. **Create `.env` File based on `.env.example`**:
+   Create a `.env` file inside `./mcp-server-imgen/`. You must provide your Google Cloud project details and credentials.
+   ```dotenv
+   # Required Google Cloud environment variables
+   GOOGLE_PROJECT_ID="your-gcp-project-id"
+   GOOGLE_LOCATION="your-gcp-region"
+   # ... and other GOOGLE_ credentials as specified in .env.example
+   ```
 
-*   **Tool Name:** `generate_image`
-*   **Input Schema:** `ImageGenerationRequest` (includes `prompt`, `width`, `height`, `num_images`, etc.)
-*   **Output:** List containing a `TextContent` confirmation and one or more `ImageContent` objects with base64 PNG data.
-
-## Running Locally (Development Only)
-
-While Docker is the recommended method, you can run locally for development:
-
-1.  **Navigate to the `mcp-servers` root directory.**
-2.  **Ensure `uv` is installed.**
-3.  **(Optional) Create and activate a virtual environment:**
-    ```bash
-    uv venv
-    source .venv/bin/activate # Or .venv\Scripts\activate on Windows
-    ```
-4.  **Install dependencies (from the root):**
-    ```bash
-    uv sync
-    ```
-5.  **Set environment variables:** Export the required `GOOGLE_*` variables from your `.env` file.
-6.  **Run the service:**
-    ```bash
-    # Note: This runs the service directly, bypassing the top-level CMD logic.
-    # Ensure argparse default in __main__ is 8001 if running this way
-    python -m mcp_server_imgen --port 8001
-    ```
-    *(The `--reload` flag is useful for development)*
-    ###
+3. **Install Dependencies**:
+   ```bash
+   # path: ./mcp-servers/mcp-server-imgen/
+   # Using UV (recommended)
+   uv sync
    
-######
+   # Or install for development
+   uv sync --group dev
+   ```
+
+## Running the Server
+
+### Using Docker Compose (Recommended)
+
+From the root `mcp-servers` directory, you can run the service for production or development.
+
+```bash
+# path: ./mcp-servers
+# Run the production container
+docker compose up mcp_server_imgen
+
+# Run the development container with hot-reloading
+docker compose -f docker-compose.debug.yml up mcp_server_imgen
+```
+
+### Locally
+
+```bash
+# path: ./mcp-servers/mcp-server-imgen/
+# Basic run
+uv run python -m mcp_server_imgen
+
+# Or with custom port and host
+uv run python -m mcp_server_imgen --port 8000 --reload
+```
+
+### Using Docker (Standalone)
+
+```bash
+# path: ./mcp-servers/mcp-server-imgen/
+# Build the image
+docker build -t mcp-server-imgen .
+
+# Run the container
+docker run --rm -it -p 8000:8000 --env-file .env mcp-server-imgen
+```
+
+## Testing
+
+```bash
+# path: ./mcp-servers/mcp-server-imgen/
+# Run all tests
+uv run pytest
+```
+
+## Project Structure
+
+```
+mcp-server-imgen/
+├── src/
+│   └── mcp_server_imgen/
+│       ├── imgen/
+│       │   ├── __init__.py
+│       │   ├── config.py
+│       │   └── module.py
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── logging_config.py
+│       └── server.py
+├── tests/
+│   └── test_server.py
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── LICENSE
+├── pyproject.toml
+├── README.md
+└── uv.lock
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+MIT

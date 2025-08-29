@@ -1,124 +1,120 @@
-# MCP Stable Diffusion Server
+# MCP Stability Server
 
-> **General:** This repository provides an MCP (Model Context Protocol) server for Stable Diffusion image generation.
-> It exposes an image generation tool via MCP-compatible microservice.
+> **General:** This repository provides an MCP (Model Context Protocol) server for Stability AI image generation.
+> It exposes an image generation tool via an MCP-compatible microservice.
 
 ## Overview
 
-This server demonstrates how to create a microservice that exposes Stable Diffusion image generation through the Model Context Protocol (MCP).
+This server allows you to create a microservice that exposes Stability AI's image generation models through the Model Context Protocol (MCP).
 
 ## MCP Tools:
 
 1. `generate_image`
-    - **Description:** Generates an image from a text prompt using Stable Diffusion
+    - **Description:** Generates an image from a text prompt using Stability AI.
     - **Input:**
-        - prompt (str)
-        - negative_prompt (str, optional)
-        - aspect_ratio (str, optional)
-        - seed (int, optional)
-        - output_format (str, optional)
-    - **Output:** Image bytes (PNG/JPG)
+        - `prompt` (required): A text description of the image to generate.
+        - `negative_prompt` (optional): A text description of what to avoid in the image.
+        - `aspect_ratio` (optional): The aspect ratio of the generated image (e.g., "16:9", "1:1").
+        - `seed` (optional): A seed for reproducible generation.
+        - `style_preset` (optional): A preset style to guide the generation (e.g., "photographic", "anime").
+    - **Output:** The generated image as PNG bytes.
 
 ## Requirements
 
 - Python 3.12+
 - UV (for dependency management)
+- Stability AI API Key
 - Docker (optional, for containerization)
 
 ## Setup
 
 1. **Clone the Repository**:
    ```bash
+   # path: /path/to/your/projects/
    git clone <repository-url>
-   cd mcp-server-stable-diffusion
    ```
 
-2. **Create `.env` File**:
+2. **Create `.env` File based on `.env.example`**:
+   Create a `.env` file inside `./mcp-server-stability/`. You must provide your Stability AI API key.
    ```dotenv
-   # Example environment variables
-   MCP_STABLE_DIFFUSION_HOST="0.0.0.0"
-   MCP_STABLE_DIFFUSION_PORT=8000
+   # Required environment variables
+   STABILITY_API_KEY="your_stability_api_key"
+   
+   # Optional environment variables
    LOGGING_LEVEL="info"
-   STABLE_DIFFUSION_URL="https://api.stability.ai/v2beta/stable-image/generate/core"
-   STABLE_DIFFUSION_API_KEY="your_api_key"
+   STABILITY_API_HOST="https://api.stability.ai"
    ```
 
 3. **Install Dependencies**:
    ```bash
-   uv sync .
+   # path: ./mcp-servers/mcp-server-stability/
+   # Using UV (recommended)
+   uv sync
+   
+   # Or install for development
+   uv sync --group dev
    ```
 
 ## Running the Server
 
+### Using Docker Compose (Recommended)
+
+From the root `mcp-servers` directory, you can run the service for production or development.
+
+```bash
+# path: ./mcp-servers
+# Run the production container
+docker compose up mcp_server_stability
+
+# Run the development container with hot-reloading
+docker compose -f docker-compose.debug.yml up mcp_server_stability
+```
+
 ### Locally
 
 ```bash
-python -m mcp_server_calculator
+# path: ./mcp-servers/mcp-server-stability/
+# Basic run
+uv run python -m mcp_server_stability
+
+# Or with custom port and host
+uv run python -m mcp_server_stability --port 8000 --reload
 ```
 
-### Using Docker
+### Using Docker (Standalone)
 
 ```bash
+# path: ./mcp-servers/mcp-server-stability/
 # Build the image
-docker build -t mcp-server-stable-diffusion .
+docker build -t mcp-server-stability .
 
 # Run the container
-docker run --rm -it -p 8000:8000 --env-file .env mcp-server-stable-diffusion
+docker run --rm -it -p 8000:8000 --env-file .env mcp-server-stability
 ```
 
-## Example Client
-When server startup is completed, any MCP client
-can utilize connection to it
+## Testing
 
-This example shows how to use the stable diffusion service with a LangGraph ReAct agent:
-
-```python
-import os
-import asyncio
-from dotenv import load_dotenv
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.prebuilt import create_react_agent
-from langchain_openai import ChatOpenAI
-
-async def main():
-    load_dotenv()
-    model = ChatOpenAI(model="gpt-4")
-    client = MultiServerMCPClient({
-        "image-generation": {
-            "url": "https://localhost:8000",
-            "transport": "streamable_http",
-        }
-    })
-    tools = await client.get_tools()
-    for tool in tools:
-        tool.return_direct = True
-    agent = create_react_agent(model, tools)
-    response = await agent.ainvoke({
-        "messages": [{
-            "role": "user",
-            "content": "Generate a photo of a futuristic city at sunset."
-        }]
-    })
-    print(response["messages"][-1].content)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+```bash
+# path: ./mcp-servers/mcp-server-stability/
+# Run all tests
+uv run pytest
 ```
 
 ## Project Structure
 
 ```
-mcp-server-stable-diffusion/
+mcp-server-stability/
 ├── src/
-│   └── mcp_server_calculator/
-│       └── stable_diffusion/ # Contains all the business logic
-│           ├── __init__.py # Exposes all needed functionality to server.py
-│           ├── config.py # Contains module env settings, custom Error classes
-│           ├── client.py # Business module core logic
+│   └── mcp_server_stability/
+│       └── stability/
+│           ├── __init__.py
+│           ├── config.py
+│           └── module.py
 │       ├── __init__.py
-│       ├── __main__.py # Contains uvicorn server setup logic
-│       ├── logging_config.py # Contains shared logging configuration
-│       ├── server.py # Contains tool schemas/definitions, sets MCP server up
+│       ├── __main__.py
+│       ├── logging_config.py
+│       ├── server.py
+│       └── schemas.py
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile

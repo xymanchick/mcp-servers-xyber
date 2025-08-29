@@ -1,179 +1,134 @@
-# MCP Server - Arxiv Search
+# MCP Arxiv Server
 
-This service provides an MCP-compliant server interface with a tool to search and retrieve papers from the [Arxiv](https://arxiv.org/) preprint repository. It is designed for use in multi-tool agent systems, but can also be run standalone.
+> **General:** This repository provides an MCP (Model Context Protocol) server for searching and retrieving papers from the Arxiv preprint repository.
 
----
+## Overview
 
-## Features
+This server exposes functionality to search Arxiv through the Model Context Protocol (MCP). It allows language models and AI agents to find and access academic papers.
 
-- **MCP Tool:** `arxiv_search` for querying arXiv, downloading PDFs, and extracting text.
-- **Async & Fast:** Uses async I/O and parallel PDF processing for speed.
-- **Configurable:** Environment variables (via `.env` or system) control search/result limits.
-- **Docker Support:** Ready-to-use Dockerfile for containerized deployment.
-- **Client Example:** Shows how to use the server from Python, including with LangChain MCP adapters.
-- **Modern Python:** Requires Python 3.11+ for async features.
+## MCP Tools:
 
----
-
-## Directory Structure
-
-```
-mcp-server-arxiv/
-├── src/mcp_server_arxiv/
-│   ├── server.py         # Main MCP server, exposes the tool, handles requests
-│   ├── __main__.py       # Entrypoint for running the server
-│   ├── logging_config.py # Logging setup
-│   └── arxiv/
-│       ├── module.py     # Core logic for searching, downloading, extracting
-│       ├── models.py     # Data models (e.g., ArxivSearchResult)
-│       └── config.py     # Configuration and error classes
-├── tests/                # Unit tests for server and module
-│   ├── conftest.py       # Pytest configuration and fixtures
-│   ├── test_server.py    # Tests for the MCP server functionality
-│   └── test_module.py    # Tests for the arxiv module functionality
-├── pyproject.toml        # Dependencies and build config
-├── Dockerfile            # Containerization support
-├── LICENSE               # MIT License
-├── .gitignore            # Files/directories excluded from version control
-└── README.md
-```
-
----
-
-## .gitignore and Excluded Files
----
+1. `arxiv_search`
+    - **Description:** Searches Arxiv for papers, downloads their PDFs, and extracts the text content.
+    - **Input:**
+        - `query` (required): The search query.
+        - `max_results` (optional): Maximum number of papers to return.
+        - `max_text_length` (optional): Maximum number of characters of text to extract from each paper.
+    - **Output:** A formatted string containing the title, authors, summary, and extracted text for each paper found.
 
 ## Requirements
 
-- Python 3.11+
-- No API key required (Arxiv is free to use)
-- [uv](https://github.com/astral-sh/uv) (recommended for dependency management)
-
----
+- Python 3.12+
+- UV (for dependency management)
+- Docker (optional, for containerization)
 
 ## Setup
 
-1. **Clone the Repository:**
-   - Place this directory within your `mcp-servers` project or clone it standalone.
-2. **Create Environment File:**
-   - Copy `.env.example` to `.env` and edit as needed (see Configuration section).
-3. **Install Dependencies:**
-   - It's recommended to use a virtual environment. Navigate to the `mcp-server-arxiv` directory.
-
+1. **Clone the Repository**:
    ```bash
-   # Using uv (recommended)
-   uv venv
-   source .venv/bin/activate
-   uv pip install -e .[dev]
-   # Or using pip + venv
-   # python -m venv .venv
-   # source .venv/bin/activate
-   # pip install -e .[dev]
+   # path: /path/to/your/projects/
+   git clone <repository-url>
    ```
 
----
+2. **Create `.env` File based on `.env.example`**:
+   Create a `.env` file inside `./mcp-server-arxiv/`.
+   ```dotenv
+   # Optional environment variables
+   ARXIV_DEFAULT_MAX_RESULTS=5
+   ARXIV_DEFAULT_MAX_TEXT_LENGTH=2000
+   ```
+
+3. **Install Dependencies**:
+   ```bash
+   # path: ./mcp-servers/mcp-server-arxiv/
+   # Using UV (recommended)
+   uv sync
+   
+   # Or install for development
+   uv sync --group dev
+   ```
 
 ## Running the Server
 
-Ensure your virtual environment is activated and the `.env` file is present and configured.
+### Using Docker Compose (Recommended)
+
+From the root `mcp-servers` directory, you can run the service for production or development.
 
 ```bash
-# Run with default host (0.0.0.0) and port (8006)
-python -m mcp_server_arxiv
+# path: ./mcp-servers
+# Run the production container
+docker compose up mcp_server_arxiv
 
-# Run on a specific host/port
-python -m mcp_server_arxiv --host 127.0.0.1 --port 8006
+# Run the development container with hot-reloading
+docker compose -f docker-compose.debug.yml up mcp_server_arxiv
 ```
 
-### Docker Support
+### Locally
 
 ```bash
-# Build the Docker image
+# path: ./mcp-servers/mcp-server-arxiv/
+# Basic run
+uv run python -m mcp_server_arxiv
+
+# Or with custom port and host
+uv run python -m mcp_server_arxiv --port 8000 --reload
+```
+
+### Using Docker (Standalone)
+
+```bash
+# path: ./mcp-servers/mcp-server-arxiv/
+# Build the image
 docker build -t mcp-server-arxiv .
 
 # Run the container
-docker run --rm -it -p 8006:8006 --env-file .env mcp-server-arxiv
+docker run --rm -it -p 8000:8000 --env-file .env mcp-server-arxiv
 ```
 
----
+## Testing
 
-## Running Tests and Coverage
-The project includes a comprehensive suite of unit tests covering core functionality in module.py and server.py.
-
-Tests mock external dependencies to ensure reliability and speed.
-
-To run all tests with coverage and see detailed reports:
 ```bash
-cd mcp-server-arxiv
-pytest -v --color=yes --cov=mcp_server_arxiv --cov-report=term-missing --cov-fail-under=70
-
-```
-- This will fail if coverage is below 70%.
-- Coverage reports show which lines are uncovered.
-
----
-## API Usage
-
-The server provides the following MCP tool:
-
-- **Tool:** `arxiv_search`
-  - **Parameters:**
-    - `query` (str, required): Search query string
-    - `max_results` (int, optional): Maximum number of results to return (default: 5, max: 50)
-    - `max_text_length` (int, optional): Maximum characters of extracted text per paper (default: unlimited, min: 100)
-
-**Example tool call input:**
-```json
-{
-  "name": "arxiv_search",
-  "arguments": {
-    "query": "quantum entanglement communication",
-    "max_results": 2,
-    "max_text_length": 1500
-  }
-}
+# path: ./mcp-servers/mcp-server-arxiv/
+# Run all tests
+uv run pytest
 ```
 
-**Example output (truncated):**
+## Project Structure
+
 ```
---- Paper 1 ---
-Title: Quantum Entanglement in Communication
-Authors: Alice Smith, Bob Jones
-Published: 2023-01-15
-ArXiv ID: 2301.12345v1
-PDF URL: https://arxiv.org/pdf/2301.12345v1
-Summary: This paper explores...
-Full Text Preview: [First 200 chars of extracted PDF text...]
-
---- Paper 2 ---
-...
+mcp-server-arxiv/
+├── src/
+│   └── mcp_server_arxiv/
+        └── arxiv/
+            ├── __init__.py
+            ├── config.py
+            ├── models.py
+            ├── module.py
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── logging_config.py
+│       ├── server.py
+├── tests/
+│   ├── conftest.py
+│   ├── test_module.py
+│   └── test_server.py
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── LICENSE
+├── pyproject.toml
+├── README.md
+└── uv.lock
 ```
 
----
+## Contributing
 
-## Configuration
-
-- Uses environment variables with the prefix `ARXIV_` (e.g., `ARXIV_DEFAULT_MAX_RESULTS`).
-- Reads from `.env` file if present.
-- Main config options:
-  - `ARXIV_DEFAULT_MAX_RESULTS` (default: 5)
-  - `ARXIV_DEFAULT_MAX_TEXT_LENGTH` (optional, min 100 chars)
-- Dockerfile sets defaults for `MCP_ARXIV_PORT` and `MCP_ARXIV_HOST`.
-
----
-
-
-## Troubleshooting
-
-- **Missing dependencies:** Ensure you have Python 3.11+ and all dependencies installed (`uv pip install -e .[dev]`).
-- **Docker networking:** If running the server in Docker, use `host.docker.internal` as the host for local clients.
-- **PDF extraction errors:** Some arXiv PDFs may be image-based or malformed; errors are reported in the `processing_error` field of results.
-- **Environment variables:** Double-check your `.env` file and variable names (see Configuration section).
-- **.gitignore:** Review and update `.gitignore` if you add new generated or sensitive files.
-- **uv.lock:** Commit this file if you want reproducible builds; otherwise, it can be regenerated.
-
----
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License.
+MIT

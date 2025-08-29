@@ -1,66 +1,144 @@
-# Hangman MCP Server
+# MCP Hangman Server
 
-Play Hangman reliably via MCP tools. The server maintains per-player game state in memory and returns a `player_id` from `start_game` that the client must pass to `guess_letter`.
+> **General:** This repository provides an MCP (Model Context Protocol) server for playing a game of Hangman.
 
-## Tools
+## Overview
 
-- `start_game(secret_word: str, max_attempts: int = 6) -> GameState`
-  - Starts or resets a game and returns a newly generated `player_id`.
-- `guess_letter(player_id: str, letter: str) -> GameState`
-  - Guesses a single character and returns updated state for that `player_id`.
+This server allows users to play Hangman through MCP tools. It manages the game state for each player in memory, allowing for interactive gameplay sessions. A unique `player_id` is used to track the progress of each game.
 
-`GameState` includes `player_id`, `masked_chars` (list of characters; unrevealed letters are `_`), `remaining_attempts`, `correct_letters`, `incorrect_letters`, and flag `won`.
+## MCP Tools:
 
-## Running
+1. `start_game`
+    - **Description:** Starts a new game of Hangman with a given secret word.
+    - **Input:**
+        - `secret_word` (required): The word to be guessed. Must be alphabetic characters only.
+        - `max_attempts` (optional): The number of allowed incorrect guesses (default is 6).
+    - **Output:** The initial `GameState`.
 
-```bash
-uv run mcp-server-hangman -m mcp_server_hangman -- --host 0.0.0.0 --port 8015
+2. `guess_letter`
+    - **Description:** Makes a guess in an ongoing game.
+    - **Input:**
+        - `player_id` (required): The ID of the game session, returned by `start_game`.
+        - `letter` (required): The single alphabetic character to guess.
+    - **Output:** The updated `GameState`.
+
+### GameState Object
+
+Both tools return a `GameState` object with the following structure:
+```json
+{
+  "player_id": "string",
+  "masked_word": "list[str]",
+  "remaining_attempts": "int",
+  "correct_guesses": "list[str]",
+  "incorrect_guesses": "list[str]",
+  "status": "string" // e.g., 'in_progress', 'won', 'lost'
+}
 ```
 
-No headers required. Persist and pass the returned `player_id` to subsequent `guess_letter` calls.
+## Requirements
 
-## Behavioral requirements and test cases
+- Python 3.12+
+- UV (for dependency management)
+- Docker (optional, for containerization)
 
-- **start_game generates session**
-  - Returns a new `player_id` (UUID hex) per call.
-  - Initializes `masked_chars` to underscores with length equal to the secret word.
-  - `max_attempts` must be positive. If not, return ToolError.
+## Setup
 
-- **Secret word validation**
-  - Secret word must be a non-empty string of alphabetic characters only.
-  - If it contains symbols, spaces, or digits, return ToolError and do not start a game.
+1. **Clone the Repository**:
+   ```bash
+   # path: /path/to/your/projects/
+   git clone <repository-url>
+   ```
 
-- **Guess input validation**
-  - Only one character is allowed per guess. If multiple characters (e.g., "ab"), return ToolError.
-  - Only alphabetic characters are allowed. If non-letter (e.g., "@", "1"), return ToolError.
-  - On validation error, game state must remain unchanged (no attempt consumed).
+2. **Install Dependencies**:
+   ```bash
+   # path: ./mcp-servers/mcp-server-hangman/
+   # Using UV (recommended)
+   uv sync
+   
+   # Or install for development
+   uv sync --group dev
+   ```
 
-- **Case-insensitive guessing, original case preserved**
-  - Letter matching is case-insensitive.
-  - Revealed letters in `masked_chars` preserve the original case of the secret word.
+## Running the Server
 
-- **Correct and incorrect guesses**
-  - Correct guesses reveal all occurrences of the letter.
-  - Incorrect guesses decrement `remaining_attempts` by 1.
-  - Repeated guesses (already guessed correct or incorrect) do not decrement attempts and do not duplicate entries.
+### Using Docker Compose (Recommended)
 
-- **Win condition**
-  - When all letters are revealed, `won` becomes `true`.
-  - After a win, the game is terminated: the `player_id` becomes invalid and subsequent `guess_letter` calls return ToolError (no state changes).
+From the root `mcp-servers` directory, you can run the service for production or development.
 
-- **Loss condition**
-  - When `remaining_attempts` reaches 0 and the word is not fully revealed, the game is terminated.
-  - After termination, the `player_id` becomes invalid and subsequent `guess_letter` calls return ToolError.
+```bash
+# path: ./mcp-servers
+# Run the production container
+docker compose up mcp_server_hangman
 
-- **Stability and errors**
-  - Any ToolError must not crash the server.
-  - Valid ongoing games remain playable after unrelated errors.
+# Run the development container with hot-reloading
+docker compose -f docker-compose.debug.yml up mcp_server_hangman
+```
 
-- **Response shape for agents**
-  - `masked_chars` is a list (e.g., `["_", "_", "_", "_"]`) to make spacing explicit for rendering like `_ _ _ _`.
+### Locally
 
-These behaviors are covered by tests in `mcp-server-hangman/tests/`:
-- Service tests validate initialization, validation errors, case-insensitive reveals, repeated guesses, win path, and termination on attempts=0.
-- Server tool tests validate ToolError propagation, no-op on invalid inputs, loss termination, and win termination.
+```bash
+# path: ./mcp-servers/mcp-server-hangman/
+# Basic run
+uv run python -m mcp_server_hangman
+
+# Or with custom port and host
+uv run python -m mcp_server_hangman --port 8000 --reload
+```
+
+### Using Docker (Standalone)
+
+```bash
+# path: ./mcp-servers/mcp-server-hangman/
+# Build the image
+docker build -t mcp-server-hangman .
+
+# Run the container
+docker run --rm -it -p 8000:8000 mcp-server-hangman
+```
+
+## Testing
+
+```bash
+# path: ./mcp-servers/mcp-server-hangman/
+# Run all tests
+uv run pytest
+```
+
+## Project Structure
+
+```
+mcp-server-hangman/
+├── src/
+│   └── mcp_server_hangman/
+│       ├── hangman/
+│       │   ├── __init__.py
+│       │   ├── game.py
+│       │   └── state.py
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── logging_config.py
+│       └── server.py
+├── tests/
+│   └── test_server.py
+├── .gitignore
+├── Dockerfile
+├── LICENSE
+├── pyproject.toml
+├── README.md
+└── uv.lock
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+MIT
 
 

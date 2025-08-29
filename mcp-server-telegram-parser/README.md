@@ -1,123 +1,95 @@
 # MCP Telegram Parser Server
 
-> General: This repository provides an MCP (Model Context Protocol) server for parsing recent messages from public Telegram channels using Telethon (MTProto user API). It follows the same structure and conventions as other MCP servers in this monorepo.
+> **General:** This repository provides an MCP (Model Context Protocol) server for parsing recent messages from public Telegram channels using Telethon.
 
 ## Overview
 
-This service exposes a tool for LLM agents to fetch recent posts from public Telegram channels with structured output. It relies on Telethon and a user session (StringSession recommended) to access public channels without adding a bot.
+This service exposes a tool for LLM agents to fetch recent posts from public Telegram channels with structured output. It relies on Telethon and a user session to access public channels without needing a bot.
 
-## MCP Tools
+## MCP Tools:
 
 1. `parse_telegram_channels`
-   - **Description**: Retrieves the last N messages from a list of public Telegram channels
-   - **Input**:
-     - `channels` (required): list[str] of channel usernames (with or without @)
-     - `limit` (optional): int number of recent messages per channel (default: 10)
-   - **Output**: `TelegramParseResult` with fields:
-     - `fetch_timestamp`: RFC3339 datetime with timezone
-     - `channels`: mapping of channel name → `{ channel_name, messages_count, messages, error? }`
-       - `messages`: list of `{ id, date, text, views?, forwards? }`
+    - **Description:** Retrieves the last N messages from a list of public Telegram channels.
+    - **Input:**
+        - `channels` (required): A list of channel usernames (e.g., `["durov", "nytimes"]`).
+        - `limit` (optional): The number of recent messages to fetch per channel (default: 10).
+    - **Output:** A structured result containing the messages from each channel, including text, date, views, and forwards.
 
 ## Requirements
 
 - Python 3.12+
 - UV (for dependency management)
-- Telethon API credentials (API ID and API Hash from `https://my.telegram.org`)
-- A user session (preferably a StringSession)
-- Docker (optional)
+- Telethon API credentials (API ID and Hash from `my.telegram.org`)
+- A Telethon user session (StringSession is recommended)
+- Docker (optional, for containerization)
 
 ## Setup
 
-1. Clone the repository:
+1. **Clone the Repository**:
    ```bash
+   # path: /path/to/your/projects/
    git clone <repository-url>
-   cd mcp-server-telegram-parser
    ```
 
-2. Create `.env` from `.env.example` and fill credentials:
+2. **Create `.env` File based on `.env.example`**:
+   Create a `.env` file inside `./mcp-server-telegram-parser/`. You must provide your Telethon API credentials and a session string.
    ```dotenv
-   TELEGRAM_API_ID=123456
-   TELEGRAM_API_HASH="your_api_hash_here"
-   # Preferred: StringSession for non-interactive runs
-   TELEGRAM_STRING_SESSION="your_single_line_string_session"
-   # Optional: file session name if not using StringSession
-   TELEGRAM_SESSION_NAME=.telegram_session
-
-   MCP_TELEGRAM_PARSER_HOST=0.0.0.0
-   MCP_TELEGRAM_PARSER_PORT=8012
+   # Required Telethon credentials
+   TELEGRAM_API_ID="your_api_id"
+   TELEGRAM_API_HASH="your_api_hash"
+   TELEGRAM_STRING_SESSION="your_string_session"
    ```
 
-3. Install dependencies:
+3. **Install Dependencies**:
    ```bash
+   # path: ./mcp-servers/mcp-server-telegram-parser/
+   # Using UV (recommended)
    uv sync
-   # Or install with dev tools
+   
+   # Or install for development
    uv sync --group dev
    ```
 
 ## Running the Server
 
+### Using Docker Compose (Recommended)
+
+From the root `mcp-servers` directory, you can run the service for production or development.
+
+```bash
+# path: ./mcp-servers
+# Run the production container
+docker compose up mcp_server_telegram_parser
+
+# Run the development container with hot-reloading
+docker compose -f docker-compose.debug.yml up mcp_server_telegram_parser
+```
+
 ### Locally
 
 ```bash
-uv run python -m mcp_server_telegram_parser --host 0.0.0.0 --port 8012
+# path: ./mcp-servers/mcp-server-telegram-parser/
+# Basic run
+uv run python -m mcp_server_telegram_parser
+
+# Or with custom port and host
+uv run python -m mcp_server_telegram_parser --port 8000 --reload
 ```
 
-### Using Docker
+### Using Docker (Standalone)
 
 ```bash
+# path: ./mcp-servers/mcp-server-telegram-parser/
 # Build the image
 docker build -t mcp-server-telegram-parser .
 
 # Run the container
-docker run --rm -it \
-  -p 8012:8012 \
-  --env-file .env \
-  mcp-server-telegram-parser
+docker run --rm -it -p 8000:8000 --env-file .env mcp-server-telegram-parser
 ```
 
 ## Testing
 
-At the moment there are no dedicated tests for this service.
-
-## Example Client
-
-When server startup is completed, any MCP client can utilize connection to it.
-
-The snippet below demonstrates invoking the tool via a generic MCP client approach (adjust to your client stack):
-
-```python
-import asyncio
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.prebuilt import create_react_agent
-from langchain_openai import ChatOpenAI
-
-async def main():
-    model = ChatOpenAI(model="gpt-4o-mini")
-
-    client = MultiServerMCPClient({
-        "telegram-parser": {
-            "url": "http://localhost:8012",
-            "transport": "streamable_http",
-        }
-    })
-
-    tools = await client.get_tools()
-    for tool in tools:
-        tool.return_direct = True
-
-    agent = create_react_agent(model, tools)
-    response = await agent.ainvoke({
-        "messages": [{
-            "role": "user",
-            "content": "Parse last 5 messages from nytimes and durov"
-        }]
-    })
-
-    print(response["messages"][-1].content)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
+At the moment, there are no dedicated tests for this service.
 
 ## Project Structure
 
@@ -125,25 +97,20 @@ if __name__ == "__main__":
 mcp-server-telegram-parser/
 ├── src/
 │   └── mcp_server_telegram_parser/
-│       ├── __main__.py              # Uvicorn server setup
-│       ├── logging_config.py        # Logging configuration
-│       ├── schemas.py               # Pydantic models for structured output
-│       ├── server.py                # MCP tool definitions and app wiring
+│       ├── __main__.py
+│       ├── logging_config.py
+│       ├── schemas.py
+│       ├── server.py
 │       └── telegram/
-│           ├── config.py            # ParserConfig (env-driven)
-│           └── module.py            # Telethon logic and service
+│           ├── config.py
+│           └── module.py
 ├── .env.example
+├── .gitignore
 ├── Dockerfile
 ├── LICENSE
 ├── pyproject.toml
 └── README.md
 ```
-
-## Authorization Notes
-
-- Use a **StringSession** for non-interactive deployments. Generate once with Telethon and set `TELEGRAM_STRING_SESSION` in `.env`.
-- Alternatively, use file sessions by setting `TELEGRAM_SESSION_NAME` and completing the first-run login.
-- Treat sessions as secrets. Do not commit them.
 
 ## Contributing
 

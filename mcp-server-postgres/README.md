@@ -1,105 +1,134 @@
-# MCP Server - PostgreSQL Tools
+# MCP PostgreSQL Server
 
-This service provides an MCP-compliant server interface with tools to interact with a configured PostgreSQL database. It uses the `mcp` library framework and includes the `postgres_client` module for database interactions.
+> **General:** This repository provides an MCP (Model Context Protocol) server with tools to interact with a PostgreSQL database.
+
+## Overview
+
+This server allows language models and AI agents to query a PostgreSQL database. It provides a set of tools for retrieving information from the database tables.
+
+## MCP Tools:
+
+1. `get_character_by_name`
+    - **Description:** Retrieves a character record from the database based on its unique name.
+    - **Input:**
+        - `name` (required): The name of the character to retrieve.
+    - **Output:** A dictionary containing the character's data or an error message if not found.
+
+## Requirements
+
+- Python 3.12+
+- UV (for dependency management)
+- PostgreSQL database credentials
+- Docker (optional, for containerization)
 
 ## Setup
 
-1.  **Create Environment File:**
-    Create a `.env` file in this directory (`mcp-server-postgres`) and fill in your PostgreSQL connection details. You can use `.env.example` as a template.
+1. **Clone the Repository**:
+   ```bash
+   # path: /path/to/your/projects/
+   git clone <repository-url>
+   ```
 
-    ```dotenv
-    # .env
-    POSTGRES_HOST=your_db_host
-    POSTGRES_PORT=5432
-    POSTGRES_USER=your_db_user
-    POSTGRES_PASSWORD=your_db_password
-    POSTGRES_DATABASE_NAME=your_db_name
+2. **Create `.env` File based on `.env.example`**:
+   Create a `.env` file inside `./mcp-server-postgres/`. You must provide your PostgreSQL connection details.
+   ```dotenv
+   # Required PostgreSQL environment variables
+   POSTGRES_HOST="your_db_host"
+   POSTGRES_PORT=5432
+   POSTGRES_USER="your_db_user"
+   POSTGRES_PASSWORD="your_db_password"
+   POSTGRES_DATABASE_NAME="your_db_name"
+   ```
 
-    # Optional MCP server settings (used by __main__.py)
-    MCP_POSTGRES_HOST=0.0.0.0 # Host for the server process
-    MCP_POSTGRES_PORT=8000    # Port for the server process
-    MCP_POSTGRES_RELOAD=false # Enable Uvicorn auto-reload
-    MCP_POSTGRES_LOG_LEVEL=info # Log level for Uvicorn
-    ```
+3. **Install Dependencies**:
+   ```bash
+   # path: ./mcp-servers/mcp-server-postgres/
+   # Using UV (recommended)
+   uv sync
+   
+   # Or install for development
+   uv sync --group dev
+   ```
 
-2.  **Install Dependencies:**
-    It's recommended to use a virtual environment.
-    Navigate to the `mcp-server-postgres` directory in your terminal.
+## Running the Server
 
-    ```bash
-    # Using uv (recommended)
-    uv venv
-    source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-    # Install the project in editable mode, including dev dependencies
-    uv pip install -e .[dev]
+### Using Docker Compose (Recommended)
 
-    # Using pip + venv
-    # python -m venv .venv
-    # source .venv/bin/activate # or .venv\Scripts\activate on Windows
-    # pip install -e .[dev]
-    ```
-    *Note: The `-e .` command installs the current project (`mcp-server-postgres`) in editable mode. Due to the `pyproject.toml` configuration (`tool.hatch.build.sources`), this makes both the `mcp_server_postgres` package (containing `server.py`) and the `postgres_client` package (containing database logic) available for import.*
+From the root `mcp-servers` directory, you can run the service for production or development.
 
-3.  **Run the Server:**
-    Ensure your virtual environment is activated.
-    The server reads host/port from command-line arguments (or defaults) and reload/log settings from environment variables.
+```bash
+# path: ./mcp-servers
+# Run the production container
+docker compose up mcp_server_postgres
 
-    ```bash
-    # Run with default host (0.0.0.0) and port (8000)
-    python -m mcp_server_postgres
+# Run the development container with hot-reloading
+docker compose -f docker-compose.debug.yml up mcp_server_postgres
+```
 
-    # Run on a specific host/port
-    python -m mcp_server_postgres --host 127.0.0.1 --port 8001
-    ```
-    For development with auto-reload (reads `MCP_POSTGRES_RELOAD` from `.env` or environment):
-    ```bash
-    # Ensure MCP_POSTGRES_RELOAD=true is set in .env or exported
-    python -m mcp_server_postgres
-    ```
+### Locally
 
-## Usage
+```bash
+# path: ./mcp-servers/mcp-server-postgres/
+# Basic run
+uv run python -m mcp_server_postgres
 
-This server follows the MCP protocol. Communication typically happens via Server-Sent Events (SSE) on the `/sse` endpoint and message posting on `/messages/`, managed by the Starlette wrapper in `__main__.py`.
+# Or with custom port and host
+uv run python -m mcp_server_postgres --port 8000 --reload
+```
 
-Refer to the MCP documentation for client interaction details.
+### Using Docker (Standalone)
 
-**Available Tools (via `list_tools`):**
+```bash
+# path: ./mcp-servers/mcp-server-postgres/
+# Build the image
+docker build -t mcp-server-postgres .
 
-*   `get_character_by_name`:
-    *   Description: Retrieves a character record from the database based on its unique name.
-    *   Input Schema: `GetCharacterByNameRequest` (`{"name": "string"}`)
-    *   Output: `CharacterResponse` object or `TextContent` error/not found message.
+# Run the container
+docker run --rm -it -p 8000:8000 --env-file .env mcp-server-postgres
+```
 
-*Note: Direct HTTP access to tool endpoints is replaced by the MCP `call_tool` mechanism.*
+## Testing
 
-## Development
-
-*   **Linting/Formatting:** Use `ruff`, `black`, and `isort` (configured in `pyproject.toml`). Install dev dependencies (`uv pip install -e .[dev]`) and run:
-    ```bash
-    ruff format .
-    ruff check . --fix
-    ```
-*   **Testing:** Run tests using `pytest` (requires dev dependencies).
-*   **Dependencies:** Key dependencies include `mcp`, `starlette`, `uvicorn`, `sqlalchemy`, `asyncpg`, `pydantic-settings`, `python-dotenv`.
+```bash
+# path: ./mcp-servers/mcp-server-postgres/
+# Run all tests
+uv run pytest
+```
 
 ## Project Structure
 
 ```
- mcp-server-postgres/
- ├── mcp_server_postgres/      # Main application package (MCP server logic)
- │   ├── __init__.py
- │   └── server.py           # MCP Server definition, tools, lifespan
- ├── postgres_client/        # PostgreSQL client logic package
- │   ├── __init__.py
- │   ├── client.py           # Service class for DB operations (_PostgresService)
- │   ├── config.py           # Pydantic configuration (PostgresConfig)
- │   ├── database.py         # SQLAlchemy engine/session setup
- │   └── models/             # SQLAlchemy models
- │       ├── __init__.py
- │       ├── base_model.py   # Base for models
- │       └── character_model.py # Agent model
- ├── __main__.py             # Entry point (uvicorn + Starlette SSE wrapper)
- ├── .env.example            # Example environment variables
- ├── pyproject.toml          # Project metadata and dependencies (Hatch)
- └── README.md               # This file
+mcp-server-postgres/
+├── src/
+│   ├── mcp_server_postgres/
+│   │   ├── __init__.py
+│   │   └── server.py
+│   └── postgres_client/
+│       ├── __init__.py
+│       ├── client.py
+│       ├── config.py
+│       ├── database.py
+│       └── models/
+│           ├── __init__.py
+│           ├── base_model.py
+│           └── character_model.py
+├── __main__.py
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── LICENSE
+├── pyproject.toml
+└── README.md
 ```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+MIT
