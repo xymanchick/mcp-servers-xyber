@@ -17,7 +17,7 @@ from mcp_server_qdrant.qdrant import Entry, QdrantConnector, get_qdrant_connecto
 from mcp_server_qdrant.schemas import (
     QdrantStoreRequest,
     QdrantFindRequest,
-    QdrantGetCollectionRequest,
+    QdrantGetCollectionInfoRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -140,7 +140,7 @@ async def qdrant_find(
 @mcp_server.tool()
 async def qdrant_get_collection_info(
     ctx: Context,
-    request: QdrantGetCollectionRequest,
+    request: QdrantGetCollectionInfoRequest,
 ) -> CollectionInfo | dict[str, str]:
     """
     Retrieves detailed configuration and schema information for a specific Qdrant collection.
