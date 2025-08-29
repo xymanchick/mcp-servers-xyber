@@ -5,6 +5,14 @@ Shared test fixtures for mcp-server-twitter tests.
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 from fastmcp import Context
+from mcp_server_twitter.schemas import (
+    CreateTweetRequest,
+    GetUserTweetsRequest,
+    FollowUserRequest,
+    RetweetTweetRequest,
+    GetTrendsRequest,
+    SearchHashtagRequest,
+)
 
 
 class MockTwitterResponse:
@@ -17,6 +25,7 @@ class MockTweet:
     """Mock class for individual tweet objects."""
     def __init__(self, text):
         self.text = text
+        self.id = "mock_id_123" # Added a default ID for consistent behavior
 
 
 @pytest.fixture
@@ -35,17 +44,22 @@ def mock_context():
 @pytest.fixture
 def mock_twitter_response():
     """
-    Provides a MockTwitterResponse instance for testing.
+    Provides a mock for Twitter API responses, returning directly serializable data.
     """
-    return MockTwitterResponse
+    def _mock_response(data=None, errors=None):
+        response = {"data": data} if data is not None else {}
+        if errors is not None:
+            response["errors"] = errors
+        return response
+    return _mock_response
 
 
 @pytest.fixture
 def mock_tweet():
-    """
-    Provides a MockTweet class for creating tweet objects in tests.
-    """
-    return MockTweet
+    """Mock class for individual tweet objects as a dictionary."""
+    def _mock_tweet(text, id="mock_id_123"):
+        return {"text": text, "id": id}
+    return _mock_tweet
 
 
 @pytest.fixture
@@ -171,29 +185,26 @@ def mock_trends_response():
     """
     Provides a mock trends response for testing get_trends functionality.
     """
+    # Return directly a dictionary that is JSON serializable
     return {
-        "data": [
-            {"trend_name": "#TestTrend1"},
-            {"trend_name": "#TestTrend2"},
-            {"trend_name": "#TestTrend3"}
-        ]
+        "Egypt": ["#TestTrend1", "#TestTrend2"],
+        "USA": ["#TestTrend3"]
     }
 
 
 @pytest.fixture
 def mock_user_tweets_response():
     """
-    Provides a mock user tweets response.
+    Provides a mock user tweets response as a serializable list of dictionaries.
     """
-    response = MagicMock()
-    tweet1 = MagicMock()
-    tweet1.text = "First tweet"
-    tweet1.id = "1"
-    tweet2 = MagicMock()
-    tweet2.text = "Second tweet" 
-    tweet2.id = "2"
-    response.data = [tweet1, tweet2]
-    return response
+    def _mock_user_tweets(tweets_data):
+        # Expects a list of dictionaries like [{"text": "Tweet 1", "id": "1"}]
+        # or a list of strings if only text is needed.
+        # For compatibility with existing tests, if tweets_data are simple strings, convert them
+        if tweets_data and isinstance(tweets_data[0], str):
+            return [{"text": t, "id": f"id_{i}"} for i, t in enumerate(tweets_data)]
+        return tweets_data
+    return _mock_user_tweets
 
 
 @pytest.fixture  
@@ -320,14 +331,15 @@ def schema_factories():
     
     Each factory function accepts optional parameters to override defaults.
     """
-    from mcp_server_twitter.schemas import (
-        CreateTweetInput,
-        GetUserTweetsInput,
-        FollowUserInput,
-        RetweetTweetInput,
-        GetTrendsInput,
-        SearchHashtagInput,
-    )
+    # Removed explicit imports as they are already at the top
+    # from mcp_server_twitter.schemas import (
+    #     CreateTweetInput,
+    #     GetUserTweetsInput,
+    #     FollowUserInput,
+    #     RetweetTweetInput,
+    #     GetTrendsInput,
+    #     SearchHashtagInput,
+    # )
     
     def create_tweet_factory(
         text="Test tweet",
@@ -337,7 +349,7 @@ def schema_factories():
         in_reply_to_tweet_id=None,
         quote_tweet_id=None
     ):
-        return CreateTweetInput(
+        return CreateTweetRequest(
             text=text,
             image_content_str=image_content_str,
             poll_options=poll_options,
@@ -349,21 +361,21 @@ def schema_factories():
     def get_user_tweets_factory(user_ids=None, max_results=None):
         if user_ids is None:
             user_ids = ["test_user"]
-        return GetUserTweetsInput(user_ids=user_ids, max_results=max_results)
+        return GetUserTweetsRequest(user_ids=user_ids, max_results=max_results)
     
     def follow_user_factory(user_id="test_user"):
-        return FollowUserInput(user_id=user_id)
+        return FollowUserRequest(user_id=user_id)
     
     def retweet_factory(tweet_id="test_tweet_123"):
-        return RetweetTweetInput(tweet_id=tweet_id)
+        return RetweetTweetRequest(tweet_id=tweet_id)
     
     def get_trends_factory(countries=None, max_trends=None):
         if countries is None:
             countries = ["USA"]
-        return GetTrendsInput(countries=countries, max_trends=max_trends)
+        return GetTrendsRequest(countries=countries, max_trends=max_trends)
     
     def search_hashtag_factory(hashtag="#test", max_results=None):
-        return SearchHashtagInput(hashtag=hashtag, max_results=max_results)
+        return SearchHashtagRequest(hashtag=hashtag, max_results=max_results)
     
     return {
         "create_tweet": create_tweet_factory,

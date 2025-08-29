@@ -1,9 +1,8 @@
-
 import json
 import pytest
 import aiohttp
 import tenacity
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from mcp_server_weather.weather.config import WeatherConfig, WeatherApiError, WeatherClientError
 

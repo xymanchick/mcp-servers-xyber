@@ -1,15 +1,15 @@
 import pytest
 from mcp_server_twitter.schemas import (
-    CreateTweetInput,
-    FollowUserInput,
-    GetTrendsInput,
-    GetUserTweetsInput,
-    RetweetTweetInput,
-    SearchHashtagInput,
+    CreateTweetRequest,
+    FollowUserRequest,
+    GetTrendsRequest,
+    GetUserTweetsRequest,
+    RetweetTweetRequest,
+    SearchHashtagRequest,
 )
-from pydantic import ValidationError
+from pydantic_core import ValidationError as PydanticValidationError
 
-# === CreateTweetInput ===
+# === CreateTweetRequest ===
 
 
 def test_create_tweet_valid(common_test_data, schema_factories):
@@ -19,7 +19,7 @@ def test_create_tweet_valid(common_test_data, schema_factories):
         "poll_options": common_test_data["poll_options_min"],
         "poll_duration": common_test_data["standard_duration"],
     }
-    model = CreateTweetInput(**data)
+    model = CreateTweetRequest(**data)
     assert model.text == common_test_data["simple_text"]
     assert model.poll_options == common_test_data["poll_options_min"]
     assert model.poll_duration == common_test_data["standard_duration"]
@@ -27,7 +27,7 @@ def test_create_tweet_valid(common_test_data, schema_factories):
 
 def test_create_tweet_minimal(common_test_data):
     """Test creating tweet with only required field"""
-    model = CreateTweetInput(text=common_test_data["minimal_text"])
+    model = CreateTweetRequest(text=common_test_data["minimal_text"])
     assert model.text == common_test_data["minimal_text"]
     assert model.image_content_str is None
     assert model.poll_options is None
@@ -38,29 +38,30 @@ def test_create_tweet_minimal(common_test_data):
 
 def test_create_tweet_text_max_length(boundary_test_data):
     """Test tweet with maximum allowed length (280 chars)"""
-    model = CreateTweetInput(text=boundary_test_data["max_length_text"])
+    model = CreateTweetRequest(text=boundary_test_data["max_length_text"])
     assert model.text == boundary_test_data["max_length_text"]
 
 
 def test_create_tweet_text_too_long(boundary_test_data):
     """Test tweet exceeding maximum length"""
-    with pytest.raises(ValidationError) as exc_info:
-        CreateTweetInput(text=boundary_test_data["over_max_text"])
+    with pytest.raises(PydanticValidationError) as exc_info:
+        CreateTweetRequest(text=boundary_test_data["over_max_text"])
     assert "String should have at most 280 characters" in str(exc_info.value)
 
 
 def test_create_tweet_invalid_text_too_short(boundary_test_data, common_test_data):
-    with pytest.raises(ValidationError):
-        CreateTweetInput(
+    with pytest.raises(PydanticValidationError) as exc_info:
+        CreateTweetRequest(
             text=boundary_test_data["empty_text"], 
             poll_options=common_test_data["poll_options_min"], 
             poll_duration=common_test_data["standard_duration"]
         )
+    assert "String should have at least 1 character" in str(exc_info.value)
 
 
 def test_create_tweet_with_image(common_test_data):
     """Test creating tweet with image content"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text=common_test_data["image_text"],
         image_content_str=common_test_data["base64_image"]
     )
@@ -70,7 +71,7 @@ def test_create_tweet_with_image(common_test_data):
 
 def test_create_tweet_with_reply(common_test_data):
     """Test creating reply tweet"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text=common_test_data["reply_text"],
         in_reply_to_tweet_id=common_test_data["reply_tweet_id"]
     )
@@ -80,7 +81,7 @@ def test_create_tweet_with_reply(common_test_data):
 
 def test_create_tweet_with_quote(common_test_data):
     """Test creating quote tweet"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text=common_test_data["quote_text"],
         quote_tweet_id=common_test_data["quote_tweet_id"]
     )
@@ -90,7 +91,7 @@ def test_create_tweet_with_quote(common_test_data):
 
 def test_create_tweet_poll_options_min(common_test_data):
     """Test poll with minimum allowed options (2)"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text=common_test_data["poll_question"],
         poll_options=common_test_data["poll_options_long"],
         poll_duration=common_test_data["standard_duration"]
@@ -100,7 +101,7 @@ def test_create_tweet_poll_options_min(common_test_data):
 
 def test_create_tweet_poll_options_max(common_test_data):
     """Test poll with maximum allowed options (4)"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text=common_test_data["poll_question"],
         poll_options=common_test_data["poll_options_max"],
         poll_duration=common_test_data["standard_duration"]
@@ -109,8 +110,8 @@ def test_create_tweet_poll_options_max(common_test_data):
 
 
 def test_create_tweet_invalid_poll_options_too_few(common_test_data):
-    with pytest.raises(ValidationError):
-        CreateTweetInput(
+    with pytest.raises(PydanticValidationError):
+        CreateTweetRequest(
             text="Valid", 
             poll_options=common_test_data["poll_options_too_few"]
         )
@@ -118,18 +119,18 @@ def test_create_tweet_invalid_poll_options_too_few(common_test_data):
 
 def test_create_tweet_invalid_poll_options_too_many(common_test_data):
     """Test poll with too many options (>4)"""
-    with pytest.raises(ValidationError) as exc_info:
-        CreateTweetInput(
+    with pytest.raises(PydanticValidationError) as exc_info:
+        CreateTweetRequest(
             text=common_test_data["poll_question"],
             poll_options=common_test_data["poll_options_too_many"],
             poll_duration=common_test_data["standard_duration"]
         )
-    assert "List should have at most 4 items" in str(exc_info.value)
+    assert "poll_options must contain between 2 and 4 items" in str(exc_info.value)
 
 
 def test_create_tweet_poll_duration_min(common_test_data, schema_constants):
     """Test poll with minimum duration (5 minutes)"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text="Quick poll",
         poll_options=common_test_data["poll_options_yes_no"],
         poll_duration=schema_constants["min_poll_duration"]
@@ -139,7 +140,7 @@ def test_create_tweet_poll_duration_min(common_test_data, schema_constants):
 
 def test_create_tweet_poll_duration_max(common_test_data, schema_constants):
     """Test poll with maximum duration (10080 minutes = 1 week)"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text="Long poll",
         poll_options=common_test_data["poll_options_yes_no"],
         poll_duration=schema_constants["max_poll_duration"]
@@ -149,8 +150,8 @@ def test_create_tweet_poll_duration_max(common_test_data, schema_constants):
 
 def test_create_tweet_poll_duration_too_short(common_test_data, schema_constants):
     """Test poll with duration below minimum"""
-    with pytest.raises(ValidationError) as exc_info:
-        CreateTweetInput(
+    with pytest.raises(PydanticValidationError) as exc_info:
+        CreateTweetRequest(
             text="Poll",
             poll_options=common_test_data["poll_options_min"],
             poll_duration=schema_constants["under_min_poll_duration"]
@@ -160,8 +161,8 @@ def test_create_tweet_poll_duration_too_short(common_test_data, schema_constants
 
 def test_create_tweet_poll_duration_too_long(common_test_data, schema_constants):
     """Test poll with duration above maximum"""
-    with pytest.raises(ValidationError) as exc_info:
-        CreateTweetInput(
+    with pytest.raises(PydanticValidationError) as exc_info:
+        CreateTweetRequest(
             text="Poll",
             poll_options=common_test_data["poll_options_min"],
             poll_duration=schema_constants["over_max_poll_duration"]
@@ -171,7 +172,7 @@ def test_create_tweet_poll_duration_too_long(common_test_data, schema_constants)
 
 def test_create_tweet_poll_options_without_duration():
     """Test that poll options can be provided without duration (uses default)"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text="Poll without duration",
         poll_options=["Yes", "No"]
     )
@@ -179,39 +180,39 @@ def test_create_tweet_poll_options_without_duration():
     assert model.poll_duration is None
 
 
-# === GetUserTweetsInput ===
+# === GetUserTweetsRequest ===
 
 
 def test_get_user_tweets_valid(common_test_data):
-    model = GetUserTweetsInput(user_ids=["1", "2"], max_results=50)
+    model = GetUserTweetsRequest(user_ids=["1", "2"], max_results=50)
     assert model.max_results == 50
     assert model.user_ids == ["1", "2"]
 
 
 def test_get_user_tweets_default_max_results(common_test_data, schema_constants):
     """Test default max_results value"""
-    model = GetUserTweetsInput(user_ids=common_test_data["single_user_list"])
+    model = GetUserTweetsRequest(user_ids=common_test_data["single_user_list"])
     assert model.max_results == schema_constants["user_tweets_default"]
     assert model.user_ids == common_test_data["single_user_list"]
 
 
 def test_get_user_tweets_single_user(common_test_data):
     """Test with single user ID"""
-    model = GetUserTweetsInput(user_ids=common_test_data["single_user_list"], max_results=25)
+    model = GetUserTweetsRequest(user_ids=common_test_data["single_user_list"], max_results=25)
     assert len(model.user_ids) == 1
     assert model.user_ids[0] == common_test_data["user_id"]
 
 
 def test_get_user_tweets_multiple_users(common_test_data):
     """Test with multiple user IDs"""
-    model = GetUserTweetsInput(user_ids=common_test_data["multiple_users"], max_results=75)
+    model = GetUserTweetsRequest(user_ids=common_test_data["multiple_users"], max_results=75)
     assert model.user_ids == common_test_data["multiple_users"]
     assert len(model.user_ids) == 3
 
 
 def test_get_user_tweets_max_results_min(common_test_data, boundary_test_data):
     """Test with minimum max_results value (1)"""
-    model = GetUserTweetsInput(
+    model = GetUserTweetsRequest(
         user_ids=common_test_data["single_user_list"], 
         max_results=boundary_test_data["user_tweets_boundaries"]["min"]
     )
@@ -220,7 +221,7 @@ def test_get_user_tweets_max_results_min(common_test_data, boundary_test_data):
 
 def test_get_user_tweets_max_results_max(common_test_data, boundary_test_data):
     """Test with maximum max_results value (100)"""
-    model = GetUserTweetsInput(
+    model = GetUserTweetsRequest(
         user_ids=common_test_data["single_user_list"], 
         max_results=boundary_test_data["user_tweets_boundaries"]["max"]
     )
@@ -229,14 +230,14 @@ def test_get_user_tweets_max_results_max(common_test_data, boundary_test_data):
 
 def test_get_user_tweets_empty_user_ids(common_test_data):
     """Test with empty user_ids list"""
-    with pytest.raises(ValidationError) as exc_info:
-        GetUserTweetsInput(user_ids=common_test_data["empty_list"], max_results=10)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        GetUserTweetsRequest(user_ids=common_test_data["empty_list"], max_results=10)
     assert "List should have at least 1 item" in str(exc_info.value)
 
 
 def test_get_user_tweets_invalid_max_results(common_test_data, boundary_test_data):
-    with pytest.raises(ValidationError):
-        GetUserTweetsInput(
+    with pytest.raises(PydanticValidationError):
+        GetUserTweetsRequest(
             user_ids=common_test_data["single_user_list"], 
             max_results=boundary_test_data["user_tweets_boundaries"]["over_max"]
         )
@@ -244,92 +245,94 @@ def test_get_user_tweets_invalid_max_results(common_test_data, boundary_test_dat
 
 def test_get_user_tweets_max_results_zero():
     """Test with max_results = 0 (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        GetUserTweetsInput(user_ids=["user"], max_results=0)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        GetUserTweetsRequest(user_ids=["user"], max_results=0)
     assert "Input should be greater than or equal to 1" in str(exc_info.value)
 
 
 def test_get_user_tweets_max_results_negative():
     """Test with negative max_results (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        GetUserTweetsInput(user_ids=["user"], max_results=-5)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        GetUserTweetsRequest(user_ids=["user"], max_results=-5)
     assert "Input should be greater than or equal to 1" in str(exc_info.value)
 
 
-# === FollowUserInput ===
+# === FollowUserRequest ===
 
 
 def test_follow_user_valid(common_test_data):
-    model = FollowUserInput(user_id="abc")
+    model = FollowUserRequest(user_id="abc")
     assert model.user_id == "abc"
 
 
 def test_follow_user_numeric_id(common_test_data):
     """Test with numeric user ID as string"""
-    model = FollowUserInput(user_id=common_test_data["numeric_user_id"])
+    model = FollowUserRequest(user_id=common_test_data["numeric_user_id"])
     assert model.user_id == common_test_data["numeric_user_id"]
 
 
 def test_follow_user_alphanumeric_id(common_test_data):
     """Test with alphanumeric user ID"""
-    model = FollowUserInput(user_id=common_test_data["alphanumeric_user_id"])
+    model = FollowUserRequest(user_id=common_test_data["alphanumeric_user_id"])
     assert model.user_id == common_test_data["alphanumeric_user_id"]
 
 
 def test_follow_user_empty_user_id():
-    with pytest.raises(ValidationError):
-        FollowUserInput(user_id="")
+    with pytest.raises(PydanticValidationError) as exc_info:
+        FollowUserRequest(user_id="")
+    assert "String should have at least 1 character" in str(exc_info.value)
 
 
 def test_follow_user_whitespace_only():
     """Test with whitespace-only user_id (should be valid since it has length > 0)"""
-    model = FollowUserInput(user_id=" ")
+    model = FollowUserRequest(user_id=" ")
     assert model.user_id == " "
 
 
-# === RetweetTweetInput ===
+# === RetweetTweetRequest ===
 
 
 def test_retweet_valid():
-    model = RetweetTweetInput(tweet_id="xyz")
+    model = RetweetTweetRequest(tweet_id="xyz")
     assert model.tweet_id == "xyz"
 
 
 def test_retweet_numeric_id():
     """Test with numeric tweet ID"""
-    model = RetweetTweetInput(tweet_id="123456789012345678")
+    model = RetweetTweetRequest(tweet_id="123456789012345678")
     assert model.tweet_id == "123456789012345678"
 
 
 def test_retweet_alphanumeric_id():
     """Test with alphanumeric tweet ID"""
-    model = RetweetTweetInput(tweet_id="tweet_123_abc")
+    model = RetweetTweetRequest(tweet_id="tweet_123_abc")
     assert model.tweet_id == "tweet_123_abc"
 
 
 def test_retweet_invalid():
-    with pytest.raises(ValidationError):
-        RetweetTweetInput(tweet_id="")
+    with pytest.raises(PydanticValidationError) as exc_info:
+        RetweetTweetRequest(tweet_id="")
+    assert "String should have at least 1 character" in str(exc_info.value)
 
 
 def test_retweet_whitespace_only():
     """Test with whitespace-only tweet_id (should be valid since it has length > 0)"""
-    model = RetweetTweetInput(tweet_id=" ")
+    model = RetweetTweetRequest(tweet_id=" ")
     assert model.tweet_id == " "
 
 
-# === GetTrendsInput ===
+# === GetTrendsRequest ===
 
 
 def test_get_trends_valid():
-    model = GetTrendsInput(countries=["USA"], max_trends=5)
+    model = GetTrendsRequest(countries=["USA"], max_trends=5)
     assert model.max_trends == 5
     assert model.countries == ["USA"]
 
 
 def test_get_trends_default_max_trends():
     """Test default max_trends value"""
-    model = GetTrendsInput(countries=["Canada"])
+    model = GetTrendsRequest(countries=["Canada"])
     assert model.max_trends == 50
     assert model.countries == ["Canada"]
 
@@ -337,139 +340,139 @@ def test_get_trends_default_max_trends():
 def test_get_trends_multiple_countries():
     """Test with multiple countries"""
     countries = ["USA", "Canada", "UK", "France", "Germany"]
-    model = GetTrendsInput(countries=countries, max_trends=25)
+    model = GetTrendsRequest(countries=countries, max_trends=25)
     assert model.countries == countries
     assert len(model.countries) == 5
 
 
 def test_get_trends_max_trends_min():
     """Test with minimum max_trends value (1)"""
-    model = GetTrendsInput(countries=["USA"], max_trends=1)
+    model = GetTrendsRequest(countries=["USA"], max_trends=1)
     assert model.max_trends == 1
 
 
 def test_get_trends_max_trends_max():
     """Test with maximum max_trends value (50)"""
-    model = GetTrendsInput(countries=["USA"], max_trends=50)
+    model = GetTrendsRequest(countries=["USA"], max_trends=50)
     assert model.max_trends == 50
 
 
 def test_get_trends_empty_countries():
     """Test with empty countries list"""
-    with pytest.raises(ValidationError) as exc_info:
-        GetTrendsInput(countries=[], max_trends=10)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        GetTrendsRequest(countries=[], max_trends=10)
     assert "List should have at least 1 item" in str(exc_info.value)
 
 
 def test_get_trends_invalid():
-    with pytest.raises(ValidationError):
-        GetTrendsInput(countries="USA", max_trends=999)
+    with pytest.raises(PydanticValidationError):
+        GetTrendsRequest(countries="USA", max_trends=999)
 
 
 def test_get_trends_max_trends_zero():
     """Test with max_trends = 0 (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        GetTrendsInput(countries=["USA"], max_trends=0)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        GetTrendsRequest(countries=["USA"], max_trends=0)
     assert "Input should be greater than or equal to 1" in str(exc_info.value)
 
 
 def test_get_trends_max_trends_too_high():
     """Test with max_trends > 50 (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        GetTrendsInput(countries=["USA"], max_trends=51)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        GetTrendsRequest(countries=["USA"], max_trends=51)
     assert "Input should be less than or equal to 50" in str(exc_info.value)
 
 
 def test_get_trends_max_trends_negative():
     """Test with negative max_trends (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        GetTrendsInput(countries=["USA"], max_trends=-5)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        GetTrendsRequest(countries=["USA"], max_trends=-5)
     assert "Input should be greater than or equal to 1" in str(exc_info.value)
 
 
-# === SearchHashtagInput ===
+# === SearchHashtagRequest ===
 
 
 def test_search_hashtag_valid():
-    model = SearchHashtagInput(hashtag="#test", max_results=25)
+    model = SearchHashtagRequest(hashtag="#test", max_results=25)
     assert model.hashtag == "#test"
     assert model.max_results == 25
 
 
 def test_search_hashtag_without_hash():
     """Test hashtag without # symbol"""
-    model = SearchHashtagInput(hashtag="python", max_results=50)
+    model = SearchHashtagRequest(hashtag="python", max_results=50)
     assert model.hashtag == "python"
 
 
 def test_search_hashtag_default_max_results():
     """Test default max_results value"""
-    model = SearchHashtagInput(hashtag="#coding")
+    model = SearchHashtagRequest(hashtag="#coding")
     assert model.max_results == 10
     assert model.hashtag == "#coding"
 
 
 def test_search_hashtag_max_results_min():
     """Test with minimum max_results value (10)"""
-    model = SearchHashtagInput(hashtag="#test", max_results=10)
+    model = SearchHashtagRequest(hashtag="#test", max_results=10)
     assert model.max_results == 10
 
 
 def test_search_hashtag_max_results_max():
     """Test with maximum max_results value (100)"""
-    model = SearchHashtagInput(hashtag="#test", max_results=100)
+    model = SearchHashtagRequest(hashtag="#test", max_results=100)
     assert model.max_results == 100
 
 
 def test_search_hashtag_alphanumeric():
     """Test with alphanumeric hashtag"""
-    model = SearchHashtagInput(hashtag="#python3", max_results=20)
+    model = SearchHashtagRequest(hashtag="#python3", max_results=20)
     assert model.hashtag == "#python3"
 
 
 def test_search_hashtag_with_underscore():
     """Test hashtag with underscore"""
-    model = SearchHashtagInput(hashtag="#machine_learning", max_results=30)
+    model = SearchHashtagRequest(hashtag="#machine_learning", max_results=30)
     assert model.hashtag == "#machine_learning"
 
 
 def test_search_hashtag_empty():
     """Test with empty hashtag (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        SearchHashtagInput(hashtag="", max_results=10)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        SearchHashtagRequest(hashtag="", max_results=10)
     assert "String should have at least 1 character" in str(exc_info.value)
 
 
 def test_search_hashtag_invalid():
-    with pytest.raises(ValidationError):
-        SearchHashtagInput(hashtag="", max_results=200)
+    with pytest.raises(PydanticValidationError):
+        SearchHashtagRequest(hashtag="", max_results=200)
 
 
 def test_search_hashtag_max_results_too_low():
     """Test with max_results < 10 (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        SearchHashtagInput(hashtag="#test", max_results=5)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        SearchHashtagRequest(hashtag="#test", max_results=5)
     assert "Input should be greater than or equal to 10" in str(exc_info.value)
 
 
 def test_search_hashtag_max_results_too_high():
     """Test with max_results > 100 (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        SearchHashtagInput(hashtag="#test", max_results=101)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        SearchHashtagRequest(hashtag="#test", max_results=101)
     assert "Input should be less than or equal to 100" in str(exc_info.value)
 
 
 def test_search_hashtag_max_results_zero():
     """Test with max_results = 0 (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        SearchHashtagInput(hashtag="#test", max_results=0)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        SearchHashtagRequest(hashtag="#test", max_results=0)
     assert "Input should be greater than or equal to 10" in str(exc_info.value)
 
 
 def test_search_hashtag_max_results_negative():
     """Test with negative max_results (should fail)"""
-    with pytest.raises(ValidationError) as exc_info:
-        SearchHashtagInput(hashtag="#test", max_results=-1)
+    with pytest.raises(PydanticValidationError) as exc_info:
+        SearchHashtagRequest(hashtag="#test", max_results=-1)
     assert "Input should be greater than or equal to 10" in str(exc_info.value)
 
 
@@ -477,8 +480,8 @@ def test_search_hashtag_max_results_negative():
 
 
 def test_create_tweet_all_fields(common_test_data, schema_constants):
-    """Test CreateTweetInput with all fields populated"""
-    model = CreateTweetInput(
+    """Test CreateTweetRequest with all fields populated"""
+    model = CreateTweetRequest(
         text="This is a comprehensive tweet with all features!",
         image_content_str=common_test_data["base64_image"],
         poll_options=["Option 1", "Option 2", "Option 3"],
@@ -495,9 +498,9 @@ def test_create_tweet_all_fields(common_test_data, schema_constants):
 
 
 def test_create_tweet_edge_case_combinations(boundary_test_data):
-    """Test edge case combinations for CreateTweetInput"""
+    """Test edge case combinations for CreateTweetRequest"""
     # Maximum length text with minimum poll options and duration
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text=boundary_test_data["max_length_text"],
         poll_options=boundary_test_data["min_poll_data"]["options"],
         poll_duration=boundary_test_data["min_poll_data"]["duration"]
@@ -508,7 +511,7 @@ def test_create_tweet_edge_case_combinations(boundary_test_data):
 
 
 def test_create_tweet_boundary_values(schema_factories, boundary_test_data):
-    """Test boundary values for CreateTweetInput"""
+    """Test boundary values for CreateTweetRequest"""
     # Text exactly at boundary - using factory for convenience
     model = schema_factories["create_tweet"](text="X")  # Minimum length
     assert len(model.text) == 1
@@ -533,26 +536,26 @@ def test_create_tweet_boundary_values(schema_factories, boundary_test_data):
 def test_all_schemas_type_validation():
     """Test type validation across all schemas"""
     # Test that non-string values are rejected where strings are expected
-    with pytest.raises(ValidationError):
-        CreateTweetInput(text=123)  # Should be string
+    with pytest.raises(PydanticValidationError):
+        CreateTweetRequest(text=123)  # Should be string
     
-    with pytest.raises(ValidationError):
-        FollowUserInput(user_id=456)  # Should be string
+    with pytest.raises(PydanticValidationError):
+        FollowUserRequest(user_id=456)  # Should be string
     
-    with pytest.raises(ValidationError):
-        RetweetTweetInput(tweet_id=789)  # Should be string
+    with pytest.raises(PydanticValidationError):
+        RetweetTweetRequest(tweet_id=789)  # Should be string
     
     # Test that non-list values are rejected where lists are expected
-    with pytest.raises(ValidationError):
-        GetUserTweetsInput(user_ids="single_user")  # Should be list
+    with pytest.raises(PydanticValidationError):
+        GetUserTweetsRequest(user_ids="single_user")  # Should be list
     
-    with pytest.raises(ValidationError):
-        GetTrendsInput(countries="USA")  # Should be list
+    with pytest.raises(PydanticValidationError):
+        GetTrendsRequest(countries="USA")  # Should be list
 
 
 def test_optional_fields_none_values():
     """Test that optional fields can be explicitly set to None"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text="Test tweet",
         image_content_str=None,
         poll_options=None,
@@ -569,11 +572,11 @@ def test_optional_fields_none_values():
 
 def test_schema_string_representations():
     """Test that schemas have proper string representations"""
-    model = CreateTweetInput(text="Test")
+    model = CreateTweetRequest(text="Test")
     assert isinstance(str(model), str)
     assert isinstance(repr(model), str)
     
-    model2 = GetUserTweetsInput(user_ids=["123"])
+    model2 = GetUserTweetsRequest(user_ids=["123"])
     assert isinstance(str(model2), str)
     assert isinstance(repr(model2), str)
 
@@ -582,8 +585,8 @@ def test_schema_string_representations():
 
 
 def test_create_tweet_serialization():
-    """Test CreateTweetInput serialization and deserialization"""
-    original = CreateTweetInput(
+    """Test CreateTweetRequest serialization and deserialization"""
+    original = CreateTweetRequest(
         text="Test tweet",
         image_content_str="image_data",
         poll_options=["A", "B"],
@@ -598,7 +601,7 @@ def test_create_tweet_serialization():
     assert data["poll_duration"] == 60
     
     # Test reconstruction from dict
-    reconstructed = CreateTweetInput(**data)
+    reconstructed = CreateTweetRequest(**data)
     assert reconstructed.text == original.text
     assert reconstructed.image_content_str == original.image_content_str
     assert reconstructed.poll_options == original.poll_options
@@ -606,62 +609,62 @@ def test_create_tweet_serialization():
 
 
 def test_get_user_tweets_serialization():
-    """Test GetUserTweetsInput serialization"""
-    original = GetUserTweetsInput(user_ids=["1", "2", "3"], max_results=25)
+    """Test GetUserTweetsRequest serialization"""
+    original = GetUserTweetsRequest(user_ids=["1", "2", "3"], max_results=25)
     
     data = original.model_dump()
     assert data["user_ids"] == ["1", "2", "3"]
     assert data["max_results"] == 25
     
-    reconstructed = GetUserTweetsInput(**data)
+    reconstructed = GetUserTweetsRequest(**data)
     assert reconstructed.user_ids == original.user_ids
     assert reconstructed.max_results == original.max_results
 
 
 def test_follow_user_serialization():
-    """Test FollowUserInput serialization"""
-    original = FollowUserInput(user_id="test_user_123")
+    """Test FollowUserRequest serialization"""
+    original = FollowUserRequest(user_id="test_user_123")
     
     data = original.model_dump()
     assert data["user_id"] == "test_user_123"
     
-    reconstructed = FollowUserInput(**data)
+    reconstructed = FollowUserRequest(**data)
     assert reconstructed.user_id == original.user_id
 
 
 def test_retweet_serialization():
-    """Test RetweetTweetInput serialization"""
-    original = RetweetTweetInput(tweet_id="tweet_456")
+    """Test RetweetTweetRequest serialization"""
+    original = RetweetTweetRequest(tweet_id="tweet_456")
     
     data = original.model_dump()
     assert data["tweet_id"] == "tweet_456"
     
-    reconstructed = RetweetTweetInput(**data)
+    reconstructed = RetweetTweetRequest(**data)
     assert reconstructed.tweet_id == original.tweet_id
 
 
 def test_get_trends_serialization():
-    """Test GetTrendsInput serialization"""
-    original = GetTrendsInput(countries=["USA", "Canada"], max_trends=15)
+    """Test GetTrendsRequest serialization"""
+    original = GetTrendsRequest(countries=["USA", "Canada"], max_trends=15)
     
     data = original.model_dump()
     assert data["countries"] == ["USA", "Canada"]
     assert data["max_trends"] == 15
     
-    reconstructed = GetTrendsInput(**data)
+    reconstructed = GetTrendsRequest(**data)
     assert reconstructed.countries == original.countries
     assert reconstructed.max_trends == original.max_trends
 
 
 def test_search_hashtag_serialization():
-    """Test SearchHashtagInput serialization"""
-    original = SearchHashtagInput(hashtag="#python", max_results=75)
+    """Test SearchHashtagRequest serialization"""
+    original = SearchHashtagRequest(hashtag="#python", max_results=75)
     
     data = original.model_dump()
     assert data["hashtag"] == "#python"
     assert data["max_results"] == 75
     
-    reconstructed = SearchHashtagInput(**data)
+    reconstructed = SearchHashtagRequest(**data)
     assert reconstructed.hashtag == original.hashtag
     assert reconstructed.max_results == original.max_results
 
@@ -670,15 +673,15 @@ def test_search_hashtag_serialization():
 
 
 def test_create_tweet_unicode_text():
-    """Test CreateTweetInput with unicode characters"""
+    """Test CreateTweetRequest with unicode characters"""
     unicode_text = "Hello 🌍! This is a test with émojis and spécial chars ñ"
-    model = CreateTweetInput(text=unicode_text)
+    model = CreateTweetRequest(text=unicode_text)
     assert model.text == unicode_text
 
 
 def test_create_tweet_numeric_strings():
-    """Test CreateTweetInput with numeric strings in optional fields"""
-    model = CreateTweetInput(
+    """Test CreateTweetRequest with numeric strings in optional fields"""
+    model = CreateTweetRequest(
         text="Reply tweet",
         in_reply_to_tweet_id="123456789012345678",
         quote_tweet_id="987654321098765432"
@@ -690,7 +693,7 @@ def test_create_tweet_numeric_strings():
 def test_list_fields_immutability():
     """Test that list fields maintain their values correctly"""
     user_ids = ["user1", "user2", "user3"]
-    model = GetUserTweetsInput(user_ids=user_ids)
+    model = GetUserTweetsRequest(user_ids=user_ids)
     
     # Modifying original list shouldn't affect model
     user_ids.append("user4")
@@ -700,7 +703,7 @@ def test_list_fields_immutability():
 
 def test_poll_options_special_characters():
     """Test poll options with special characters"""
-    model = CreateTweetInput(
+    model = CreateTweetRequest(
         text="Poll with special chars",
         poll_options=["Option #1", "Choice & More", "2nd Option", "Final!"],
         poll_duration=120

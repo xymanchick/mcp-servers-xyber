@@ -227,23 +227,29 @@ class AsyncTwitterClient:
             poll_params = {}
             if poll_options:
                 logger.debug(f"Setting up poll with {len(poll_options)} options")
-                
-                if (len(poll_options) < 2 or len(poll_options) > self.config.poll_max_options):
-                    raise TwitterAPIError(
+
+                if (
+                    len(poll_options) < 2
+                    or len(poll_options) > self.config.poll_max_options
+                ):
+                    raise TwitterValidationError(
                         f"Poll must have 2-{self.config.poll_max_options} options",
                         context={
-                            'provided_options': len(poll_options),
-                            'max_allowed': self.config.poll_max_options
-                        }
+                            "provided_options": len(poll_options),
+                            "max_allowed": self.config.poll_max_options,
+                        },
                     )
-                    
-                if (not poll_duration or not 5 <= poll_duration <= self.config.poll_max_duration):
-                    raise TwitterAPIError(
+
+                if (
+                    not poll_duration
+                    or not 5 <= poll_duration <= self.config.poll_max_duration
+                ):
+                    raise TwitterValidationError(
                         f"Poll duration must be 5-{self.config.poll_max_duration} minutes",
                         context={
-                            'provided_duration': poll_duration,
-                            'max_allowed': self.config.poll_max_duration
-                        }
+                            "provided_duration": poll_duration,
+                            "max_allowed": self.config.poll_max_duration,
+                        },
                     )
 
                 poll_params = {

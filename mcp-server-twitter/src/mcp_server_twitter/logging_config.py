@@ -176,7 +176,14 @@ def log_retry_attempt(retry_state):
 
 def configure_logging():
     """Apply enhanced logging configuration."""
-    os.makedirs(os.path.dirname("mcp_twitter_server.log"), exist_ok=True)
+    # Ensure log directories exist
+    for handler_config in LOGGING_CONFIG.get("handlers", {}).values():
+        if "filename" in handler_config:
+            log_filename = handler_config["filename"]
+            log_dir = os.path.dirname(log_filename)
+            if log_dir:
+                os.makedirs(log_dir, exist_ok=True)
+
     dictConfig(LOGGING_CONFIG)
 
     logger = logging.getLogger("mcp_server_twitter.logging")

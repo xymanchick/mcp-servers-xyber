@@ -7,6 +7,7 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from mcp_server_twitter.twitter import AsyncTwitterClient, get_twitter_client
 from mcp_server_twitter.logging_config import get_logger
@@ -50,9 +51,9 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
     try:
         # Initialize Twitter client with timing
         async with async_operation_timer("twitter_client_init"):
-            logger.debug("Initializing Twitter client...")
+            logger.info("Lifespan: Initializing Twitter client...")
             twitter_client: AsyncTwitterClient = await get_twitter_client()
-            logger.info("Twitter client initialized successfully")
+            logger.info("Lifespan: Twitter client initialized successfully")
 
         # Log initial health status
         health_checker = get_health_checker()
@@ -93,7 +94,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
         metrics_collector = get_metrics_collector()
         metrics_collector.log_summary()
         
-        logger.info("Server shutdown completed")
+        logger.info("Lifespan: Shutdown cleanup completed")
 
 async def periodic_metrics_logging(interval_seconds: int):
     """Periodically log metrics summary."""
@@ -199,6 +200,9 @@ async def create_tweet(
     except TwitterMCPError as e:
         operation_logger.warning(f"A known Twitter MCP error occurred: {e.message}", extra={'error_code': e.error_code})
         raise ToolError(str(e)) from e
+    except ValidationError as e:
+        operation_logger.warning("Input validation failed", extra={'errors': e.errors()})
+        raise ToolError(f"Invalid input: {e}") from e
     except Exception as e:
         operation_logger.error(
             "An unexpected error occurred during tweet creation",
@@ -245,34 +249,37 @@ async def get_user_tweets(
             
             try:
                 async with async_operation_timer(
-                    f"get_user_tweets.user_{uid}", 
-                    context={'user_id': uid}
+                    f"get_user_tweets.user_{uid}", context={"user_id": uid}
                 ):
                     resp = await client.get_user_tweets(
                         user_id=uid, max_results=request.max_results
                     )
-                    
-                    if resp and resp.data:
-                        tweets_dict[uid] = [t.text for t in resp.data]
-                        user_logger.info(f"Retrieved {len(resp.data)} tweets for user {uid}")
+
+                    if resp and resp.get("data"):
+                        tweets_dict[uid] = [t["text"] for t in resp["data"]]
+                        user_logger.info(
+                            f"Retrieved {len(resp["data"])} tweets for user {uid}"
+                        )
                     else:
                         tweets_dict[uid] = []
                         user_logger.warning(f"No tweets found for user {uid}")
 
-            except TwitterMCPError as e:
-                operation_logger.error(
-                    "A known Twitter MCP error occurred during user tweets retrieval",
-                    extra={'error_type': type(e).__name__, 'error_code': e.error_code},
-                    exc_info=True
-                )
-                raise ToolError(f"Error retrieving tweets: {str(e)}") from e
             except Exception as e:
+                error_message = f"Error retrieving tweets for user {uid}: {e}"
                 operation_logger.error(
-                    "Unexpected error during user tweets retrieval",
-                    extra={'error_type': type(e).__name__},
-                    exc_info=True
+                    error_message,
+                    extra={"error_type": type(e).__name__},
+                    exc_info=True,
                 )
-                raise ToolError(f"An unexpected error occurred while retrieving tweets: {str(e)}") from e
+                if "401 Unauthorized" in str(e):
+                    tweets_dict[uid] = [f"Error: Unauthorized access. Twitter API permissions may be insufficient to read tweets for user {uid}"]
+                elif "403 Forbidden" in str(e):
+                    tweets_dict[uid] = [f"Error: Access forbidden for user {uid}. Account may be private or protected"]
+                elif "404 User Not Found" in str(e):
+                    tweets_dict[uid] = [f"Error: User {uid} not found or account is private/suspended"]
+                else:
+                    tweets_dict[uid] = [error_message]
+                continue
 
         operation_logger.info(
             "User tweets retrieval completed",
@@ -285,6 +292,9 @@ async def get_user_tweets(
         
         return json.dumps(tweets_dict, ensure_ascii=False, indent=2)
 
+    except ValidationError as e:
+        operation_logger.warning("Input validation failed", extra={'errors': e.errors()})
+        raise ToolError(f"Invalid input: {e}") from e
     except Exception as e:
         operation_logger.error(
             "Unexpected error during user tweets retrieval",
@@ -325,6 +335,9 @@ async def follow_user(ctx: Context, request: FollowUserRequest) -> str:
             exc_info=True
         )
         raise ToolError(f"Error following user {request.user_id}: {str(e)}") from e
+    except ValidationError as e:
+        operation_logger.warning("Input validation failed", extra={'errors': e.errors()})
+        raise ToolError(f"Invalid input: {e}") from e
     except Exception as e:
         operation_logger.error(
             f"Unexpected error following user {request.user_id}",
@@ -365,6 +378,9 @@ async def retweet_tweet(ctx: Context, request: RetweetTweetRequest) -> str:
             exc_info=True
         )
         raise ToolError(f"Error retweeting {request.tweet_id}: {str(e)}") from e
+    except ValidationError as e:
+        operation_logger.warning("Input validation failed", extra={'errors': e.errors()})
+        raise ToolError(f"Invalid input: {e}") from e
     except Exception as e:
         operation_logger.error(
             f"Unexpected error retweeting {request.tweet_id}",
@@ -405,7 +421,7 @@ async def get_trends(ctx: Context, request: GetTrendsRequest) -> str:
             "Trends retrieved successfully",
             extra={
                 'countries_processed': len(trends),
-                'total_trends': sum(len(country_trends) for country_trends in trends.values())
+                'total_trends': sum(len(country_trends) for country_trends in trends.values() if isinstance(country_trends, list))
             }
         )
         
@@ -418,6 +434,9 @@ async def get_trends(ctx: Context, request: GetTrendsRequest) -> str:
             exc_info=True
         )
         raise ToolError(f"Error retrieving trends: {str(e)}") from e
+    except ValidationError as e:
+        operation_logger.warning("Input validation failed", extra={'errors': e.errors()})
+        raise ToolError(f"Invalid input: {e}") from e
     except Exception as e:
         operation_logger.error(
             "Unexpected error while retrieving trends",
@@ -465,6 +484,9 @@ async def search_hashtag(ctx: Context, request: SearchHashtagRequest) -> str:
             exc_info=True
         )
         raise ToolError(f"Error searching hashtag: {str(e)}") from e
+    except ValidationError as e:
+        operation_logger.warning("Input validation failed", extra={'errors': e.errors()})
+        raise ToolError(f"Invalid input: {e}") from e
     except Exception as e:
         operation_logger.error(
             f"Unexpected error searching hashtag #{request.hashtag}",

@@ -52,7 +52,7 @@ class MetricsCollector:
         self.operations: Dict[str, OperationMetrics] = defaultdict(
             lambda: OperationMetrics(name="unknown")
         )
-        self._start_time = datetime.now(timezone.utc).isoformat()
+        self._start_time: datetime = datetime.now(timezone.utc)
         
     def record_operation(
         self, 
@@ -69,7 +69,7 @@ class MetricsCollector:
         metrics.min_duration_ms = min(metrics.min_duration_ms, duration_ms)
         metrics.max_duration_ms = max(metrics.max_duration_ms, duration_ms)
         metrics.recent_durations.append(duration_ms)
-        metrics.last_called = datetime.now(timezone.utc).isoformat()
+        metrics.last_called = datetime.now(timezone.utc)
         
         if success:
             metrics.success_count += 1
@@ -82,8 +82,9 @@ class MetricsCollector:
     
     def get_all_metrics(self) -> Dict[str, Dict[str, Any]]:
         """Get all collected metrics as a dictionary."""
+        now = datetime.now(timezone.utc)
         result = {
-            "server_uptime_seconds": (datetime.now(timezone.utc) - self._start_time).total_seconds(),
+            "server_uptime_seconds": (now - self._start_time).total_seconds(),
             "operations": {}
         }
         
@@ -205,15 +206,16 @@ def sync_timed(operation_name: str | None = None):
     return decorator
 
 class HealthChecker:
-    """Health check utilities for monitoring service health."""
-    
-    def __init__(self, metrics_collector: MetricsCollector):
-        self.metrics = metrics_collector
-    
+    """Manages the health status and uptime of the server."""
+
+    def __init__(self, metrics: MetricsCollector):
+        self.metrics = metrics
+        self._start_time: datetime = datetime.now(timezone.utc)
+
     def get_health_status(self) -> dict[str, Any]:
         """Get comprehensive health status."""
-        now = datetime.now(timezone.utc).isoformat()
-        uptime = (now - self.metrics._start_time).total_seconds()
+        now = datetime.now(timezone.utc)
+        uptime = (now - self._start_time).total_seconds()
         
         health_status = {
             "status": "healthy",

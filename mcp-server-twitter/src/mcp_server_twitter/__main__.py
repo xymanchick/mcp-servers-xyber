@@ -49,7 +49,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--reload",
-        action="store_true",
+        type=lambda v: v.lower() in ("true", "1", "t", "yes"),
         default=os.getenv("TWITTER_HOT_RELOAD", "false").lower()
         in ("true", "1", "t", "yes"),
         help="Enable hot reload (env: TWITTER_HOT_RELOAD)",
