@@ -14,16 +14,20 @@ dependencies = [
     "fastmcp>=2.3.4",
     "fastapi>=0.115.12",
     "pydantic>=2.9.0",
+    "pydantic-settings>=2.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest",
-    "pytest-asyncio>=0.23",
-    "httpx",
-    "ruff",
-    "black",
-    "isort",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.1",
+    "pytest-asyncio>=0.23.2",
+    "httpx>=0.25.0",
+    "ruff>=0.1.6",
+    "black>=23.11.0",
+    "isort>=5.12.0",
+    "aioresponses>=0.7.4", # For mocking async HTTP requests
 ]
 debug = [
     "debugpy>=1.8.0",
@@ -39,15 +43,64 @@ packages = ["src/mcp_server_hangman"]
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-select = ["E", "F", "I", "W", "C90", "N", "D"]
-ignore = ["D100", "D104", "D107", "D203", "D212"]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warnings
+    "C90", # mccabe complexity
+    "N",   # pep8-naming
+    "D",   # pydocstyle
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit
+]
+ignore = [
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D107", # Missing docstring in __init__
+    "D203", # 1 blank line required before class docstring
+    "D212", # Multi-line docstring summary should start at the first line
+    "S101", # Use of assert detected (common in tests)
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "build",
+    "dist",
+]
 
-[tool.black]
-line-length = 88
-target-version = ["py312"]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
 
-[tool.isort]
-profile = "black"
-line_length = 88
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["S101", "D"]  # Allow assert in tests, skip docstrings
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src/**/*.py"]
+exclude = ["tests/", "__pycache__/"]
+strict = true
+ignore_missing_imports = true
+show_error_codes = true
+warn_return_any = false
+warn_unused_ignores = true
+disallow_any_generics = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--disable-warnings",
+    "-v",
+]
 
 
