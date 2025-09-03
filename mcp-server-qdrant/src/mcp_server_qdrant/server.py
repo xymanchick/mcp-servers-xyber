@@ -103,7 +103,6 @@ async def qdrant_store(
 async def qdrant_find(
     ctx: Context,
     request: QdrantFindRequest,
-    filters: dict[str, Any] | None = None,
 ) -> list[ScoredPoint] | str:
     """
     Look up memories in Qdrant. Use this tool when you need to find memories by their content.
@@ -118,7 +117,7 @@ async def qdrant_find(
             request.query,
             collection_name=request.collection_name,
             limit=request.search_limit,
-            filters=filters,
+            filters=request.filters,
         )
 
         # Format response
