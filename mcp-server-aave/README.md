@@ -66,7 +66,7 @@ This MCP server integrates with the AAVE DeFi protocol to provide real-time data
 
 4. **Run the server**
    ```bash
-   uv run python -m mcp_server_weather
+   uv run python -m mcp_server_aave
    ```
 
 ## Configuration
@@ -76,10 +76,9 @@ This MCP server integrates with the AAVE DeFi protocol to provide real-time data
 ```bash
 # Blockchain Configuration
 AAVE_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/your-api-key
-AAVE_NETWORK=ethereum
 
 # API Configuration
-AAVE_API_BASE_URL=https://aave-api-v2.aave.com
+AAVE_API_BASE_URL=https://api.v3.aave.com/graphql
 AAVE_TIMEOUT_SECONDS=30
 AAVE_MAX_RETRIES=3
 
@@ -108,42 +107,14 @@ AAVE_MIN_HEALTH_FACTOR=1.1
 
 The server exposes both individual tools and a comprehensive tool for financial analysis:
 
-#### Individual Tools
-
-##### `get_pool_data`
-Get comprehensive AAVE pool data for a specific network.
-
-**Parameters:**
-- `network` (optional): Blockchain network (default: "ethereum")
-
-**Returns:** Pool data including reserves, APY, and market information
-
-##### `get_reserve_data`
-Get detailed reserve data for a specific asset.
-
-**Parameters:**
-- `asset_address`: Token contract address
-- `network` (optional): Blockchain network (default: "ethereum")
-
-**Returns:** Reserve data including APY, liquidity, and risk parameters
-
-##### `get_asset_risk_data`
-Get risk assessment data for a specific asset.
-
-**Parameters:**
-- `asset_address`: Token contract address
-- `network` (optional): Blockchain network (default: "ethereum")
-
-**Returns:** Risk metrics including volatility, correlation, and risk scores
-
 #### Comprehensive Tool
 
 ##### `get_comprehensive_aave_data`
 Get comprehensive AAVE DeFi protocol data for financial analysis and investment decisions.
 
 **Parameters:**
-- `network` (optional): Blockchain network (default: "ethereum")
-- `asset_address` (optional): Specific token contract address for detailed analysis
+- `network` (optional): Blockchain network. If not provided, data for all networks will be returned.
+- `asset_address` (optional): Specific token contract address for detailed analysis. Requires 'network'.
 
 **Returns:** ComprehensiveAaveData object with structured schema containing:
 - **pool_data**: Complete pool information with all reserves
@@ -160,9 +131,7 @@ Get comprehensive AAVE DeFi protocol data for financial analysis and investment 
 Summary of an asset's key metrics:
 - Token metadata (address, symbol, name)
 - APY rates (supply and borrow)
-- Risk parameters (LTV, liquidation threshold)
-- Market data (liquidity, debt)
-- Status flags (active, borrowing enabled, collateral enabled)
+- Market data (total supply, total debt)
 
 #### MarketOverview
 Market overview statistics:
@@ -184,9 +153,7 @@ Comprehensive AAVE data response:
 #### ReserveData
 Complete reserve information including:
 - Token metadata (name, symbol, decimals)
-- Risk parameters (LTV, liquidation thresholds)
 - Market data (APY rates, liquidity)
-- Status flags (active, frozen, borrowing enabled)
 
 #### PoolData
 Aggregated pool information:
@@ -210,35 +177,6 @@ Risk assessment metrics:
 
 ## Usage Examples
 
-### Individual Tools
-
-#### Basic Pool Data Retrieval
-```python
-# Get Ethereum pool data
-pool_data = await get_pool_data(network="ethereum")
-print(f"Found {len(pool_data.reserves)} reserves")
-```
-
-#### Asset-Specific Analysis
-```python
-# Get USDC reserve data
-usdc_data = await get_reserve_data(
-    asset_address="0xA0b86a33E6441b8c4C8C1d1Bc4C8C1d1Bc4C8C1d",
-    network="ethereum"
-)
-print(f"USDC Supply APY: {usdc_data.liquidity_rate}%")
-```
-
-#### Risk Assessment
-```python
-# Get risk data for an asset
-risk_data = await get_asset_risk_data(
-    asset_address="0xA0b86a33E6441b8c4C8C1d1Bc4C8C1d1Bc4C8C1d",
-    network="ethereum"
-)
-print(f"Risk Score: {risk_data.risk_score}/10")
-```
-
 ### Comprehensive Tool
 
 #### Get All AAVE Data for a Network
@@ -260,7 +198,7 @@ usdc_data = await get_comprehensive_aave_data(
     network="ethereum",
     asset_address="0xA0b86a33E6441b8c4C8C1d1Bc4C8C1d1Bc4C8C1d"
 )
-print(f"USDC Supply APY: {usdc_data.asset_details['liquidity_rate']}%")
+print(f"USDC Supply APY: {usdc_data.asset_details['supply_info']['apy']}%")
 print(f"Risk Score: {usdc_data.risk_metrics['risk_score']}/10")
 ```
 

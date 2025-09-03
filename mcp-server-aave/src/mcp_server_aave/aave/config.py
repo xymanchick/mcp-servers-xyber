@@ -59,10 +59,9 @@ class AaveConfig(BaseSettings):
     
     # Blockchain configuration
     rpc_url: str = "https://eth-mainnet.g.alchemy.com/v2/your-api-key"
-    network: Literal["ethereum", "polygon", "avalanche", "arbitrum", "optimism"] = "ethereum"
     
     # API configuration
-    api_base_url: str = "https://aave-api-v2.aave.com"
+    api_base_url: str = "https://api.v3.aave.com/graphql"
     timeout_seconds: int = 30
     max_retries: int = 3
     retry_delay: float = 1.0

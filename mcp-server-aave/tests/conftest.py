@@ -5,7 +5,17 @@ from unittest.mock import Mock, patch
 from decimal import Decimal
 
 from mcp_server_aave.aave.config import AaveConfig
-from mcp_server_aave.aave.models import ReserveData, PoolData, AssetData, RiskData
+from mcp_server_aave.aave.models import (
+    PoolData, 
+    ReserveData, 
+    AssetData, 
+    RiskData, 
+    UnderlyingToken, 
+    AToken, 
+    SupplyInfo, 
+    BorrowInfo, 
+    Chain
+)
 
 
 @pytest.fixture
@@ -32,46 +42,17 @@ def mock_aave_config():
 def sample_reserve_data():
     """Sample ReserveData instance for testing."""
     return ReserveData(
-        underlying_asset="0xA0b86a33E6441b8B4b8C8C8C8C8C8C8C8C8C8C8C",
-        name="USD Coin",
-        symbol="USDC",
-        decimals=6,
-        base_ltv_as_collateral=Decimal("0.85"),
-        reserve_liquidation_threshold=Decimal("0.88"),
-        reserve_liquidation_bonus=Decimal("0.05"),
-        reserve_factor=Decimal("0.10"),
-        usage_as_collateral_enabled=True,
-        borrowing_enabled=True,
-        is_active=True,
-        is_frozen=False,
-        liquidity_index=Decimal("1.0"),
-        variable_borrow_index=Decimal("1.0"),
-        liquidity_rate=Decimal("0.025"),  # 2.5% APY
-        variable_borrow_rate=Decimal("0.035"),  # 3.5% APY
-        last_update_timestamp=1640995200,
-        a_token_address="0xBcca60bB61934080951369a648Fb03DF4F96263C",
-        variable_debt_token_address="0x619beb58998eD2278e08520eEe2bD7eAe0c4c8C8",
-        interest_rate_strategy_address="0x8Cae0596bC1eD42dc3F04d90b0f2f1b0F1686830",
-        available_liquidity=Decimal("1000000000"),  # 1B USDC
-        total_scaled_variable_debt=Decimal("500000000"),  # 500M USDC
-        price_in_market_reference_currency=Decimal("1.0"),
-        price_oracle="0x13e3Ee699D1909E37AeEeD9570bF4e2Bd41AACC",
-        variable_rate_slope_1=Decimal("0.04"),
-        variable_rate_slope_2=Decimal("0.60"),
-        base_variable_borrow_rate=Decimal("0.01"),
-        optimal_usage_ratio=Decimal("0.80"),
-        is_paused=False,
-        is_siloed_borrowing=False,
-        accrued_to_treasury=Decimal("0"),
-        unbacked=Decimal("0"),
-        isolation_mode_total_debt=Decimal("0"),
-        flash_loan_enabled=True,
-        debt_ceiling=Decimal("0"),
-        debt_ceiling_decimals=0,
-        e_mode_category_id=0,
-        borrow_cap=Decimal("0"),
-        supply_cap=Decimal("0"),
-        borrowable_in_isolation=True,
+        underlyingToken=UnderlyingToken(
+            address="0xA0b86a33E6441b8B4b8C8C8C8C8C8C8C8C8C8C8C",
+            name="USD Coin",
+            symbol="USDC",
+            decimals=6,
+        ),
+        aToken=AToken(symbol="aUSDC"),
+        supplyInfo=SupplyInfo(apy=Decimal("0.025"), total=Decimal("1000000000")),
+        borrowInfo=BorrowInfo(apy=Decimal("0.035"), total=Decimal("500000000"), utilizationRate="0.50"),
+        usdExchangeRate=Decimal("1.0"),
+        isFrozen=False,
     )
 
 
@@ -79,18 +60,13 @@ def sample_reserve_data():
 def sample_pool_data(sample_reserve_data):
     """Sample PoolData instance for testing."""
     return PoolData(
-        network="ethereum",
-        base_currency_info={
-            "networkBaseTokenPrice": "1800",
-            "networkBaseTokenPriceDecimals": 8,
-            "marketReferenceCurrencyPrice": "1",
-            "marketReferenceCurrencyPriceDecimals": 8,
-        },
+        name="Ethereum Market",
+        address="0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",
+        chain=Chain(name="Ethereum", chainId=1),
+        icon="",
+        totalMarketSize=Decimal("2500000000"),
+        totalAvailableLiquidity=Decimal("5000000000"),
         reserves=[sample_reserve_data],
-        total_liquidity_usd=Decimal("5000000000"),  # 5B USD
-        total_variable_debt_usd=Decimal("2500000000"),  # 2.5B USD
-        total_stable_debt_usd=Decimal("500000000"),  # 500M USD
-        utilization_rate=Decimal("0.60"),  # 60%
     )
 
 
@@ -98,17 +74,17 @@ def sample_pool_data(sample_reserve_data):
 def sample_asset_data(sample_reserve_data):
     """Sample AssetData instance for testing."""
     return AssetData(
-        address=sample_reserve_data.underlying_asset,
-        symbol=sample_reserve_data.symbol,
-        name=sample_reserve_data.name,
-        decimals=sample_reserve_data.decimals,
+        address=sample_reserve_data.underlying_token.address,
+        symbol=sample_reserve_data.underlying_token.symbol,
+        name=sample_reserve_data.underlying_token.name,
+        decimals=sample_reserve_data.underlying_token.decimals,
         price_usd=Decimal("1.0"),
         market_cap=Decimal("50000000000"),  # 50B USD
         volume_24h=Decimal("1000000000"),  # 1B USD
-        supply_apy=sample_reserve_data.liquidity_rate,
-        borrow_apy=sample_reserve_data.variable_borrow_rate,
-        total_supply=sample_reserve_data.available_liquidity,
-        total_borrow=sample_reserve_data.total_scaled_variable_debt,
+        supply_apy=sample_reserve_data.supplyInfo.apy,
+        borrow_apy=sample_reserve_data.borrowInfo.apy,
+        total_supply=sample_reserve_data.supplyInfo.total,
+        total_borrow=sample_reserve_data.borrowInfo.total,
         utilization_rate=Decimal("0.50"),
         volatility=Decimal("0.15"),
         correlation_with_eth=Decimal("0.8"),
@@ -120,18 +96,18 @@ def sample_asset_data(sample_reserve_data):
 def sample_risk_data(sample_reserve_data):
     """Sample RiskData instance for testing."""
     return RiskData(
-        asset_address=sample_reserve_data.underlying_asset,
-        symbol=sample_reserve_data.symbol,
+        asset_address=sample_reserve_data.underlying_token.address,
+        symbol=sample_reserve_data.underlying_token.symbol,
         risk_score=5,
         volatility=Decimal("0.15"),
         correlation_with_eth=Decimal("0.8"),
         market_cap=Decimal("50000000000"),  # 50B USD
         liquidity_score=7,
         concentration_risk=Decimal("0.1"),
-        ltv_ratio=sample_reserve_data.base_ltv_as_collateral,
-        liquidation_threshold=sample_reserve_data.reserve_liquidation_threshold,
-        liquidation_bonus=sample_reserve_data.reserve_liquidation_bonus,
-        reserve_factor=sample_reserve_data.reserve_factor,
+        ltv_ratio=Decimal("0.85"), # Assuming a default ltv_ratio for this fixture
+        liquidation_threshold=Decimal("0.88"), # Assuming a default liquidation_threshold for this fixture
+        liquidation_bonus=Decimal("0.05"), # Assuming a default liquidation_bonus for this fixture
+        reserve_factor=Decimal("0.10"), # Assuming a default reserve_factor for this fixture
     )
 
 
