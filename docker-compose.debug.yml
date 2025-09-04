@@ -14,6 +14,23 @@ x-postgres-config: &postgres-config
   POSTGRES_DB: mcpdb
 
 services:
+
+  mcp_server_aave:
+    build:
+      context: ./mcp-server-aave
+      dockerfile: Dockerfile
+      target: dev
+    image: mcp_server_aave-debug
+    container_name: mcp_server_aave_debug
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5713", "--wait-for-client", "-m", "mcp_server_aave", "--port", "8000", "--reload"]
+    ports:
+      - "8005:8000"
+      - "5713:5713"
+    volumes:
+      - ./mcp-server-aave/src/mcp_server_aave:/app/mcp_server_aave:ro
+    #env_file: ./mcp-server-aave/.env
+    restart: unless-stopped
+    environment: {}
   mcp_server_weather:
     build:
       context: ./mcp-server-template
