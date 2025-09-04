@@ -7,37 +7,25 @@ from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import Field
 
-from mcp_server_aave.aave import (
-    AaveClient,
-    AaveError,
-    AaveApiError,
-    AaveClientError,
-    AaveContractError,
-    PoolData,
-    ReserveData,
-    RiskData,
-    get_aave_client,
-)
-
-from mcp_server_aave.schemas import (
-    AssetSummary,
-    MarketOverview,
-    ComprehensiveAaveData,
-    NetworkAaveData,
-)
+from mcp_server_aave.aave import (AaveApiError, AaveClient, AaveClientError,
+                                  AaveContractError, AaveError, PoolData,
+                                  ReserveData, RiskData, get_aave_client)
+from mcp_server_aave.schemas import (AssetSummary, ComprehensiveAaveData,
+                                     MarketOverview, NetworkAaveData)
 
 logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
     """Manage server startup/shutdown. Initializes required services.
-    
+
     Args:
         server: The FastMCP server instance
-        
+
     Yields:
         Dictionary with initialized services
-        
+
     Raises:
         AaveError: If service initialization fails
     """
@@ -69,7 +57,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 
         except Exception as e:
             logger.error(f"Error closing AAVE client: {e}")
-                
+
         logger.info("Lifespan: Shutdown cleanup completed")
 
 
@@ -79,7 +67,10 @@ mcp_server = FastMCP("aave-server", lifespan=app_lifespan)
 
 @mcp_server.tool()
 async def get_available_networks(ctx: Context) -> list[str]:
-    """Get a list of all available networks from the Aave API."""
+    """Return a list of supported Aave networks.
+
+    The list is sourced from the upstream Aave GraphQL API and may vary over time.
+    """
     aave_client = ctx.request_context.lifespan_context["aave_client"]
     try:
         return await aave_client.get_available_networks()
@@ -104,33 +95,42 @@ async def get_comprehensive_aave_data(
         ),
     ] = None,
 ) -> ComprehensiveAaveData:
-    """Get comprehensive AAVE DeFi protocol data for financial analysis and investment decisions.
-    
-    This tool provides all the data an agent needs to analyze AAVE investment opportunities.
-    It can fetch data for all networks, a specific network, or a specific asset on a network.
-    
-    Args:
-        network: Optional blockchain network. If None, returns data for all networks.
-        asset_address: Optional token address for detailed analysis. Requires 'network'.
-        
-    Returns:
-        A list of ComprehensiveAaveData objects, each containing data for a specific network.
-        
-    Raises:
-        ToolError: If data retrieval fails or inputs are invalid.
+    """Fetch a simplified Aave view for agents.
+
+    Returns a list of networks, each containing:
+      - an aggregated overview (liquidity, debt, utilization)
+      - a list of reserve summaries (APY, totals)
+
+    Optional filters:
+      - network: restricts to a single network (e.g. "ethereum")
+      - asset_address: restricts reserves to the specified token address
     """
     if asset_address and not network:
-        raise ToolError("The 'network' parameter is required when specifying an 'asset_address'.")
+        raise ToolError(
+            "The 'network' parameter is required when specifying an 'asset_address'."
+        )
 
     aave_client = ctx.request_context.lifespan_context["aave_client"]
-    
+
     try:
-        networks_to_query = [network] if network else await aave_client.get_available_networks()
-        chain_id_map = {"ethereum": 1, "polygon": 137, "avalanche": 43114, "arbitrum": 42161, "optimism": 10}
-        chain_ids = [chain_id_map.get(n.lower()) for n in networks_to_query if chain_id_map.get(n.lower())]
+        networks_to_query = (
+            [network] if network else await aave_client.get_available_networks()
+        )
+        chain_id_map = {
+            "ethereum": 1,
+            "polygon": 137,
+            "avalanche": 43114,
+            "arbitrum": 42161,
+            "optimism": 10,
+        }
+        chain_ids = [
+            chain_id_map.get(n.lower())
+            for n in networks_to_query
+            if chain_id_map.get(n.lower())
+        ]
 
         markets = await aave_client.get_markets_data(chain_ids=chain_ids)
-        
+
         all_network_data = []
 
         for market in markets:

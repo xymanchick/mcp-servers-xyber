@@ -1,21 +1,15 @@
 """Test fixtures for mcp-server-aave."""
+
 import json
-import pytest
-from unittest.mock import Mock, patch
 from decimal import Decimal
+from unittest.mock import Mock, patch
+
+import pytest
 
 from mcp_server_aave.aave.config import AaveConfig
-from mcp_server_aave.aave.models import (
-    PoolData, 
-    ReserveData, 
-    AssetData, 
-    RiskData, 
-    UnderlyingToken, 
-    AToken, 
-    SupplyInfo, 
-    BorrowInfo, 
-    Chain
-)
+from mcp_server_aave.aave.models import (AssetData, AToken, BorrowInfo, Chain,
+                                         PoolData, ReserveData, RiskData,
+                                         SupplyInfo, UnderlyingToken)
 
 
 @pytest.fixture
@@ -50,7 +44,9 @@ def sample_reserve_data():
         ),
         aToken=AToken(symbol="aUSDC"),
         supplyInfo=SupplyInfo(apy=Decimal("0.025"), total=Decimal("1000000000")),
-        borrowInfo=BorrowInfo(apy=Decimal("0.035"), total=Decimal("500000000"), utilizationRate="0.50"),
+        borrowInfo=BorrowInfo(
+            apy=Decimal("0.035"), total=Decimal("500000000"), utilizationRate="0.50"
+        ),
         usdExchangeRate=Decimal("1.0"),
         isFrozen=False,
     )
@@ -104,10 +100,16 @@ def sample_risk_data(sample_reserve_data):
         market_cap=Decimal("50000000000"),  # 50B USD
         liquidity_score=7,
         concentration_risk=Decimal("0.1"),
-        ltv_ratio=Decimal("0.85"), # Assuming a default ltv_ratio for this fixture
-        liquidation_threshold=Decimal("0.88"), # Assuming a default liquidation_threshold for this fixture
-        liquidation_bonus=Decimal("0.05"), # Assuming a default liquidation_bonus for this fixture
-        reserve_factor=Decimal("0.10"), # Assuming a default reserve_factor for this fixture
+        ltv_ratio=Decimal("0.85"),  # Assuming a default ltv_ratio for this fixture
+        liquidation_threshold=Decimal(
+            "0.88"
+        ),  # Assuming a default liquidation_threshold for this fixture
+        liquidation_bonus=Decimal(
+            "0.05"
+        ),  # Assuming a default liquidation_bonus for this fixture
+        reserve_factor=Decimal(
+            "0.10"
+        ),  # Assuming a default reserve_factor for this fixture
     )
 
 
@@ -175,26 +177,28 @@ def sample_aave_api_response():
 @pytest.fixture
 def mock_response():
     """Mock aiohttp.ClientResponse object."""
+
     class MockResponse:
         def __init__(self, json_data, status_code):
             self.json_data = json_data
             self.status_code = status_code
             self.text = json.dumps(json_data)
-            
+
         async def json(self):
             return self.json_data
-            
+
         async def text(self):
             return self.text
-            
+
         async def raise_for_status(self):
             if self.status_code != 200:
                 from aiohttp import ClientResponseError
+
                 raise ClientResponseError(
                     request_info=None,
                     history=None,
                     status=self.status_code,
-                    message=f"HTTP Error: {self.status_code}"
+                    message=f"HTTP Error: {self.status_code}",
                 )
-    
-    return MockResponse 
+
+    return MockResponse
