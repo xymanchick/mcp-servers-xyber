@@ -23,7 +23,7 @@ class ImageGenerationRequest(BaseModel):
     )
 
     seed: int | None = Field(
-        default=42,
+        default=0,
         ge=0,
         description="Seed for reproducible generation. Set to 0 for a random seed.",
     )
