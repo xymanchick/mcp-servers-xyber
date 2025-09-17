@@ -90,16 +90,16 @@ async def get_available_networks(ctx: Context) -> list[str]:
 @mcp_server.tool()
 async def get_comprehensive_aave_data(
     ctx: Context,
-    network: Annotated[
-        AAVE_NETWORKS | None,
+    networks: Annotated[
+        list[AAVE_NETWORKS] | None,
         Field(
-            description="Optional: Blockchain network to query. If not provided, data for all networks will be returned."
+            description="Optional: A list of blockchain networks to query. If not provided, data for all networks will be returned."
         ),
     ] = None,
-    asset_symbol: Annotated[
-        AAVE_ASSETS | None,
+    asset_symbols: Annotated[
+        list[AAVE_ASSETS] | None,
         Field(
-            description="Optional: Specific token symbol to get detailed data for. Requires 'network' to be specified."
+            description="Optional: A list of token symbols to get detailed data for."
         ),
     ] = None,
 ) -> ComprehensiveAaveData:
@@ -110,19 +110,14 @@ async def get_comprehensive_aave_data(
       - a list of reserve summaries (APY, totals)
 
     Optional filters:
-      - network: restricts to a single network (e.g. "ethereum")
-      - asset_symbol: restricts reserves to the specified token symbol
+      - networks: restricts to a list of networks (e.g. ["ethereum", "polygon"])
+      - asset_symbols: restricts reserves to the specified token symbols
     """
-    if asset_symbol and not network:
-        raise ToolError(
-            "The 'network' parameter is required when specifying an 'asset_symbol'."
-        )
-
     aave_client = ctx.request_context.lifespan_context["aave_client"]
 
     try:
         networks_to_query = (
-            [network] if network else await aave_client.get_available_networks()
+            networks if networks else await aave_client.get_available_networks()
         )
         chain_id_map = {
             "ethereum": 1,
@@ -143,16 +138,18 @@ async def get_comprehensive_aave_data(
 
         for market in markets:
             # Optional filtering by network name argument
-            if network and market.chain.name.lower() != network.lower():
+            if networks and market.chain.name.lower() not in [
+                n.lower() for n in networks
+            ]:
                 continue
 
             network_data = NetworkAaveData._from_pool_data(
                 pool=market,
-                asset_symbol=asset_symbol,
+                asset_symbols=asset_symbols,
             )
 
             # If asset filter was applied and this market has no reserves, skip
-            if asset_symbol and not network_data.reserves:
+            if asset_symbols and not network_data.reserves:
                 continue
 
             all_network_data.append(network_data)

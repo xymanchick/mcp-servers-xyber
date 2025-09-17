@@ -143,21 +143,24 @@ class NetworkAaveData(BaseModel):
     def _from_pool_data(
         cls,
         pool: PoolData,
-        asset_symbol: str | None = None,
+        asset_symbols: list[str] | None = None,
     ) -> "NetworkAaveData":
         """Construct a NetworkAaveData from a PoolData, with optional asset filtering."""
         # Filter reserves if asset specified
         filtered_reserves: list[ReserveData] = []
+        asset_symbols_lower = (
+            [s.lower() for s in asset_symbols] if asset_symbols else None
+        )
         for reserve in pool.reserves:
             if (
-                asset_symbol
-                and reserve.underlying_token.symbol.lower() != asset_symbol.lower()
+                asset_symbols_lower
+                and reserve.underlying_token.symbol.lower() not in asset_symbols_lower
             ):
                 continue
             filtered_reserves.append(reserve)
 
         # If an asset filter was given but no match, return an empty set for this market
-        if asset_symbol and not filtered_reserves:
+        if asset_symbols and not filtered_reserves:
             return cls(
                 network=pool.chain.name,
                 overview=MarketOverview(
