@@ -1,17 +1,25 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import Field
 
-from mcp_server_aave.aave import (AaveApiError, AaveClient, AaveClientError,
-                                  AaveContractError, AaveError, PoolData,
-                                  ReserveData, RiskData, get_aave_client)
-from mcp_server_aave.schemas import (AssetSummary, ComprehensiveAaveData,
-                                     MarketOverview, NetworkAaveData)
+from mcp_server_aave.aave import (
+    AaveApiError,
+    AaveClient,
+    AaveClientError,
+    AaveError,
+    get_aave_client,
+)
+from mcp_server_aave.schemas import (
+    AAVE_ASSETS,
+    AAVE_NETWORKS,
+    ComprehensiveAaveData,
+    NetworkAaveData,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -83,15 +91,15 @@ async def get_available_networks(ctx: Context) -> list[str]:
 async def get_comprehensive_aave_data(
     ctx: Context,
     network: Annotated[
-        str | None,
+        AAVE_NETWORKS | None,
         Field(
             description="Optional: Blockchain network to query. If not provided, data for all networks will be returned."
         ),
     ] = None,
-    asset_address: Annotated[
-        str | None,
+    asset_symbol: Annotated[
+        AAVE_ASSETS | None,
         Field(
-            description="Optional: Specific token contract address to get detailed data for. Requires 'network' to be specified."
+            description="Optional: Specific token symbol to get detailed data for. Requires 'network' to be specified."
         ),
     ] = None,
 ) -> ComprehensiveAaveData:
@@ -103,11 +111,11 @@ async def get_comprehensive_aave_data(
 
     Optional filters:
       - network: restricts to a single network (e.g. "ethereum")
-      - asset_address: restricts reserves to the specified token address
+      - asset_symbol: restricts reserves to the specified token symbol
     """
-    if asset_address and not network:
+    if asset_symbol and not network:
         raise ToolError(
-            "The 'network' parameter is required when specifying an 'asset_address'."
+            "The 'network' parameter is required when specifying an 'asset_symbol'."
         )
 
     aave_client = ctx.request_context.lifespan_context["aave_client"]
@@ -140,11 +148,11 @@ async def get_comprehensive_aave_data(
 
             network_data = NetworkAaveData._from_pool_data(
                 pool=market,
-                asset_address=asset_address,
+                asset_symbol=asset_symbol,
             )
 
             # If asset filter was applied and this market has no reserves, skip
-            if asset_address and not network_data.reserves:
+            if asset_symbol and not network_data.reserves:
                 continue
 
             all_network_data.append(network_data)

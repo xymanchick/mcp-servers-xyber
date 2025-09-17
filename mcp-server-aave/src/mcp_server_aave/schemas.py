@@ -1,7 +1,5 @@
-from typing import Any
-
+from typing import Any, Literal
 from pydantic import BaseModel, Field
-
 from mcp_server_aave.aave.models import PoolData, ReserveData
 
 # --- Output Schema Models --- #
@@ -34,6 +32,96 @@ class AssetSummary(BaseModel):
         )
 
 
+AAVE_NETWORKS = Literal[
+    "Arbitrum",
+    "Avalanche",
+    "BSC",
+    "Base",
+    "Base Sepolia",
+    "Celo",
+    "Ethereum",
+    "Gnosis",
+    "Linea",
+    "Metis",
+    "Optimism",
+    "Polygon",
+    "Scroll",
+    "Soneium",
+    "Sonic",
+    "zkSync",
+]
+
+AAVE_ASSETS = Literal[
+    "1INCH",
+    "AAVE",
+    "AAVE.e",
+    "ARB",
+    "AUSD",
+    "BAL",
+    "BTC.b",
+    "CRV",
+    "DAI",
+    "DAI.e",
+    "DPI",
+    "ENS",
+    "ETHx",
+    "EURA",
+    "EURC",
+    "EURS",
+    "FBTC",
+    "FRAX",
+    "FXS",
+    "GHST",
+    "GHO",
+    "JAAA",
+    "JTRSY",
+    "jEUR",
+    "KNC",
+    "LBTC",
+    "LDO",
+    "LINK",
+    "LINK.e",
+    "LUSD",
+    "MAI",
+    "MKR",
+    "MaticX",
+    "OP",
+    "PT-USDe-25SEP2025",
+    "PT-USDe-27NOV2025",
+    "PT-USDe-31JUL2025",
+    "PT-eUSDE-14AUG2025",
+    "PT-eUSDE-29MAY2025",
+    "PT-sUSDE-25SEP2025",
+    "PT-sUSDE-27NOV2025",
+    "PT-sUSDE-31JUL2025",
+    "PYUSD",
+    "RLUSD",
+    "RPL",
+    "SNX",
+    "STG",
+    "SUSHI",
+    "UNI",
+    "USCC",
+    "USDC",
+    "USDS",
+    "USDT",
+    "USDT0",
+    "USD₮0",
+    "USDe",
+    "USDt",
+    "USTB",
+    "USYC",
+    "WBTC",
+    "WBTC.e",
+    "WETH",
+    "WETH.e",
+    "WPOL",
+    "XAUt",
+    "cbBTC",
+    "cbETH",
+]
+
+
 class MarketOverview(BaseModel):
     """Market overview statistics."""
 
@@ -55,21 +143,21 @@ class NetworkAaveData(BaseModel):
     def _from_pool_data(
         cls,
         pool: PoolData,
-        asset_address: str | None = None,
+        asset_symbol: str | None = None,
     ) -> "NetworkAaveData":
         """Construct a NetworkAaveData from a PoolData, with optional asset filtering."""
         # Filter reserves if asset specified
         filtered_reserves: list[ReserveData] = []
         for reserve in pool.reserves:
             if (
-                asset_address
-                and reserve.underlying_token.address.lower() != asset_address.lower()
+                asset_symbol
+                and reserve.underlying_token.symbol.lower() != asset_symbol.lower()
             ):
                 continue
             filtered_reserves.append(reserve)
 
         # If an asset filter was given but no match, return an empty set for this market
-        if asset_address and not filtered_reserves:
+        if asset_symbol and not filtered_reserves:
             return cls(
                 network=pool.chain.name,
                 overview=MarketOverview(
