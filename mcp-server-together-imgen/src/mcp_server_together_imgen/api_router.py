@@ -31,7 +31,7 @@ async def generate_image(
             logger.info(f"Refined prompt: {request.prompt}")
 
         image_b64 = await together_client.generate_image_b64(request)
-        return Response(content=image_b64, media_type="image/png")
+        return Response(content=image_b64)
     except InvalidRequestError as e:
         logger.error(f"Upstream API request error: {e}")
         raise HTTPException(
