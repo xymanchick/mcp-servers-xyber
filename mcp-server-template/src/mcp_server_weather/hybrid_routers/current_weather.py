@@ -38,7 +38,8 @@ async def get_current_weather(
         alias=API_KEY_HEADER,
         description=(
             "OpenWeatherMap API key used to authorize this weather request. "
-            "This header is required for all calls that fetch live weather data."
+            "Optional: if not provided, the server will use WEATHER_API_KEY from environment. "
+            "If provided, this header takes precedence over the environment variable."
         ),
     ),
     weather_client: WeatherClient = Depends(get_weather_client),
@@ -49,27 +50,22 @@ async def get_current_weather(
     This endpoint is available to both REST API consumers and AI agents via MCP.
 
     Authentication / API key usage:
-    - Clients MUST provide a valid OpenWeatherMap API key via the
-      `Weather-Api-Key` HTTP header.
-    - If the header is missing or empty, the server responds with HTTP 400 and
-      the message "Weather-Api-Key header is required".
+    - Clients can provide an OpenWeatherMap API key via the optional
+      `Weather-Api-Key` HTTP header. If provided, this header takes precedence.
+    - Alternatively, the server can be configured with `WEATHER_API_KEY` environment
+      variable for server-side authentication.
+    - If neither the header nor the environment variable is set, the request will
+      fail with a 503 error indicating that no API key is available.
     - If the upstream provider rejects the key (e.g. 401), the error is
       translated into a 503 Service Unavailable response with a message like
       "OpenWeatherMap API HTTP error: 401".
     """
-    api_key = weather_api_key
-    if not api_key:
-        raise HTTPException(
-            status_code=400,
-            detail=f"{API_KEY_HEADER} header is required.",
-        )
-
     try:
         weather_data = await weather_client.get_weather(
             latitude=location.latitude,
             longitude=location.longitude,
             units=location.units,
-            api_key=api_key,
+            api_key=weather_api_key,
         )
         result = {
             "state": weather_data.state,

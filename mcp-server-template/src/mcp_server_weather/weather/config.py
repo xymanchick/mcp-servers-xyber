@@ -16,6 +16,7 @@ class WeatherConfig(BaseSettings):
     Configuration for the Weather service.
 
     Attributes:
+        api_key: OpenWeatherMap API key (optional, can be provided via header instead)
         timeout_seconds: Timeout for API requests in seconds
         enable_caching: Whether to enable caching of weather responses
         cache_ttl_seconds: Cache time-to-live in seconds
@@ -31,6 +32,7 @@ class WeatherConfig(BaseSettings):
         case_sensitive=False,  # Environment variables are case-insensitive
     )
 
+    api_key: str = ""
     timeout_seconds: int = 10
     enable_caching: bool = True
     cache_ttl_seconds: int = 300  # 5 minutes

@@ -157,10 +157,12 @@ async def test_close_closes_underlying_http_client(
 
 
 @pytest.mark.asyncio
-async def test_get_weather_raises_when_no_api_key_available(
+async def test_config_no_header_works(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Test that config API key works when no header is provided."""
     config = WeatherConfig(
+        api_key="config-api-key",
         timeout_seconds=1,
         enable_caching=False,
     )
@@ -169,7 +171,74 @@ async def test_get_weather_raises_when_no_api_key_available(
     http_client = MockWeatherHttpClient([MockHTTPResponse()])
     _attach_http_client(monkeypatch, weather_client, http_client)
 
-    with pytest.raises(WeatherClientError):
-        await weather_client.get_weather(LATITUDE, LONGITUDE, api_key="")
+    await weather_client.get_weather(LATITUDE, LONGITUDE)
 
+    assert len(http_client.calls) == 1
+    call = http_client.calls[0]
+    assert call["params"]["appid"] == "config-api-key"
+
+
+@pytest.mark.asyncio
+async def test_no_config_header_works(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that header API key works when no config is set."""
+    config = WeatherConfig(
+        api_key="",
+        timeout_seconds=1,
+        enable_caching=False,
+    )
+    weather_client = WeatherClient(config)
+
+    http_client = MockWeatherHttpClient([MockHTTPResponse()])
+    _attach_http_client(monkeypatch, weather_client, http_client)
+
+    await weather_client.get_weather(LATITUDE, LONGITUDE, api_key="header-api-key")
+
+    assert len(http_client.calls) == 1
+    call = http_client.calls[0]
+    assert call["params"]["appid"] == "header-api-key"
+
+
+@pytest.mark.asyncio
+async def test_no_config_no_header_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that request fails when neither config nor header provides an API key."""
+    config = WeatherConfig(
+        api_key="",
+        timeout_seconds=1,
+        enable_caching=False,
+    )
+    weather_client = WeatherClient(config)
+
+    http_client = MockWeatherHttpClient([MockHTTPResponse()])
+    _attach_http_client(monkeypatch, weather_client, http_client)
+
+    with pytest.raises(WeatherClientError) as exc_info:
+        await weather_client.get_weather(LATITUDE, LONGITUDE, api_key=None)
+
+    assert "not configured and was not provided" in str(exc_info.value)
     assert http_client.calls == []
+
+
+@pytest.mark.asyncio
+async def test_header_overrides_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that header API key takes precedence over config API key."""
+    config = WeatherConfig(
+        api_key="config-api-key",
+        timeout_seconds=1,
+        enable_caching=False,
+    )
+    weather_client = WeatherClient(config)
+
+    http_client = MockWeatherHttpClient([MockHTTPResponse()])
+    _attach_http_client(monkeypatch, weather_client, http_client)
+
+    await weather_client.get_weather(LATITUDE, LONGITUDE, api_key="header-api-key")
+
+    assert len(http_client.calls) == 1
+    call = http_client.calls[0]
+    assert call["params"]["appid"] == "header-api-key"

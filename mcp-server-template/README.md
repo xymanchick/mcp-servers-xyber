@@ -151,17 +151,38 @@ mcp-server-template/
 ## Authentication / API Key Usage
 
 For any endpoint that fetches live weather data from OpenWeatherMap (for example,
-`POST /hybrid/current`), clients **must** provide a valid API key via the
-`Weather-Api-Key` HTTP header.
+`POST /hybrid/current`), an API key must be provided via one of two methods:
 
-- The key should be an OpenWeatherMap API key associated with your own account.
-- The server does **not** read `WEATHER_API_KEY` from environment; authentication
-  is purely per-request via this header.
-- If the header is missing or empty, the server responds with **HTTP 400** and
-  a message like: `"Weather-Api-Key header is required"`.
-- If the upstream provider rejects the key (for example, a 401 Unauthorized
-  from OpenWeatherMap), the error is translated into a **503 Service
-  Unavailable** with a message such as:
+### Method 1: Request Header (Recommended for Multi-Tenant)
+
+Clients can provide an OpenWeatherMap API key via the optional `Weather-Api-Key` HTTP header.
+If provided, this header **takes precedence** over any server-side configuration.
+
+**Example:**
+```bash
+curl -X POST http://localhost:8000/hybrid/current \
+  -H "Weather-Api-Key: your-openweathermap-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"latitude": "51.5074", "longitude": "-0.1278"}'
+```
+
+### Method 2: Server-Side Configuration (Recommended for Single-Tenant)
+
+Set the `WEATHER_API_KEY` environment variable (or add it to your `.env` file) to configure
+a default API key at the server level. This is useful for internal deployments where all
+requests should use the same key.
+
+**Example `.env` file:**
+```bash
+WEATHER_API_KEY=your-openweathermap-api-key
+```
+
+### Error Handling
+
+- If **neither** the header nor the environment variable is set, the server responds with
+  **HTTP 503** and a message like: `"Weather API key is not configured and was not provided in the header."`
+- If the upstream provider rejects the key (for example, a 401 Unauthorized from OpenWeatherMap),
+  the error is translated into a **503 Service Unavailable** with a message such as:
   `"OpenWeatherMap API HTTP error: 401"`.
 
 Example `curl` call:

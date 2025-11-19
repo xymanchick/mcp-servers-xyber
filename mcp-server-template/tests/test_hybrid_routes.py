@@ -80,19 +80,22 @@ async def test_get_current_weather_uses_header_api_key() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_current_weather_missing_header_returns_400() -> None:
+async def test_get_current_weather_missing_header_uses_config() -> None:
+    """Test that missing header falls back to config API key."""
     request = LocationRequest(latitude="51.5074", longitude="-0.1278", units="metric")
     client = StubWeatherClient()
 
-    with pytest.raises(HTTPException) as exc:
-        await get_current_weather(
-            location=request,
-            weather_api_key="",
-            weather_client=client,
-        )
+    # When header is None, it should use config (if available)
+    # Since StubWeatherClient doesn't check config, this test verifies the endpoint
+    # passes None to the client, which will handle the fallback
+    result = await get_current_weather(
+        location=request,
+        weather_api_key=None,
+        weather_client=client,
+    )
 
-    assert exc.value.status_code == 400
-    assert API_KEY_HEADER in exc.value.detail
+    assert result == {"state": "clear", "temperature": "20C", "humidity": "40%"}
+    assert client.calls[0]["api_key"] is None
 
 
 @pytest.mark.asyncio

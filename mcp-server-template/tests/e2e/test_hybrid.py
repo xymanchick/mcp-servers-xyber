@@ -63,16 +63,24 @@ async def test_hybrid_current_via_rest(hybrid_rest_client) -> None:
 @pytest.mark.asyncio
 @pytest.mark.integration
 @pytest.mark.slow
-async def test_hybrid_current_via_rest_missing_header_returns_400(hybrid_rest_client):
+async def test_hybrid_current_via_rest_missing_header_falls_back_to_config(hybrid_rest_client):
+    """Test that missing header falls back to WEATHER_API_KEY config if available."""
     config, client = hybrid_rest_client
     payload = {"latitude": "51.5074", "longitude": "-0.1278"}
     response = await client.post(
         "/hybrid/current",
         json=payload,
     )
-    assert response.status_code == 400
-    body = response.json()
-    assert API_KEY_HEADER in body.get("detail", "")
+    # If server has WEATHER_API_KEY configured, should work (200)
+    # If not, should fail with 503
+    if response.status_code == 200:
+        body = response.json()
+        assert "state" in body and "temperature" in body and "humidity" in body
+    else:
+        # Server doesn't have config key, so should get 503
+        assert response.status_code == 503
+        body = response.json()
+        assert "not configured" in body.get("detail", "").lower() or "api key" in body.get("detail", "").lower()
 
 
 @pytest.mark.asyncio

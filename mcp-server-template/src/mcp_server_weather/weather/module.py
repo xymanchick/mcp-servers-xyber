@@ -107,6 +107,26 @@ class WeatherClient:
             )
         return self._client
 
+    def _resolve_api_key(self, api_key: str | None) -> str:
+        """
+        Resolve the effective API key, prioritizing the header-provided key.
+
+        Args:
+            api_key: Optional override supplied at call time (from header)
+
+        Returns:
+            The API key to use for outbound requests
+
+        Raises:
+            WeatherClientError: If no API key is available from either source
+        """
+        key = api_key or self.config.api_key
+        if not key:
+            raise WeatherClientError(
+                "Weather API key is not configured and was not provided in the header."
+            )
+        return key
+
     def _build_request_params(
         self,
         latitude: str,
@@ -204,39 +224,41 @@ class WeatherClient:
         self,
         latitude: str,
         longitude: str,
-        api_key: str,
+        api_key: str | None = None,
         units: Literal["metric", "imperial"] = "metric",
     ) -> WeatherData:
         """
         Get weather data for a location.
 
         Args:
-            latitude: Optional latitude override
-            longitude: Optional longitude override
+            latitude: Location latitude
+            longitude: Location longitude
+            api_key: Optional API key from request header (takes precedence over config)
+            units: Unit system for temperature
 
         Returns:
             WeatherData object with current weather information
 
         Raises:
             WeatherApiError: If the API request fails
-            WeatherClientError: For other unexpected errors
+            WeatherClientError: If no API key is available from header or config
 
         """
         # Use provided coordinates
         lat = latitude
         lon = longitude
 
-        if not api_key:
-            raise WeatherClientError("Weather API key header is required.")
+        # Resolve API key: header takes precedence over config
+        effective_api_key = self._resolve_api_key(api_key)
 
         # Try to get from cache first
-        cache_key = self._get_cache_key(lat, lon, units, api_key)
+        cache_key = self._get_cache_key(lat, lon, units, effective_api_key)
         cached_data = self._get_from_cache(cache_key)
         if cached_data:
             return cached_data
 
         # Build request parameters
-        params = self._build_request_params(lat, lon, units, api_key)
+        params = self._build_request_params(lat, lon, units, effective_api_key)
 
         try:
             logger.info(f"Fetching weather data for coordinates: {lat}, {lon}")
