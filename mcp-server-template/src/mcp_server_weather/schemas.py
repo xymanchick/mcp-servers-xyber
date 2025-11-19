@@ -1,5 +1,12 @@
-from pydantic import BaseModel, Field
+"""
+This module should be changed to match the request and response shapes of your own MCP tools and REST endpoints, while keeping the pattern of small, focused Pydantic models.
+
+Main responsibility: Define shared Pydantic schemas for input and output payloads used across routers and tools.
+"""
+
 from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class LocationRequest(BaseModel):
