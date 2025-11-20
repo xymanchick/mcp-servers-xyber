@@ -26,3 +26,28 @@ class LocationRequest(BaseModel):
         default=None,
         description="Unit system for temperature and other measures: 'metric' or 'imperial'. Defaults to configuration.",
     )
+
+
+class WeatherResponse(BaseModel):
+    """Response model for weather data."""
+
+    state: str = Field(description="Weather state/condition description")
+    temperature: str = Field(description="Temperature with unit suffix (e.g., '25C' or '77F')")
+    humidity: str = Field(description="Humidity percentage (e.g., '65%')")
+
+
+class ForecastDayResponse(BaseModel):
+    """Response model for a single day in a weather forecast."""
+
+    day: int = Field(description="Day number (1-indexed)")
+    condition: str = Field(description="Weather condition for the day")
+    high: int = Field(description="High temperature")
+    low: int = Field(description="Low temperature")
+
+
+class ForecastResponse(BaseModel):
+    """Response model for weather forecast data."""
+
+    location: str = Field(description="Location name")
+    days: int = Field(description="Number of forecast days")
+    forecast: list[ForecastDayResponse] = Field(description="List of daily forecast data")

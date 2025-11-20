@@ -11,7 +11,7 @@ import logging
 from fastapi import APIRouter, Depends, Header, HTTPException
 
 from mcp_server_weather.dependencies import get_weather_client
-from mcp_server_weather.schemas import LocationRequest
+from mcp_server_weather.schemas import LocationRequest, WeatherResponse
 from mcp_server_weather.weather import (
     WeatherApiError,
     WeatherClient,
@@ -30,6 +30,7 @@ API_KEY_HEADER = "Weather-Api-Key"
     # machine-readable name for this endpoint and is used for both MCP tool
     # generation and the dynamic pricing system. It must be unique.
     operation_id="get_current_weather",
+    response_model=WeatherResponse,
 )
 async def get_current_weather(
     location: LocationRequest,
@@ -43,7 +44,7 @@ async def get_current_weather(
         ),
     ),
     weather_client: WeatherClient = Depends(get_weather_client),
-) -> dict[str, str]:
+) -> WeatherResponse:
     """
     Retrieves current weather data for a specified location.
 
@@ -67,11 +68,11 @@ async def get_current_weather(
             units=location.units,
             api_key=weather_api_key,
         )
-        result = {
-            "state": weather_data.state,
-            "temperature": str(weather_data.temperature),
-            "humidity": str(weather_data.humidity),
-        }
+        result = WeatherResponse(
+            state=weather_data.state,
+            temperature=str(weather_data.temperature),
+            humidity=str(weather_data.humidity),
+        )
         logger.info(f"Successfully retrieved weather data: {result}")
         return result
     except (WeatherApiError, WeatherClientError) as e:

@@ -8,7 +8,6 @@ from httpx import ASGITransport, AsyncClient
 from mcp_server_weather.dependencies import get_weather_client
 from mcp_server_weather.hybrid_routers.current_weather import (
     API_KEY_HEADER,
-    LocationRequest,
     get_current_weather,
 )
 from mcp_server_weather.hybrid_routers.current_weather import (
@@ -19,6 +18,11 @@ from mcp_server_weather.hybrid_routers.forecast import (
 )
 from mcp_server_weather.hybrid_routers.forecast import (
     router as forecast_router,
+)
+from mcp_server_weather.schemas import (
+    ForecastResponse,
+    LocationRequest,
+    WeatherResponse,
 )
 from mcp_server_weather.weather.models import WeatherData
 
@@ -59,7 +63,10 @@ async def test_get_current_weather_returns_serialised_weather(
         weather_client=client,
     )
 
-    assert result == {"state": "clear", "temperature": "20C", "humidity": "40%"}
+    assert isinstance(result, WeatherResponse)
+    assert result.state == "clear"
+    assert result.temperature == "20C"
+    assert result.humidity == "40%"
     assert client.calls[0]["api_key"] == "test-header-key"
 
 
@@ -75,7 +82,10 @@ async def test_get_current_weather_uses_header_api_key() -> None:
         weather_client=client,
     )
 
-    assert result == {"state": "clear", "temperature": "20C", "humidity": "40%"}
+    assert isinstance(result, WeatherResponse)
+    assert result.state == "clear"
+    assert result.temperature == "20C"
+    assert result.humidity == "40%"
     assert client.calls[0]["api_key"] == api_key
 
 
@@ -94,7 +104,10 @@ async def test_get_current_weather_missing_header_uses_config() -> None:
         weather_client=client,
     )
 
-    assert result == {"state": "clear", "temperature": "20C", "humidity": "40%"}
+    assert isinstance(result, WeatherResponse)
+    assert result.state == "clear"
+    assert result.temperature == "20C"
+    assert result.humidity == "40%"
     assert client.calls[0]["api_key"] is None
 
 
@@ -103,9 +116,10 @@ async def test_get_weather_forecast_returns_forecast_payload() -> None:
     client = StubWeatherClient()
     payload = await get_weather_forecast(days=3, weather_client=client)
 
-    assert payload["location"] == "Sample City"
-    assert payload["days"] == 3
-    assert len(payload["forecast"]) == 3
+    assert isinstance(payload, ForecastResponse)
+    assert payload.location == "Sample City"
+    assert payload.days == 3
+    assert len(payload.forecast) == 3
 
 
 @pytest_asyncio.fixture

@@ -18,6 +18,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from mcp_server_weather.dependencies import get_weather_client
+from mcp_server_weather.schemas import ForecastDayResponse, ForecastResponse
 from mcp_server_weather.weather import WeatherClient
 
 logger = logging.getLogger(__name__)
@@ -31,11 +32,12 @@ router = APIRouter()
     # and the dynamic pricing configuration in `config.py` to identify this
     # specific endpoint for payment. It must be unique across all endpoints.
     operation_id="get_weather_forecast",
+    response_model=ForecastResponse,
 )
 async def get_weather_forecast(
     days: Annotated[int, Query(ge=1, le=14)] = 7,
     weather_client: WeatherClient = Depends(get_weather_client),
-) -> dict:
+) -> ForecastResponse:
     """
     Retrieves a multi-day weather forecast.
 
@@ -46,11 +48,12 @@ async def get_weather_forecast(
     logger.info(f"Paid forecast endpoint called for {days} days.")
     # In a real implementation, you would use the weather_client to fetch
     # forecast data. This is a simplified example.
-    return {
-        "location": "Sample City",
-        "days": days,
-        "forecast": [
-            {"day": i + 1, "condition": "Sunny", "high": 75, "low": 60}
+    result = ForecastResponse(
+        location="Sample City",
+        days=days,
+        forecast=[
+            ForecastDayResponse(day=i + 1, condition="Sunny", high=75, low=60)
             for i in range(days)
         ],
-    }
+    )
+    return result
