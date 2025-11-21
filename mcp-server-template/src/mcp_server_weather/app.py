@@ -119,8 +119,12 @@ def create_app() -> FastAPI:
     x402_settings = get_x402_settings()
     x402_settings.validate_against_routes(all_routes)
 
-    # --- Middleware Configuration ---
-    app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
+    # --- Middleware Configuration ---    
+    if x402_settings.pricing_mode == "on":
+        app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
+        logger.info("x402 payment middleware enabled.")
+    else:
+        logger.info("x402 payment middleware disabled (pricing_mode='off').")
 
     logger.info("Application setup complete.")
     return app
