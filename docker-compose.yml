@@ -14,43 +14,17 @@ x-postgres-config: &postgres-config
 
 services:
 
-  mcp_server_telegram:
+  mcp_server_arxiv:
     build:
-      context: ./mcp-server-telegram
+      context: ./mcp-server-arxiv
       dockerfile: Dockerfile
-    image: mcp_server_telegram
-    container_name: mcp_server_telegram
-    command: ["python", "-m", "mcp_server_telegram", "--port", "8000"]
+    image: mcp_server_arxiv
+    container_name: mcp_server_arxiv
+    command: ["python", "-m", "mcp_server_arxiv", "--port", "8100"]
     ports:
-      - "8007:8000"
+      - "8100:8100"
     env_file:
-      - ./mcp-server-telegram/.env
-    restart: unless-stopped
-
-  mcp_server_youtube:
-    build:
-      context: ./mcp-server-youtube
-      dockerfile: Dockerfile
-    image: mcp_server_youtube
-    container_name: mcp_server_youtube
-    command: ["python", "-m", "mcp_server_youtube", "--port", "8000"]
-    ports:
-      - "8009:8000"
-    env_file:
-      - ./mcp-server-youtube/.env
-    restart: unless-stopped
-
-  mcp_server_imgen:
-    build:
-      context: ./mcp-server-imgen
-      dockerfile: Dockerfile
-    image: mcp_server_imgen
-    container_name: mcp_server_imgen
-    command: ["python", "-m", "mcp_server_imgen", "--port", "8000"]
-    ports:
-      - "8003:8000"
-    env_file:
-      - ./mcp-server-imgen/.env
+      - ./mcp-server-arxiv/.env
     restart: unless-stopped
 
   mcp_server_cartesia:
@@ -59,65 +33,24 @@ services:
       dockerfile: Dockerfile
     image: mcp_server_cartesia
     container_name: mcp_server_cartesia
-    command: ["python", "-m", "mcp_server_cartesia", "--port", "8000"]
+    command: ["python", "-m", "mcp_server_cartesia", "--port", "8101"]
     ports:
-      - "8002:8000"
+      - "8101:8101"
     env_file:
       - ./mcp-server-cartesia/.env
     restart: unless-stopped
 
-  mcp_server_tavily:
+  mcp_server_imgen:
     build:
-      context: ./mcp-server-tavily
+      context: ./mcp-server-imgen
       dockerfile: Dockerfile
-    image: mcp_server_tavily
-    container_name: mcp_server_tavily
-    command: ["python", "-m", "mcp_server_tavily", "--port", "8000"]
+    image: mcp_server_imgen
+    container_name: mcp_server_imgen
+    command: ["python", "-m", "mcp_server_imgen", "--port", "8102"]
     ports:
-      - "8006:8000"
+      - "8102:8102"
     env_file:
-      - ./mcp-server-tavily/.env
-    restart: unless-stopped
-
-  mcp_server_arxiv:
-    build:
-      context: ./mcp-server-arxiv
-      dockerfile: Dockerfile
-    image: mcp_server_arxiv
-    container_name: mcp_server_arxiv
-    command: ["python", "-m", "mcp_server_arxiv", "--port", "8000"]
-    ports:
-      - "8001:8000"
-    env_file:
-      - ./mcp-server-arxiv/.env
-    restart: unless-stopped
-
-  mcp_server_qdrant:
-    build:
-      context: ./mcp-server-qdrant
-      dockerfile: Dockerfile
-    image: mcp_server_qdrant
-    container_name: mcp_server_qdrant
-    command: ["python", "-m", "mcp_server_qdrant", "--port", "8000"]
-    ports:
-      - "8005:8000"
-    env_file:
-      - ./mcp-server-qdrant/.env
-    depends_on:
-      - qdrant
-    restart: unless-stopped
-
-  mcp_server_twitter:
-    build:
-      context: ./mcp-server-twitter
-      dockerfile: Dockerfile
-    image: mcp_server_twitter
-    container_name: mcp_server_twitter
-    command: ["python", "-m", "mcp_server_twitter", "--port", "8000"]
-    ports:
-      - "8008:8000"
-    env_file:
-      - ./mcp-server-twitter/.env
+      - ./mcp-server-imgen/.env
     restart: unless-stopped
 
   mcp_server_postgres:
@@ -126,24 +59,26 @@ services:
       dockerfile: Dockerfile
     image: mcp_server_postgres
     container_name: mcp_server_postgres
-    command: ["python", "-m", "mcp_server_postgres", "--port", "8000"]
+    command: ["python", "-m", "mcp_server_postgres", "--port", "8103"]
     ports:
-      - "8004:8000"
+      - "8103:8103"
     env_file:
       - ./mcp-server-postgres/.env
     restart: unless-stopped
 
-  mcp_server_weather:
+  mcp_server_qdrant:
     build:
-      context: ./mcp-server-template
+      context: ./mcp-server-qdrant
       dockerfile: Dockerfile
-    image: mcp_server_weather
-    container_name: mcp_server_weather
-    command: ["python", "-m", "mcp_server_weather", "--port", "8000"]
+    image: mcp_server_qdrant
+    container_name: mcp_server_qdrant
+    command: ["python", "-m", "mcp_server_qdrant", "--port", "8104"]
     ports:
-      - "8006:8000"
+      - "8104:8104"
     env_file:
-      - ./mcp-server-template/.env
+      - ./mcp-server-qdrant/.env
+    depends_on:
+      - qdrant
     restart: unless-stopped
 
   mcp_server_stability:
@@ -152,11 +87,37 @@ services:
       dockerfile: Dockerfile
     image: mcp_server_stability
     container_name: mcp_server_stability
-    command: ["python", "-m", "mcp_server_stable_diffusion", "--port", "8000"]
+    command: ["python", "-m", "mcp_server_stable_diffusion", "--port", "8105"]
     ports:
-      - "8007:8000"
+      - "8105:8105"
     env_file:
       - ./mcp-server-stability/.env
+    restart: unless-stopped
+
+  mcp_server_tavily:
+    build:
+      context: ./mcp-server-tavily
+      dockerfile: Dockerfile
+    image: mcp_server_tavily
+    container_name: mcp_server_tavily
+    command: ["python", "-m", "mcp_server_tavily", "--port", "8106"]
+    ports:
+      - "8106:8106"
+    env_file:
+      - ./mcp-server-tavily/.env
+    restart: unless-stopped
+
+  mcp_server_telegram:
+    build:
+      context: ./mcp-server-telegram
+      dockerfile: Dockerfile
+    image: mcp_server_telegram
+    container_name: mcp_server_telegram
+    command: ["python", "-m", "mcp_server_telegram", "--port", "8107"]
+    ports:
+      - "8107:8107"
+    env_file:
+      - ./mcp-server-telegram/.env
     restart: unless-stopped
 
   mcp_server_together_imgen:
@@ -165,11 +126,50 @@ services:
       dockerfile: Dockerfile
     image: mcp_server_together_imgen
     container_name: mcp_server_together_imgen
-    command: ["python", "-m", "mcp_server_together_imgen", "--port", "8000"]
+    command: ["python", "-m", "mcp_server_together_imgen", "--port", "8108"]
     ports:
-      - "8016:8000"
+      - "8108:8108"
     env_file:
       - ./mcp-server-together-imgen/.env
+    restart: unless-stopped
+
+  mcp_server_twitter:
+    build:
+      context: ./mcp-server-twitter
+      dockerfile: Dockerfile
+    image: mcp_server_twitter
+    container_name: mcp_server_twitter
+    command: ["python", "-m", "mcp_server_twitter", "--port", "8109"]
+    ports:
+      - "8109:8109"
+    env_file:
+      - ./mcp-server-twitter/.env
+    restart: unless-stopped
+
+  mcp_server_weather:
+    build:
+      context: ./mcp-server-template
+      dockerfile: Dockerfile
+    image: mcp_server_weather
+    container_name: mcp_server_weather
+    command: ["python", "-m", "mcp_server_weather", "--port", "8110"]
+    ports:
+      - "8110:8110"
+    env_file:
+      - ./mcp-server-template/.env
+    restart: unless-stopped
+
+  mcp_server_youtube:
+    build:
+      context: ./mcp-server-youtube
+      dockerfile: Dockerfile
+    image: mcp_server_youtube
+    container_name: mcp_server_youtube
+    command: ["python", "-m", "mcp_server_youtube", "--port", "8111"]
+    ports:
+      - "8111:8111"
+    env_file:
+      - ./mcp-server-youtube/.env
     restart: unless-stopped
 
   qdrant:
