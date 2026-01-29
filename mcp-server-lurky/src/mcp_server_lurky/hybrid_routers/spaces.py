@@ -70,10 +70,13 @@ async def perform_get_space_details(
     discussions = await client.get_space_discussions(space_id)
     details.discussions = discussions
     
-    # 3. Save to cache
-    db.save_space(details.model_dump())
+    # 3. Normalize to SpaceDetailsSchema for consistent response shape
+    details_schema = SpaceDetailsSchema(**details.model_dump())
     
-    return details
+    # 4. Save to cache
+    db.save_space(details_schema.model_dump())
+    
+    return details_schema
 
 
 async def perform_get_latest_summaries(
