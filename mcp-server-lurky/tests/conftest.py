@@ -130,11 +130,6 @@ def client(app: FastAPI) -> TestClient:
 @pytest.fixture(autouse=True)
 def set_test_database_url(monkeypatch):
     """Set test database URL for all tests."""
-    # Use test database URL from env, or default to a test database
-    test_db_url = os.getenv(
-        "TEST_DATABASE_URL",
-        "postgresql://postgres:postgres@localhost:5432/lurky_test"
-    )
     # Set individual DB env vars for DatabaseConfig
     monkeypatch.setenv("DB_NAME", "lurky_test")
     monkeypatch.setenv("DB_USER", "postgres")

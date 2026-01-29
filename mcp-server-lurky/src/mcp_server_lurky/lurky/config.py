@@ -1,5 +1,9 @@
+import logging
 from functools import lru_cache
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class LurkyServiceConfig(BaseSettings):
@@ -18,6 +22,15 @@ class LurkyServiceConfig(BaseSettings):
     api_key: str = ""
     base_url: str = "https://api.lurky.app"
     timeout_seconds: int = 30
+
+    @field_validator("api_key")
+    @classmethod
+    def validate_api_key(cls, v: str) -> str:
+        if not v:
+            logger.warning(
+                "LURKY_API_KEY is not set. Requests to the Lurky API will fail with 401 errors."
+            )
+        return v
 
 
 @lru_cache(maxsize=1)

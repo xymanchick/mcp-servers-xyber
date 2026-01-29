@@ -6,7 +6,6 @@
 
 # Output files from code fetcher
 code_output.json
-*.json
 code_fetcher.py
 
 #help documents

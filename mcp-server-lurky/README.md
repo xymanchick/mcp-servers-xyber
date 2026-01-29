@@ -44,16 +44,6 @@ An MCP (Model Context Protocol) server for searching and parsing Twitter Spaces 
 
 ## Usage
 
-### Running the Server
-
-Start the FastAPI/MCP server:
-
-```bash
-uv run python -m mcp_server_lurky
-```
-
-The server will be available at `http://0.0.0.0:8000`.
-
 ### MCP Integration
 
 The MCP server is mounted at `http://0.0.0.0:8000/mcp`. You can use it with any MCP-compatible client.
@@ -83,7 +73,7 @@ MCP_LURKY_X402_CDP_API_KEY_ID=your_cdp_id
 MCP_LURKY_X402_CDP_API_KEY_SECRET=your_cdp_secret
 ```
 
-## Running the Server
+### Running the Server
 
 You can run the server in two ways:
 
@@ -125,7 +115,7 @@ uv run --python 3.12 python -m mcp_server_lurky
 ```
 
 The server will be available at:
-- **API**: `http://localhost:8000`
+- **API**: `http://0.0.0.0:8000` (or `http://localhost:8000` for local access)
 - **API Docs**: `http://localhost:8000/docs`
 - **MCP Endpoint**: `http://localhost:8000/mcp/`
 

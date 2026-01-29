@@ -228,8 +228,8 @@ async def test_mcp_get_space_details(base_url: str, mcp_session: str):
             arguments={"space_id": "1lPJqvbWNPZxb"},
         )
         
-        # Accept both 200 and error responses (since space might not exist)
-        assert response.status_code in [200, 404, 500], f"Unexpected status code: {response.status_code}"
+        # Accept both 200 and error responses (since space might not exist or require auth/payment)
+        assert response.status_code in [200, 401, 402, 403, 404, 429, 500], f"Unexpected status code: {response.status_code}"
         
         result = parse_sse_response(response.text)
         assert "result" in result
@@ -253,8 +253,8 @@ async def test_mcp_get_latest_summaries(base_url: str, mcp_session: str):
             arguments={"topic": "test", "count": 2},
         )
         
-        # Accept both 200 and error responses
-        assert response.status_code in [200, 500], f"Unexpected status code: {response.status_code}"
+        # Accept both 200 and error responses (may require auth/payment)
+        assert response.status_code in [200, 401, 402, 403, 404, 429, 500], f"Unexpected status code: {response.status_code}"
         
         result = parse_sse_response(response.text)
         assert "result" in result
