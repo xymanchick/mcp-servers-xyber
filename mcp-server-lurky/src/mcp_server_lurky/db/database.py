@@ -48,9 +48,42 @@ class DatabaseManager:
         try:
             Base.metadata.create_all(self.engine)
             logger.info("Database tables created/verified")
+            # Run migrations to update existing tables
+            self._migrate_tables()
         except Exception as e:
             logger.error(f"Error creating database tables: {e}")
             raise
+
+    def _migrate_tables(self):
+        """Migrate existing tables to match current model definitions."""
+        try:
+            with self.engine.begin() as conn:
+                # Check if lurky_discussions table exists and if started_at is Integer
+                result = conn.execute(text("""
+                    SELECT data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'lurky_discussions' 
+                    AND column_name = 'started_at'
+                """))
+                row = result.fetchone()
+                
+                if row and row[0] == 'integer':
+                    logger.info("Migrating lurky_discussions.started_at from INTEGER to TIMESTAMP...")
+                    # Convert integer timestamps to timestamps, handling NULL values
+                    # Note: PostgreSQL to_timestamp expects seconds, but our data might be milliseconds
+                    conn.execute(text("""
+                        ALTER TABLE lurky_discussions 
+                        ALTER COLUMN started_at TYPE TIMESTAMP USING 
+                        CASE 
+                            WHEN started_at IS NULL THEN NULL
+                            ELSE to_timestamp(started_at / 1000.0)
+                        END
+                    """))
+                    logger.info("Migration completed: started_at column updated to TIMESTAMP")
+        except Exception as e:
+            # If migration fails, log warning but don't fail startup
+            # The column might not exist yet or might already be the correct type
+            logger.debug(f"Migration check completed (or not needed): {e}")
 
     def get_session(self) -> Session:
         return self.SessionLocal()
@@ -106,9 +139,18 @@ class DatabaseManager:
             # Add new discussions (even if empty list, this clears stale data)
             if discussions_data:
                 for d_data in discussions_data:
+                    # Convert timestamp fields from epoch milliseconds to datetime
                     d_ts = d_data.get("timestamp")
                     if isinstance(d_ts, (int, float)):
                         d_data["timestamp"] = datetime.fromtimestamp(d_ts / 1000, tz=timezone.utc)
+                    
+                    # Convert started_at if present (should be epoch milliseconds)
+                    d_started_at = d_data.get("started_at")
+                    if isinstance(d_started_at, (int, float)):
+                        d_data["started_at"] = datetime.fromtimestamp(d_started_at / 1000, tz=timezone.utc)
+                    elif d_started_at is None:
+                        # Ensure None is explicitly set
+                        d_data["started_at"] = None
                     
                     d_data["space_id"] = space_id
                     # Remove keys that don't match model
