@@ -83,13 +83,145 @@ MCP_LURKY_X402_CDP_API_KEY_ID=your_cdp_id
 MCP_LURKY_X402_CDP_API_KEY_SECRET=your_cdp_secret
 ```
 
-## Docker
+## Running the Server
 
-You can run the server using Docker:
+You can run the server in two ways:
+
+### Option 1: Docker (Recommended for Production)
+
+See the [Docker](#docker) section below for instructions on running in Docker.
+
+### Option 2: Local Development
+
+### Using the Start Script (Recommended for Local)
+
+The easiest way to start the server locally is using the provided script:
 
 ```bash
+# Make sure scripts are executable
+chmod +x scripts/*.sh
+
+# Start the server (will automatically start PostgreSQL if needed)
+./scripts/start-server.sh
+```
+
+The script will:
+- Check if PostgreSQL is running and start it if needed
+- Start the server on `http://localhost:8000`
+- Display API docs and MCP endpoint URLs
+
+### Manual Start
+
+Start PostgreSQL first (if not already running):
+
+```bash
+./scripts/start_db.sh
+```
+
+Then start the server:
+
+```bash
+uv run --python 3.12 python -m mcp_server_lurky
+```
+
+The server will be available at:
+- **API**: `http://localhost:8000`
+- **API Docs**: `http://localhost:8000/docs`
+- **MCP Endpoint**: `http://localhost:8000/mcp/`
+
+## Docker
+
+### Using the Docker Start Script (Recommended)
+
+The easiest way to run the server in Docker:
+
+```bash
+# Make sure scripts are executable
+chmod +x scripts/*.sh
+
+# Start the server in Docker (will build image if needed)
+./scripts/start-docker.sh
+
+# Rebuild and restart
+./scripts/start-docker.sh --rebuild
+
+# Restart on a different port
+./scripts/start-docker.sh --restart --port 8001
+```
+
+The script will:
+- Check if Docker is running
+- Build the Docker image if it doesn't exist
+- Start PostgreSQL container if needed
+- Create a Docker network for container communication
+- Start the server container with proper configuration
+- Show logs automatically
+
+**Available options:**
+- `--restart` - Stop and restart the container
+- `--rebuild` - Rebuild the Docker image and restart
+- `--port PORT` - Specify a custom port (default: 8000)
+- `--container-name NAME` - Custom container name
+- `--image-name NAME` - Custom image name
+- `--help` - Show help message
+
+### Manual Docker Commands
+
+You can also run Docker commands manually:
+
+```bash
+# Build the image
 docker build -t mcp-server-lurky .
-docker run -p 8000:8000 --env-file .env mcp-server-lurky
+
+# Run the container
+docker run -d \
+  --name mcp-server-lurky \
+  -p 8000:8000 \
+  --env-file .env \
+  --restart unless-stopped \
+  mcp-server-lurky
+
+# View logs
+docker logs -f mcp-server-lurky
+
+# Stop the container
+docker stop mcp-server-lurky
+
+# Remove the container
+docker rm mcp-server-lurky
+```
+
+### Docker Compose
+
+If you have Docker Compose available in the parent directory:
+
+```bash
+docker-compose up mcp-server-lurky
+```
+
+## Testing
+
+Run tests using pytest:
+
+```bash
+# Install test dependencies
+uv sync --group dev
+
+# Run all tests
+uv run pytest
+
+# Run specific test files
+uv run pytest tests/test_api_routers.py
+uv run pytest tests/test_mcp_tools.py
+
+# Run with coverage
+uv run pytest --cov=mcp_server_lurky --cov-report=html
+```
+
+**Note**: MCP integration tests (`test_mcp_tools.py`) require a running server. Start the server first, then run:
+
+```bash
+uv run pytest tests/test_mcp_tools.py -m integration
 ```
 
 ## License
