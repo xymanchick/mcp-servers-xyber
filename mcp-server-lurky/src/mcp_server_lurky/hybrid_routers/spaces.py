@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 
 from mcp_server_lurky.dependencies import get_lurky_client, get_db
 from mcp_server_lurky.lurky.module import LurkyClient
+from mcp_server_lurky.lurky.errors import LurkyAuthError, LurkyNotFoundError, LurkyAPIError
 from mcp_server_lurky.schemas import SpaceDetailsSchema, SearchResponseSchema
 
 router = APIRouter(tags=["Spaces"])
@@ -194,8 +195,12 @@ async def search_spaces(
     """Search for discussions based on a keyword."""
     try:
         return await perform_search_spaces(q, limit, page, client)
+    except LurkyAuthError as e:
+        raise HTTPException(status_code=401, detail="Invalid API key") from e
+    except LurkyAPIError as e:
+        raise HTTPException(status_code=e.status_code or 502, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/spaces/{space_id}", response_model=SpaceDetailsSchema, operation_id="lurky_get_space_details")
@@ -207,8 +212,14 @@ async def get_space_details(
     """Get full details and summary for a specific Space ID."""
     try:
         return await perform_get_space_details(space_id, client, db)
+    except LurkyNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Space {space_id} not found") from e
+    except LurkyAuthError as e:
+        raise HTTPException(status_code=401, detail="Invalid API key") from e
+    except LurkyAPIError as e:
+        raise HTTPException(status_code=e.status_code or 502, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Space {space_id} not found: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get("/latest-summaries", response_model=List[SpaceDetailsSchema], operation_id="lurky_get_latest_summaries")
@@ -222,6 +233,10 @@ async def get_latest_summaries(
     try:
         return await perform_get_latest_summaries(topic, count, client, db)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except LurkyAuthError as e:
+        raise HTTPException(status_code=401, detail="Invalid API key") from e
+    except LurkyAPIError as e:
+        raise HTTPException(status_code=e.status_code or 502, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
