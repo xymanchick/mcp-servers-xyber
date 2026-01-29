@@ -29,7 +29,3 @@ def get_logging_config() -> dict:
         },
         "root": {"handlers": ["console"], "level": f"{logging_level}"},
     }
-
-
-def configure_logging() -> None:
-    dictConfig(get_logging_config())

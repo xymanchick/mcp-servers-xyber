@@ -1,40 +1,41 @@
 # This file defines the payment options for all x402-protected endpoints.
 # The key for each entry is the endpoint's unique `operation_id`.
+# Payee wallet: 0x967018f889f9d277D96FA9589f8f04444dE00F98
 
 # --- Paid API-Only Endpoint ---
 get_admin_logs:
-  - token_amount: 1000  # ~0.001 USDC
+  - token_amount: 100000  # 0.10 USDC
     chain_id: 8453 # Base 
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" 
 
 # --- Paid Hybrid Endpoints (REST + MCP) ---
 lurky_search_spaces:
-  - token_amount: 2000  # ~0.002 USDC
+  - token_amount: 100000  # 0.10 USDC
     chain_id: 8453 # Base
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 lurky_get_space_details:
-  - token_amount: 2000  # ~0.002 USDC
+  - token_amount: 100000  # 0.10 USDC
     chain_id: 8453 # Base
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 lurky_get_latest_summaries:
-  - token_amount: 3000  # ~0.003 USDC
+  - token_amount: 100000  # 0.10 USDC
     chain_id: 8453 # Base
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 # --- Paid MCP-Only Endpoints ---
 lurky_search_spaces_mcp:
-  - token_amount: 2000  # ~0.002 USDC
+  - token_amount: 100000  # 0.10 USDC
     chain_id: 8453 # Base
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 lurky_get_space_details_mcp:
-  - token_amount: 2000  # ~0.002 USDC
+  - token_amount: 100000  # 0.10 USDC
     chain_id: 8453 # Base
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 lurky_get_latest_summaries_mcp:
-  - token_amount: 3000  # ~0.003 USDC
+  - token_amount: 100000  # 0.10 USDC
     chain_id: 8453 # Base
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"

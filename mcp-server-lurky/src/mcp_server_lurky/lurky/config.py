@@ -26,9 +26,9 @@ class LurkyServiceConfig(BaseSettings):
     @field_validator("api_key")
     @classmethod
     def validate_api_key(cls, v: str) -> str:
-        if not v:
+        if not v or not v.strip():
             logger.warning(
-                "LURKY_API_KEY is not set. Requests to the Lurky API will fail with 401 errors."
+                "LURKY_API_KEY is not set or is whitespace-only. Requests to the Lurky API will fail with 401 errors."
             )
         return v
 

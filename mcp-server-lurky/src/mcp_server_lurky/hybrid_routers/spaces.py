@@ -19,7 +19,8 @@ async def perform_search_spaces(
 ) -> SearchResponseSchema:
     """Core logic for searching spaces."""
     results = await client.search_discussions(q, limit=limit, page=page)
-    return results
+    # Convert from SearchResponse (lurky.models) to SearchResponseSchema (schemas)
+    return SearchResponseSchema(**results.model_dump())
 
 
 async def perform_get_space_details(

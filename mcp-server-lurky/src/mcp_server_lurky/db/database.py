@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -83,7 +83,7 @@ class DatabaseManager:
             for field in ts_fields:
                 val = space_data.get(field)
                 if isinstance(val, (int, float)):
-                    space_data[field] = datetime.fromtimestamp(val / 1000)
+                    space_data[field] = datetime.fromtimestamp(val / 1000, tz=timezone.utc)
 
             discussions_data = space_data.pop("discussions", [])
 
@@ -99,14 +99,16 @@ class DatabaseManager:
                 session.add(space)
                 logger.info(f"CACHE SAVE: Saved new space {space_id} to database")
 
+            # Always delete existing discussions to ensure consistency
+            if existing_space:
+                session.query(LurkyDiscussion).filter_by(space_id=space_id).delete()
+            
+            # Add new discussions (even if empty list, this clears stale data)
             if discussions_data:
-                if existing_space:
-                    session.query(LurkyDiscussion).filter_by(space_id=space_id).delete()
-                
                 for d_data in discussions_data:
                     d_ts = d_data.get("timestamp")
                     if isinstance(d_ts, (int, float)):
-                        d_data["timestamp"] = datetime.fromtimestamp(d_ts / 1000)
+                        d_data["timestamp"] = datetime.fromtimestamp(d_ts / 1000, tz=timezone.utc)
                     
                     d_data["space_id"] = space_id
                     # Remove keys that don't match model

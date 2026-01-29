@@ -7,7 +7,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Check if PostgreSQL container is running
 if ! docker ps | grep -q lurky-cache-postgres; then
     echo "PostgreSQL container is not running. Starting it..."
-    "$SCRIPT_DIR/start_db.sh"
+    if ! "$SCRIPT_DIR/start_db.sh"; then
+        echo "Error: Failed to start PostgreSQL container. Exiting."
+        exit 1
+    fi
     echo ""
 fi
 

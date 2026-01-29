@@ -46,7 +46,7 @@ An MCP (Model Context Protocol) server for searching and parsing Twitter Spaces 
 
 ### MCP Integration
 
-The MCP server is mounted at `http://0.0.0.0:8000/mcp`. You can use it with any MCP-compatible client.
+The MCP server is mounted at `http://localhost:8000/mcp`. You can use it with any MCP-compatible client.
 
 **Available MCP Tools:**
 
@@ -115,7 +115,7 @@ uv run --python 3.12 python -m mcp_server_lurky
 ```
 
 The server will be available at:
-- **API**: `http://0.0.0.0:8000` (or `http://localhost:8000` for local access)
+- **API**: `http://localhost:8000`
 - **API Docs**: `http://localhost:8000/docs`
 - **MCP Endpoint**: `http://localhost:8000/mcp/`
 

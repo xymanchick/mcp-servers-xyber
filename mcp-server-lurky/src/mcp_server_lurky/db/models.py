@@ -58,7 +58,7 @@ class LurkyDiscussion(Base):
     space_id = Column(String(50), ForeignKey("lurky_spaces.id"), nullable=False)
     title = Column(String(500), nullable=True)
     summary = Column(Text, nullable=True)
-    started_at = Column(Integer, nullable=True)
+    started_at = Column(DateTime, nullable=True)
     timestamp = Column(DateTime, nullable=True)
     coins = Column(JSON, nullable=True)
     speaker_ids = Column(JSON, nullable=True)

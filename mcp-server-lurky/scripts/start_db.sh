@@ -19,7 +19,17 @@ fi
 # Check if port 5432 is already in use by another container
 PORT_IN_USE=$(docker ps --format "{{.Names}}" --filter "publish=5432" | grep -v "^$" || true)
 if [ -n "$PORT_IN_USE" ] && [ "$PORT_IN_USE" != "$CONTAINER_NAME" ]; then
-    echo "Found existing PostgreSQL container on port 5432: $PORT_IN_USE"
+    echo "Found existing container on port 5432: $PORT_IN_USE"
+    echo "Validating that it is a PostgreSQL container..."
+    
+    # Validate it's actually PostgreSQL by checking for pg_isready
+    if ! docker exec "$PORT_IN_USE" pg_isready -U postgres &> /dev/null; then
+        echo "Error: Container $PORT_IN_USE on port 5432 is not a PostgreSQL container or is not ready."
+        echo "Please stop the container or use a different port."
+        exit 1
+    fi
+    
+    echo "✓ Verified PostgreSQL container is ready."
     echo "Using existing PostgreSQL container instead of creating a new one."
     echo ""
     
@@ -62,7 +72,7 @@ if ! docker ps -a | grep -q "$CONTAINER_NAME"; then
       -e POSTGRES_USER="$DB_USER" \
       -v lurky-cache-postgres-data:/var/lib/postgresql \
       -p "$DB_PORT:5432" \
-      postgres:latest
+      postgres:16
     echo "Container created. Waiting for PostgreSQL to initialize..."
     sleep 10
 else
