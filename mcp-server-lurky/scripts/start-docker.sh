@@ -9,7 +9,6 @@ REBUILD=false
 PORT=8000
 CONTAINER_NAME="mcp-server-lurky"
 IMAGE_NAME="mcp-server-lurky"
-NETWORK_NAME="mcp-servers-network"
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -41,15 +40,17 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --restart              Stop the container if running and restart it"
             echo "  --rebuild              Rebuild Docker image and restart"
-            echo "  --port PORT            Specify port (default: 8000)"
+            echo "  --port PORT            Specify port (default: 8000, set via PORT env var)"
             echo "  --container-name NAME  Specify container name (default: mcp-server-lurky)"
             echo "  --image-name NAME      Specify image name (default: mcp-server-lurky)"
             echo "  --help, -h             Show this help message"
             echo ""
+            echo "Network: Uses host networking mode for better external API connectivity"
+            echo ""
             echo "Examples:"
-            echo "  $0                     # Start server in Docker"
+            echo "  $0                     # Start server in Docker with host networking"
             echo "  $0 --rebuild           # Rebuild and start"
-            echo "  $0 --restart --port 8001  # Restart on different port"
+            echo "  $0 --restart            # Restart container"
             echo ""
             exit 0
             ;;
@@ -94,7 +95,8 @@ stop_container() {
 remove_container() {
     if docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
         echo "Removing container ${CONTAINER_NAME}..."
-        docker rm "${CONTAINER_NAME}" > /dev/null 2>&1 || true
+        # Force remove even if running
+        docker rm -f "${CONTAINER_NAME}" > /dev/null 2>&1 || true
         echo "Container removed."
     fi
 }
@@ -105,6 +107,14 @@ if [ "$RESTART" = true ]; then
     remove_container
     echo "Waiting 2 seconds before restarting..."
     sleep 2
+else
+    # Even if not restarting, check if container exists and remove it if stopped
+    if docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        if ! docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+            echo "Found stopped container ${CONTAINER_NAME}. Removing it..."
+            remove_container
+        fi
+    fi
 fi
 
 # Handle rebuild
@@ -136,6 +146,12 @@ fi
 
 # Check if .env file exists
 ENV_FILE="${PROJECT_ROOT}/.env"
+
+# Clean up any existing .bak files from previous runs
+if [ -f "${ENV_FILE}.bak" ]; then
+    rm -f "${ENV_FILE}.bak"
+fi
+
 if [ ! -f "$ENV_FILE" ]; then
     echo "Warning: .env file not found at ${ENV_FILE}"
     echo "Creating a basic .env file with defaults..."
@@ -163,12 +179,6 @@ EOF
     echo ""
 fi
 
-# Create Docker network if it doesn't exist (for container communication)
-if ! docker network ls | grep -q "${NETWORK_NAME}"; then
-    echo "Creating Docker network ${NETWORK_NAME}..."
-    docker network create "${NETWORK_NAME}" > /dev/null 2>&1 || true
-fi
-
 # Check if image exists
 if ! docker images --format "{{.Repository}}" | grep -q "^${IMAGE_NAME}$"; then
     echo "Docker image ${IMAGE_NAME} not found. Building it..."
@@ -176,36 +186,64 @@ if ! docker images --format "{{.Repository}}" | grep -q "^${IMAGE_NAME}$"; then
     echo ""
 fi
 
+# Update DB_HOST in .env if using host network (PostgreSQL should be accessible via localhost)
+if [ "${POSTGRES_CONTAINER}" = "lurky-cache-postgres" ]; then
+    # If PostgreSQL is running in Docker, we need to check if it's exposed on host port
+    PG_HOST="localhost"
+    echo "Using host network mode. PostgreSQL will be accessed via ${PG_HOST}:5432"
+else
+    PG_HOST="localhost"
+    echo "Using host network mode. PostgreSQL will be accessed via ${PG_HOST}:5432"
+fi
+
+# Update .env file to use localhost for DB_HOST when using host network
+# Also ensure PORT is set correctly
+if grep -q "^DB_HOST=" "${ENV_FILE}"; then
+    # Update existing DB_HOST (use temp file to avoid .bak creation)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS sed requires different syntax
+        sed -i '' "s|^DB_HOST=.*|DB_HOST=${PG_HOST}|" "${ENV_FILE}"
+    else
+        # Linux: use sed without backup extension
+        sed -i "s|^DB_HOST=.*|DB_HOST=${PG_HOST}|" "${ENV_FILE}"
+    fi
+else
+    # Add DB_HOST if it doesn't exist
+    echo "DB_HOST=${PG_HOST}" >> "${ENV_FILE}"
+fi
+
+# Ensure PORT is set in .env
+if grep -q "^PORT=" "${ENV_FILE}"; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|^PORT=.*|PORT=${PORT}|" "${ENV_FILE}"
+    else
+        # Linux: use sed without backup extension
+        sed -i "s|^PORT=.*|PORT=${PORT}|" "${ENV_FILE}"
+    fi
+else
+    echo "PORT=${PORT}" >> "${ENV_FILE}"
+fi
+
 echo "Starting Lurky MCP Server in Docker..."
 echo "Container: ${CONTAINER_NAME}"
 echo "Image: ${IMAGE_NAME}"
-echo "Port: ${PORT}"
+echo "Network: host (sharing host network stack)"
 echo "Server will be available at: http://localhost:${PORT}"
 echo "API docs: http://localhost:${PORT}/docs"
 echo "MCP endpoint: http://localhost:${PORT}/mcp/"
 echo ""
 
-# Build docker run command
+# Build docker run command with host network
+# Note: With --network host, port mapping (-p) is not needed
 DOCKER_RUN_CMD=(
     docker run
     -d
     --name "${CONTAINER_NAME}"
-    -p "${PORT}:8000"
+    --network host
     --env-file "${ENV_FILE}"
-    --network "${NETWORK_NAME}"
+    -e "PORT=${PORT}"
     --restart unless-stopped
 )
-
-# Link to PostgreSQL container if it's in the same network
-if docker network inspect "${NETWORK_NAME}" --format '{{range .Containers}}{{.Name}} {{end}}' | grep -q "${POSTGRES_CONTAINER}"; then
-    echo "PostgreSQL container is in the same network. Using network connection."
-elif [ "${POSTGRES_CONTAINER}" = "lurky-cache-postgres" ]; then
-    # Connect PostgreSQL to network if it's our container
-    if docker ps | grep -q "${POSTGRES_CONTAINER}"; then
-        echo "Connecting PostgreSQL container to network..."
-        docker network connect "${NETWORK_NAME}" "${POSTGRES_CONTAINER}" 2>/dev/null || true
-    fi
-fi
 
 # Add the image name
 DOCKER_RUN_CMD+=("${IMAGE_NAME}")

@@ -153,17 +153,26 @@ The script will:
 - Check if Docker is running
 - Build the Docker image if it doesn't exist
 - Start PostgreSQL container if needed
-- Create a Docker network for container communication
+- **Use host networking mode** for better external API connectivity
+- Configure database connection to use `localhost` (via host network)
 - Start the server container with proper configuration
 - Show logs automatically
+
+**Network Mode:** The script uses `--network host` mode, which means:
+- The container shares the host's network stack
+- Better connectivity to external APIs (like Lurky API)
+- PostgreSQL is accessible via `localhost:5432`
+- No port mapping needed (container uses host ports directly)
 
 **Available options:**
 - `--restart` - Stop and restart the container
 - `--rebuild` - Rebuild the Docker image and restart
-- `--port PORT` - Specify a custom port (default: 8000)
+- `--port PORT` - Specify a custom port (default: 8000, set via PORT env var)
 - `--container-name NAME` - Custom container name
 - `--image-name NAME` - Custom image name
 - `--help` - Show help message
+
+**Note:** Host networking mode may not work on Docker Desktop for Mac/Windows. On Linux, it provides the best connectivity.
 
 ### Manual Docker Commands
 
