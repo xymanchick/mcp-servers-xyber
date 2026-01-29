@@ -1,0 +1,89 @@
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastmcp import FastMCP
+
+from mcp_server_lurky.api_routers import routers as api_routers
+from mcp_server_lurky.config import get_app_settings, get_x402_settings
+from mcp_server_lurky.hybrid_routers import routers as hybrid_routers
+from mcp_server_lurky.mcp_routers import routers as mcp_routers
+from mcp_server_lurky.middlewares.x402_wrapper import X402WrapperMiddleware
+from mcp_server_lurky.lurky.config import get_lurky_config
+from mcp_server_lurky.lurky.module import LurkyClient
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    logger.info("Lifespan: Initializing application services...")
+    
+    # Initialize lurky client
+    config = get_lurky_config()
+    app.state.lurky_client = LurkyClient(config)
+    
+    logger.info("Lifespan: Services initialized successfully.")
+    yield
+    logger.info("Lifespan: Shutting down application services...")
+    app.state.lurky_client = None
+    logger.info("Lifespan: Services shut down gracefully.")
+
+
+def create_app() -> FastAPI:
+    # --- MCP Server Generation ---
+    mcp_source_app = FastAPI(title="MCP Source")
+    # Include hybrid routers in MCP source
+    for router in hybrid_routers:
+        mcp_source_app.include_router(router)
+    # Include MCP-only routers in MCP source
+    for router in mcp_routers:
+        mcp_source_app.include_router(router)
+
+    # Convert to MCP server
+    mcp_server = FastMCP.from_fastapi(app=mcp_source_app, name="Lurky")
+    mcp_app = mcp_server.http_app(path="/")
+
+    # --- Combined Lifespan ---
+    @asynccontextmanager
+    async def combined_lifespan(app: FastAPI):
+        async with app_lifespan(app):
+            # Share state with mcp_source_app
+            mcp_source_app.state.lurky_client = app.state.lurky_client
+            async with mcp_app.lifespan(app):
+                yield
+
+    # --- Main Application ---
+    app = FastAPI(
+        title="Lurky MCP Server (Hybrid)",
+        description="A server with REST, MCP, and x402 payment capabilities.",
+        version="0.1.0",
+        lifespan=combined_lifespan,
+    )
+
+    # --- Router Configuration ---
+    # API-only routes
+    for router in api_routers:
+        app.include_router(router, prefix="/api")
+
+    # Hybrid routes
+    for router in hybrid_routers:
+        app.include_router(router, prefix="/hybrid")
+
+    # Mount the MCP server at /mcp
+    app.mount("/mcp", mcp_app)
+
+    # --- Pricing Configuration Validation ---
+    all_routes = app.routes + mcp_source_app.routes
+    x402_settings = get_x402_settings()
+    x402_settings.validate_against_routes(all_routes)
+
+    # --- Middleware Configuration ---
+    if x402_settings.pricing_mode == "on":
+        app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
+        logger.info("x402 payment middleware enabled.")
+    else:
+        logger.info("x402 payment middleware disabled.")
+
+    logger.info("Application setup complete.")
+    return app
