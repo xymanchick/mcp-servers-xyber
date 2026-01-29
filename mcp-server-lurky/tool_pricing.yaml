@@ -7,7 +7,7 @@ get_admin_logs:
     chain_id: 8453 # Base 
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" 
 
-# --- Paid MCP-Only Endpoints ---
+# --- Paid Hybrid Endpoints (REST + MCP) ---
 lurky_search_spaces:
   - token_amount: 2000  # ~0.002 USDC
     chain_id: 8453 # Base
@@ -19,6 +19,22 @@ lurky_get_space_details:
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 lurky_get_latest_summaries:
+  - token_amount: 3000  # ~0.003 USDC
+    chain_id: 8453 # Base
+    token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+
+# --- Paid MCP-Only Endpoints ---
+lurky_search_spaces_mcp:
+  - token_amount: 2000  # ~0.002 USDC
+    chain_id: 8453 # Base
+    token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+
+lurky_get_space_details_mcp:
+  - token_amount: 2000  # ~0.002 USDC
+    chain_id: 8453 # Base
+    token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+
+lurky_get_latest_summaries_mcp:
   - token_amount: 3000  # ~0.003 USDC
     chain_id: 8453 # Base
     token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"

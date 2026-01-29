@@ -7,6 +7,7 @@ from fastmcp import FastMCP
 from mcp_server_lurky.api_routers import routers as api_routers
 from mcp_server_lurky.config import get_app_settings, get_x402_settings
 from mcp_server_lurky.hybrid_routers import routers as hybrid_routers
+from mcp_server_lurky.mcp_routers import routers as mcp_routers
 from mcp_server_lurky.middlewares.x402_wrapper import X402WrapperMiddleware
 from mcp_server_lurky.lurky.config import get_lurky_config
 from mcp_server_lurky.lurky.module import LurkyClient
@@ -34,6 +35,9 @@ def create_app() -> FastAPI:
     mcp_source_app = FastAPI(title="MCP Source")
     # Include hybrid routers in MCP source
     for router in hybrid_routers:
+        mcp_source_app.include_router(router)
+    # Include MCP-only routers in MCP source
+    for router in mcp_routers:
         mcp_source_app.include_router(router)
 
     # Convert to MCP server

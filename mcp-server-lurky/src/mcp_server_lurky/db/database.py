@@ -61,6 +61,10 @@ class DatabaseManager:
             space = session.query(LurkySpace).options(
                 joinedload(LurkySpace.discussions)
             ).filter_by(id=space_id).first()
+            if space:
+                logger.info(f"CACHE HIT: Found space {space_id} in database")
+            else:
+                logger.debug(f"CACHE MISS: Space {space_id} not found in database")
             return space
         except SQLAlchemyError as e:
             logger.error(f"Error getting space {space_id} from database: {e}")
@@ -89,9 +93,11 @@ class DatabaseManager:
                 for key, value in space_data.items():
                     if hasattr(existing_space, key):
                         setattr(existing_space, key, value)
+                logger.info(f"CACHE UPDATE: Updated space {space_id} in database")
             else:
                 space = LurkySpace(**space_data)
                 session.add(space)
+                logger.info(f"CACHE SAVE: Saved new space {space_id} to database")
 
             if discussions_data:
                 if existing_space:
