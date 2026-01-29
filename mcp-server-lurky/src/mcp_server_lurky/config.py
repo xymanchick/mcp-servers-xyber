@@ -5,7 +5,6 @@ Configuration module for the MCP Lurky server.
 from __future__ import annotations
 
 import logging
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -13,7 +12,7 @@ from typing import Literal
 import yaml
 from cdp.x402 import create_facilitator_config
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, computed_field, model_validator
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from x402.facilitator import FacilitatorConfig
 
@@ -25,43 +24,62 @@ _env_file = _project_root / ".env"
 load_dotenv(dotenv_path=_env_file)
 
 
-class LurkyConfig(BaseModel):
+class LurkyConfig(BaseSettings):
     """Lurky API configuration."""
 
-    api_key: str | None = os.getenv("LURKY_API_KEY") or os.getenv(
-        "MCP_LURKY__LURKY__API_KEY"
-    )
-    base_url: str = os.getenv("LURKY_BASE_URL") or os.getenv(
-        "MCP_LURKY__LURKY__BASE_URL", "https://api.lurky.app"
+    model_config = SettingsConfigDict(
+        env_file=_env_file,
+        env_file_encoding="utf-8",
+        env_prefix="LURKY_",
+        env_nested_delimiter="__",
+        case_sensitive=False,
+        extra="ignore",
     )
 
+    api_key: str | None = None
+    base_url: str = "https://api.lurky.app"
 
-class DatabaseConfig(BaseModel):
+
+class DatabaseConfig(BaseSettings):
     """Database configuration for Postgres cache."""
 
-    DB_NAME: str = os.getenv("DB_NAME", "lurky_db")
-    DB_USER: str = os.getenv("DB_USER", "postgres")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
-    DB_HOST: str = os.getenv("DB_HOST", "localhost")
-    DB_PORT_RAW: str = os.getenv("DB_PORT", "5432")
+    model_config = SettingsConfigDict(
+        env_file=_env_file,
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    DB_NAME: str = "lurky_db"
+    DB_USER: str = "postgres"
+    DB_PASSWORD: str = "postgres"
+    DB_HOST: str = "localhost"
+    DB_PORT_RAW: str = "5432"
     
+    # Cache TTL defaults (in seconds)
+    cache_ttl_search: int = 3600  # 1 hour
+    cache_ttl_details: int = 86400  # 24 hours
+    
+    @computed_field
     @property
     def DB_PORT(self) -> str:
         return self.DB_PORT_RAW.split(":")[0] if ":" in self.DB_PORT_RAW else self.DB_PORT_RAW
 
+    @computed_field
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+psycopg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-    # Cache TTL defaults (in seconds)
-    cache_ttl_search: int = int(os.getenv("CACHE_TTL_SEARCH", "3600"))  # 1 hour
-    cache_ttl_details: int = int(os.getenv("CACHE_TTL_DETAILS", "86400"))  # 24 hours
 
-
-class PaymentOption(BaseModel):
+class PaymentOption(BaseSettings):
     """
     Defines a single payment option for a protected resource.
     """
+
+    model_config = SettingsConfigDict(
+        env_file=None,  # PaymentOption is parsed from YAML, not env vars
+        extra="ignore",
+    )
 
     chain_id: int
     token_address: str
