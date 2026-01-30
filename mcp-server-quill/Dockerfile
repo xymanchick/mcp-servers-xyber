@@ -27,8 +27,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Expose the port (typically 8000 for FastAPI/Uvicorn)
-EXPOSE 8000
+# Expose the port (typically 8001 for this MCP server)
+EXPOSE 8001
 
 # Start the server using the module
 CMD ["python", "-m", "mcp_server_quill"]

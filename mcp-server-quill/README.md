@@ -18,7 +18,7 @@ The server can be configured via environment variables or a `.env` file. You can
 | `QUILL_API_KEY` | API Key for QuillCheck | - | **Yes** |
 | `QUILL_BASE_URL` | Base URL for QuillCheck API | `https://check-api.quillai.network/api/v1` | No |
 | `MCP_QUILL_HOST` | Host to bind the server to | `0.0.0.0` | No |
-| `MCP_QUILL_PORT` | Port to listen on | `8000` | No |
+| `MCP_QUILL_PORT` | Port to listen on | `8001` | No |
 | `MCP_QUILL_LOGGING_LEVEL` | Logging level | `INFO` | No |
 
 ## Installation
@@ -44,7 +44,7 @@ uv run python -m mcp_server_quill
 docker build -t mcp-server-quill .
 
 # Run container (make sure .env exists with QUILL_API_KEY)
-docker run -p 8000:8000 --env-file .env mcp-server-quill
+docker run -p 8001:8001 --env-file .env mcp-server-quill
 ```
 
 ## API Endpoints

@@ -9,7 +9,8 @@ class QuillAPI:
         self.base_url = base_url.rstrip("/")
         self.headers = {
             "x-api-key": api_key,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "MCP-Quill-Server/0.1.0"
         }
 
     async def get_token_info(self, token_address: str, chain_id: str = "1") -> Dict[str, Any]:

@@ -261,7 +261,7 @@ class AppSettings(BaseSettings):
     """Application settings for the MCP Quill server."""
 
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 8001
     logging_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     hot_reload: bool = False
 
