@@ -6,6 +6,7 @@ from fastmcp import FastMCP
 
 from mcp_server_quill.api_routers import routers as api_routers
 from mcp_server_quill.hybrid_routers import routers as hybrid_routers
+from mcp_server_quill.mcp_routers import routers as mcp_only_routers
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +28,14 @@ def create_app() -> FastAPI:
     # --- MCP Server Generation ---
     # Create a FastAPI app containing only MCP-exposed endpoints
     mcp_source_app = FastAPI(title="MCP Source")
+    
+    # Add hybrid routers (REST + MCP)
     for router in hybrid_routers:
         mcp_source_app.include_router(router)
-    # We don't have mcp_routers yet, but if we did:
-    # for router in mcp_routers:
-    #     mcp_source_app.include_router(router)
+        
+    # Add MCP-only routers (MCP only)
+    for router in mcp_only_routers:
+        mcp_source_app.include_router(router)
 
     # Convert to MCP server
     mcp_server = FastMCP.from_fastapi(app=mcp_source_app, name="MCP")
