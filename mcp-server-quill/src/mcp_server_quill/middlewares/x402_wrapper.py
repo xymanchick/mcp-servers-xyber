@@ -49,7 +49,13 @@ class X402WrapperMiddleware(BaseHTTPMiddleware):
         self.settings: X402Config = get_x402_settings()
         self.facilitator: FacilitatorClient | None = None
         if facilitator_config := self.settings.facilitator_config:
-            self.facilitator = FacilitatorClient(facilitator_config)
+            if not self.settings.payee_wallet_address:
+                logger.error(
+                    "Facilitator is configured but payee_wallet_address is not set. "
+                    "Payment middleware will be disabled."
+                )
+            else:
+                self.facilitator = FacilitatorClient(facilitator_config)
         else:
             logger.warning(
                 "No x402 facilitator configured (missing CDP keys and URL). "
@@ -161,8 +167,9 @@ class X402WrapperMiddleware(BaseHTTPMiddleware):
                         "Retrying payment verification in %.1f seconds...", delay
                     )
                     await asyncio.sleep(delay)
-        assert last_error is not None
-        raise last_error
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("Retry loop exited without error or success")
 
     def _create_402_response(
         self, requirements: list[PaymentRequirements], error: str

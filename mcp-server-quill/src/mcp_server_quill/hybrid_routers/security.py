@@ -46,7 +46,14 @@ async def get_evm_token_info(
     ),
 ):
     # 1. Map quill_chain_id to dexscreener chain name for better search
-    chain_map = {"1": "ethereum", "56": "bsc", "137": "polygon", "42161": "arbitrum"}
+    chain_map = {
+        "1": "ethereum",
+        "56": "bsc",
+        "137": "polygon",
+        "42161": "arbitrum",
+        "10": "optimism",
+        "43114": "avalanche",
+    }
     dex_chain = chain_map.get(quill_chain_id)
     
     # 2. Get address using search client directly

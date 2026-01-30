@@ -14,9 +14,9 @@ async def test_search_token_known_tokens() -> None:
     # or that the mocked client instance methods are not async.
     
     # Let's mock the class itself to return a specific instance
-    mock_client_instance = MagicMock()
-    mock_client_instance.__aenter__.return_value = mock_client_instance
-    mock_client_instance.__aexit__.return_value = None
+    mock_client_instance = AsyncMock()
+    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
     
     # Important: .get must be an async method (coroutine)
     mock_response = MagicMock()

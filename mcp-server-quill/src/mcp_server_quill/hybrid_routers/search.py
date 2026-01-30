@@ -54,5 +54,5 @@ async def search_token_address(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error searching token: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Error searching token")
+        raise HTTPException(status_code=500, detail="Internal server error") from e

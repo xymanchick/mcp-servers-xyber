@@ -163,12 +163,9 @@ class TokenSearchAPI:
                             )
                             pair = exact_matches[0]
                         else:
-                            # Sort all by liquidity
-                            pairs.sort(
-                                key=lambda x: float(x.get("volume", {}).get("h24", 0) or 0),
-                                reverse=True
-                            )
-                            pair = pairs[0]
+                            # No exact match without chain filter - continue to next query
+                            logger.debug(f"No exact symbol match for {query_upper} without chain filter")
+                            continue
                     
                     result_symbol = pair.get("baseToken", {}).get("symbol", "").upper()
                     

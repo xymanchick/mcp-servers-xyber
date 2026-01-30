@@ -45,5 +45,5 @@ echo "MCP endpoint: http://localhost:8001/mcp/"
 echo ""
 
 # Start the server using uv
-cd "$PROJECT_ROOT"
+cd "$PROJECT_ROOT" || exit 1
 uv run --python 3.12 python -m mcp_server_quill

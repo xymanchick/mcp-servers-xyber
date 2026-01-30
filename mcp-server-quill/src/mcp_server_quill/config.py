@@ -110,15 +110,6 @@ class X402Config(BaseSettings):
                     f"expected a YAML mapping (dict) but got {type(pricing_data).__name__}"
                 )
 
-            # Check if wallet_address is at the top level
-            default_wallet_address = pricing_data.get("wallet_address")
-            if default_wallet_address and not self.payee_wallet_address:
-                # If payee_wallet_address wasn't set via env, use the one from yaml
-                # Note: modifying self in a computed field is tricky, but we can't easily change X402Config instance here.
-                # Instead, we rely on the middleware using self.settings.payee_wallet_address.
-                # We'll just log it here for now or ideally update the PaymentOption logic if needed.
-                pass 
-            
             # Extract actual pricing dict
             tools_pricing = pricing_data.get("pricing", pricing_data)
             
