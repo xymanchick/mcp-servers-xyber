@@ -7,6 +7,7 @@ Main responsibility: Define and load application and x402 payment configuration,
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -140,11 +141,11 @@ class X402Config(BaseSettings):
             for op_id, opts in tools_pricing.items():
                 if isinstance(opts, dict) and "price_per_request" in opts:
                     # Handle simplified format
-                    price = float(opts["price_per_request"])
+                    price = Decimal(str(opts["price_per_request"]))
                     currency = opts.get("currency", "USDC")
                     
                     if currency == "USDC":
-                         token_amount = int(price * (10 ** USDC_DECIMALS))
+                         token_amount = int(price * (Decimal(10) ** USDC_DECIMALS))
                          validated_pricing[op_id] = [
                              PaymentOption(
                                  chain_id=BASE_CHAIN_ID,

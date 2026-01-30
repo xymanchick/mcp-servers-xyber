@@ -78,6 +78,15 @@ class X402WrapperMiddleware(BaseHTTPMiddleware):
             pricing_options, request
         )
         if not (payment_header := request.headers.get("X-PAYMENT")):
+            if not payment_requirements:
+                # Should we fail fast if there are no requirements but pricing options were found?
+                # This implies invalid/unsupported config for all options.
+                logger.error(f"No valid payment requirements generated for '{operation_id}'")
+                return JSONResponse(
+                    status_code=500, 
+                    content={"error": "Server configuration error: No valid payment options available"}
+                )
+
             logger.warning(f"Payment header missing for '{operation_id}'")
             return self._create_402_response(
                 payment_requirements, "No X-PAYMENT header provided"

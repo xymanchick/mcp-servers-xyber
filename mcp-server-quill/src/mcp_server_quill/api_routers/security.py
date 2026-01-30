@@ -54,7 +54,10 @@ async def get_evm_token_info(
         "43114": "avalanche",
     }
     dex_chain = chain_map.get(quill_chain_id)
-    
+
+    if not dex_chain:
+         raise HTTPException(status_code=400, detail=f"Unsupported chain ID: {quill_chain_id}")
+
     # 2. Get address using search client directly
     search_result = await search_client.search_token(query, chain_id=dex_chain)
     if not search_result:
@@ -70,8 +73,8 @@ async def get_evm_token_info(
             "quill_data": data
         }
     except Exception as e:
-        logger.error(f"Quill API error: {e}")
-        raise HTTPException(status_code=500, detail=f"Error querying Quill API: {str(e)}")
+        logger.exception("Quill API error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get(
@@ -110,5 +113,5 @@ async def get_solana_token_info(
             "quill_data": data
         }
     except Exception as e:
-        logger.error(f"Quill API error: {e}")
-        raise HTTPException(status_code=500, detail=f"Error querying Quill API: {str(e)}")
+        logger.exception("Quill API error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e

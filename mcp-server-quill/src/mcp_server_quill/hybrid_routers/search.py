@@ -49,7 +49,8 @@ async def search_token_address(
     try:
         result = await search_client.search_token(query, chain_id=chain)
         if not result:
-            raise HTTPException(status_code=404, detail=f"Token '{query}' not found on chain '{chain}'")
+            chain_info = f" on chain '{chain}'" if chain else ""
+            raise HTTPException(status_code=404, detail=f"Token '{query}' not found{chain_info}")
         return result
     except HTTPException:
         raise

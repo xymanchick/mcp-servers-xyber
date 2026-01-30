@@ -54,9 +54,10 @@ class TokenSearchAPI:
                     known_addr = known_tokens[key]
                     # Try to get full info from DexScreener by searching the address
                     try:
-                        url = f"{self.base_url}?q={known_addr}"
+                        url = f"{self.base_url}"
+                        params = {"q": known_addr}
                         async with httpx.AsyncClient(timeout=10.0) as client:
-                            response = await client.get(url)
+                            response = await client.get(url, params=params)
                             response.raise_for_status()
                             data = response.json()
                             pairs = data.get("pairs", [])
@@ -92,11 +93,12 @@ class TokenSearchAPI:
             queries_to_try.append(f"{query} {chain_id}")
             
         for q in queries_to_try:
-            url = f"{self.base_url}?q={q}"
+            url = f"{self.base_url}"
+            params = {"q": q}
             
             async with httpx.AsyncClient(timeout=10.0) as client:
                 try:
-                    response = await client.get(url)
+                    response = await client.get(url, params=params)
                     response.raise_for_status()
                     data = response.json()
                     
