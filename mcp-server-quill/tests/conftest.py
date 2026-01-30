@@ -1,34 +1,26 @@
 from __future__ import annotations
 
-import asyncio
-from collections.abc import Iterator
+from unittest.mock import patch
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from mcp_server_quill.app import create_app
+from mcp_server_quill.config import X402Config
 
 
-@pytest.fixture(scope="session")
-def event_loop() -> Iterator[asyncio.AbstractEventLoop]:
-    """Create an event loop for async tests scoped to the session."""
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        yield loop
-    finally:
-        loop.close()
-
-
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def client() -> AsyncClient:
     """
     Create an authenticated AsyncClient for the app.
-    This client is shared across the session to avoid recreating the app for every test.
+    We force pricing_mode to 'off' to ensure tests run without payment requirements.
     """
-    app = create_app()
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as c:
-        yield c
+    with patch("mcp_server_quill.app.get_x402_settings") as mock_get_settings:
+        real_config = X402Config()
+        test_config = real_config.model_copy(update={"pricing_mode": "off"})
+        mock_get_settings.return_value = test_config
+        
+        app = create_app()
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            yield c

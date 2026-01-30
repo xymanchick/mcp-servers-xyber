@@ -11,15 +11,15 @@ A Model Context Protocol (MCP) server for Quill Shield AI security audits. This 
 
 ## Configuration
 
-The server can be configured via environment variables or a `.env` file.
+The server can be configured via environment variables or a `.env` file. You can copy `.example.env` to `.env` to get started.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MCP_QUILL_HOST` | Host to bind the server to | `0.0.0.0` |
-| `MCP_QUILL_PORT` | Port to listen on | `8000` |
-| `MCP_QUILL_LOGGING_LEVEL` | Logging level | `INFO` |
-| `QUILL_API_KEY` | API Key for QuillCheck | **Required** |
-| `QUILL_BASE_URL` | Base URL for QuillCheck API | `https://check-api.quillai.network/api/v1` |
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `QUILL_API_KEY` | API Key for QuillCheck | - | **Yes** |
+| `QUILL_BASE_URL` | Base URL for QuillCheck API | `https://check-api.quillai.network/api/v1` | No |
+| `MCP_QUILL_HOST` | Host to bind the server to | `0.0.0.0` | No |
+| `MCP_QUILL_PORT` | Port to listen on | `8000` | No |
+| `MCP_QUILL_LOGGING_LEVEL` | Logging level | `INFO` | No |
 
 ## Installation
 
@@ -29,6 +29,10 @@ The server can be configured via environment variables or a `.env` file.
 # Install dependencies
 uv sync
 
+# Setup configuration
+cp .example.env .env
+# Edit .env and add your QUILL_API_KEY
+
 # Run the server
 uv run python -m mcp_server_quill
 ```
@@ -36,7 +40,10 @@ uv run python -m mcp_server_quill
 ### Using Docker
 
 ```bash
+# Build image
 docker build -t mcp-server-quill .
+
+# Run container (make sure .env exists with QUILL_API_KEY)
 docker run -p 8000:8000 --env-file .env mcp-server-quill
 ```
 

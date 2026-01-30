@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends
@@ -8,8 +7,7 @@ from mcp_server_quill.quill.client import QuillAPI
 from mcp_server_quill.quill.search import TokenSearchAPI
 
 
-@lru_cache
-def get_quill_client() -> QuillAPI:
+async def get_quill_client() -> QuillAPI:
     settings = get_app_settings()
     if not settings.quill.api_key:
         # Allow running without API key for search-only features, but warn/error if used
@@ -17,8 +15,7 @@ def get_quill_client() -> QuillAPI:
     return QuillAPI(api_key=settings.quill.api_key or "", base_url=settings.quill.base_url)
 
 
-@lru_cache
-def get_search_client() -> TokenSearchAPI:
+async def get_search_client() -> TokenSearchAPI:
     settings = get_app_settings()
     return TokenSearchAPI(config=settings.dexscreener)
 

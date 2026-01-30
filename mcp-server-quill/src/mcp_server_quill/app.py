@@ -5,8 +5,10 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_quill.api_routers import routers as api_routers
+from mcp_server_quill.config import get_x402_settings
 from mcp_server_quill.hybrid_routers import routers as hybrid_routers
 from mcp_server_quill.mcp_routers import routers as mcp_only_routers
+from mcp_server_quill.middlewares.x402_wrapper import X402WrapperMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +69,19 @@ def create_app() -> FastAPI:
 
     # Mount the MCP server at /mcp
     app.mount("/mcp", mcp_app)
+
+    # --- Payment Middleware Configuration ---
+    # This validates that all priced endpoints actually exist
+    # and warns about any misconfiguration
+    all_routes = app.routes + mcp_source_app.routes
+    x402_settings = get_x402_settings()
+    x402_settings.validate_against_routes(all_routes)
+
+    if x402_settings.pricing_mode == "on":
+        app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
+        logger.info("x402 payment middleware enabled.")
+    else:
+        logger.info("x402 payment middleware disabled (pricing_mode='off').")
 
     logger.info("Application setup complete.")
     return app

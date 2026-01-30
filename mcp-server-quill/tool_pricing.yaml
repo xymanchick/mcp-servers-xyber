@@ -1,10 +1,11 @@
+wallet_address: "0x9b8E1aB6a4Fa677F9b68e7cd340f6A75Afc6717e"
 pricing:
   search_token_address:
-    price_per_request: 0
-    currency: "USD"
+    price_per_request: 0.5
+    currency: "USDC"
   get_evm_token_info:
-    price_per_request: 0
-    currency: "USD"
+    price_per_request: 0.5
+    currency: "USDC"
   get_solana_token_info:
-    price_per_request: 0
-    currency: "USD"
+    price_per_request: 0.5
+    currency: "USDC"
