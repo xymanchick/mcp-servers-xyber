@@ -1,0 +1,10 @@
+pricing:
+  search_token_address:
+    price_per_request: 0
+    currency: "USD"
+  get_evm_token_info:
+    price_per_request: 0
+    currency: "USD"
+  get_solana_token_info:
+    price_per_request: 0
+    currency: "USD"
