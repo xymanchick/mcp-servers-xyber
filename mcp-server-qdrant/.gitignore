@@ -123,6 +123,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.tests
+**/.env.tests
 .venv
 env/
 venv/
