@@ -105,6 +105,26 @@ services:
     restart: unless-stopped
     environment: {}
 
+  mcp_server_lurky:
+    build:
+      context: ./mcp-server-lurky
+      dockerfile: Dockerfile
+      target: dev
+    image: mcp_server_lurky_debug
+    container_name: mcp_server_lurky_debug
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5715", "--wait-for-client", "-m", "mcp_server_lurky"]
+    ports:
+      - "8115:8115"
+      - "5715:5715"
+    volumes:
+      - ./mcp-server-lurky/src/mcp_server_lurky:/app/mcp_server_lurky:ro
+    env_file: ./mcp-server-lurky/.env
+    restart: unless-stopped
+    environment:
+      MCP_LURKY_PORT: "8115"
+      MCP_LURKY_HOT_RELOAD: "true"
+      <<: *debug-env
+
   mcp_server_postgres:
     build:
       context: ./mcp-server-postgres
@@ -119,6 +139,24 @@ services:
     volumes:
       - ./mcp-server-postgres/src/mcp_server_postgres:/app/mcp_server_postgres:ro
     env_file: ./mcp-server-postgres/.env
+    restart: unless-stopped
+    environment:
+      <<: *debug-env
+
+  mcp_server_quill:
+    build:
+      context: ./mcp-server-quill
+      dockerfile: Dockerfile
+      target: dev
+    image: mcp_server_quill_debug
+    container_name: mcp_server_quill_debug
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5716", "--wait-for-client", "-m", "mcp_server_quill", "--port", "8116", "--reload"]
+    ports:
+      - "8116:8116"
+      - "5716:5716"
+    volumes:
+      - ./mcp-server-quill/src/mcp_server_quill:/app/mcp_server_quill:ro
+    env_file: ./mcp-server-quill/.env
     restart: unless-stopped
     environment:
       <<: *debug-env
