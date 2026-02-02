@@ -179,11 +179,11 @@ async def test_list_mcp_tools(base_url: str, mcp_session: str):
             assert "name" in tool
             assert "description" in tool
         
-        # Check for expected Lurky tools
+        # Check for expected Lurky tools (hybrid endpoints exposed as MCP tools)
         tool_names = [tool["name"] for tool in tools]
-        assert "lurky_search_spaces_mcp" in tool_names
-        assert "lurky_get_space_details_mcp" in tool_names
-        assert "lurky_get_latest_summaries_mcp" in tool_names
+        assert "lurky_search_spaces" in tool_names
+        assert "lurky_get_space_details" in tool_names
+        assert "lurky_get_latest_summaries" in tool_names
     except httpx.ConnectError:
         pytest.skip("MCP server not running - start server to run E2E tests")
 
@@ -191,12 +191,12 @@ async def test_list_mcp_tools(base_url: str, mcp_session: str):
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_mcp_search_spaces(base_url: str, mcp_session: str):
-    """Test lurky_search_spaces_mcp tool."""
+    """Test lurky_search_spaces tool."""
     try:
         response = await call_mcp_tool(
             base_url,
             mcp_session,
-            name="lurky_search_spaces_mcp",
+            name="lurky_search_spaces",
             arguments={"q": "test", "limit": 3, "page": 0},
         )
         response.raise_for_status()
@@ -215,7 +215,7 @@ async def test_mcp_search_spaces(base_url: str, mcp_session: str):
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_mcp_get_space_details(base_url: str, mcp_session: str):
-    """Test lurky_get_space_details_mcp tool."""
+    """Test lurky_get_space_details tool."""
     # Skip if no LURKY_API_KEY is set
     if not os.getenv("LURKY_API_KEY"):
         pytest.skip("LURKY_API_KEY not set, skipping space details test")
@@ -224,7 +224,7 @@ async def test_mcp_get_space_details(base_url: str, mcp_session: str):
         response = await call_mcp_tool(
             base_url,
             mcp_session,
-            name="lurky_get_space_details_mcp",
+            name="lurky_get_space_details",
             arguments={"space_id": "1lPJqvbWNPZxb"},
         )
         
@@ -240,7 +240,7 @@ async def test_mcp_get_space_details(base_url: str, mcp_session: str):
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_mcp_get_latest_summaries(base_url: str, mcp_session: str):
-    """Test lurky_get_latest_summaries_mcp tool."""
+    """Test lurky_get_latest_summaries tool."""
     # Skip if no LURKY_API_KEY is set
     if not os.getenv("LURKY_API_KEY"):
         pytest.skip("LURKY_API_KEY not set, skipping latest summaries test")
@@ -249,7 +249,7 @@ async def test_mcp_get_latest_summaries(base_url: str, mcp_session: str):
         response = await call_mcp_tool(
             base_url,
             mcp_session,
-            name="lurky_get_latest_summaries_mcp",
+            name="lurky_get_latest_summaries",
             arguments={"topic": "test", "count": 2},
         )
         
@@ -311,13 +311,13 @@ async def main():
         print(f"✗ Failed to list tools: {e}")
         print(f"  Response: {response.text[:500] if 'response' in locals() else 'N/A'}")
     
-    # Step 4: Test lurky_search_spaces_mcp tool
-    print("\n4. Testing lurky_search_spaces_mcp tool...")
+    # Step 4: Test lurky_search_spaces tool
+    print("\n4. Testing lurky_search_spaces tool...")
     try:
         response = await call_mcp_tool(
             base_url,
             session_id,
-            name="lurky_search_spaces_mcp",
+            name="lurky_search_spaces",
             arguments={"q": "test", "limit": 3, "page": 0},
         )
         response.raise_for_status()
@@ -333,7 +333,7 @@ async def main():
         else:
             print(f"  Response: {json.dumps(result, indent=2)[:500]}...")
     except Exception as e:
-        print(f"✗ Failed to call lurky_search_spaces_mcp: {e}")
+        print(f"✗ Failed to call lurky_search_spaces: {e}")
         print(f"  Response: {response.text[:500] if 'response' in locals() else 'N/A'}")
     
     print("\n" + "=" * 60)

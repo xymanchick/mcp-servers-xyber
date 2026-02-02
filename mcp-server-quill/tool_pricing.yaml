@@ -1,11 +1,20 @@
-wallet_address: "0x9b8E1aB6a4Fa677F9b68e7cd340f6A75Afc6717e"
-pricing:
-  search_token_address:
-    price_per_request: 0.5
-    currency: "USDC"
-  get_evm_token_info:
-    price_per_request: 0.5
-    currency: "USDC"
-  get_solana_token_info:
-    price_per_request: 0.5
-    currency: "USDC"
+# This file defines the payment options for all x402-protected endpoints.
+# The key for each entry is the endpoint's unique `operation_id`.
+# You can define one or more payment options for each tool, allowing for
+# flexibility with different tokens or networks.
+
+# --- Paid Hybrid Endpoints ---
+search_token_address:
+  - token_amount: 1000  # ~0.001 USDC
+    chain_id: 8453      # Base Mainnet
+    token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+
+get_evm_token_info:
+  - token_amount: 2000  # ~0.002 USDC
+    chain_id: 8453      # Base Mainnet
+    token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+
+get_solana_token_info:
+  - token_amount: 2000  # ~0.002 USDC
+    chain_id: 8453      # Base Mainnet
+    token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"

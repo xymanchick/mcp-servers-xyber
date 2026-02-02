@@ -18,7 +18,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pyyaml",
     "cdp-sdk>=1.33.2",
-    "x402==0.2.1"
+    "x402>=2.0.0"
 ]
 
 [dependency-groups]

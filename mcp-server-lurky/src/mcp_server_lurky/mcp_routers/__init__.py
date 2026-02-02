@@ -4,8 +4,5 @@ Main responsibility: Collect MCP-only FastAPI routers into a single list for inc
 
 from fastapi import APIRouter
 
-from .spaces import router as spaces_router
-
-routers: list[APIRouter] = [
-    spaces_router,
-]
+# MCP-only routers (currently empty - all endpoints are exposed via hybrid_routers)
+routers: list[APIRouter] = []
