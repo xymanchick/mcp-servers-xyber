@@ -11,7 +11,11 @@ from mcp_server_weather.weather.errors import WeatherApiError, WeatherClientErro
 from mcp_server_weather.weather.models import WeatherData
 from mcp_server_weather.weather.module import WeatherClient
 
-from .mocks import MockHTTPResponse, MockWeatherHttpClient, build_weather_payload
+from tests.unit.weather.mocks import (
+    MockHTTPResponse,
+    MockWeatherHttpClient,
+    build_weather_payload,
+)
 
 LATITUDE: Final[str] = "51.5074"
 LONGITUDE: Final[str] = "-0.1278"
