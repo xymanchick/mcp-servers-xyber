@@ -16,6 +16,7 @@ dependencies = [
     "fastapi>=0.115.12",
     # Telegram-specific dependencies
     "python-telegram-bot>=20.0",
+    "requests>=2.28.0",
 ]
 
 [dependency-groups]

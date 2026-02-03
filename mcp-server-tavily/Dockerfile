@@ -44,8 +44,6 @@ COPY --from=builder /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-EXPOSE 8000
-
 COPY tool_pricing.yaml .
 
 CMD ["python", "-m", "mcp_server_tavily", "--host", "0.0.0.0", "--port", "8000"]

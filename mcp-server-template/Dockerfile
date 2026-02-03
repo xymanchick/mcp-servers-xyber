@@ -1,6 +1,3 @@
-## This dockerfile is a template for all MCP servers
-## It can be used as is or edited to fit your needs
-
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 WORKDIR /app

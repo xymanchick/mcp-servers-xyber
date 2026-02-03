@@ -1,7 +1,3 @@
-## This dockerfile is a template for all MCP servers
-## It can be used as is or edited to fit your needs
-
-
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 WORKDIR /app
@@ -34,9 +30,8 @@ COPY --from=builder /app/.venv /app/.venv
 
 # Additionally install dev and debug dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --group dev --group debug
+    uv pip install --group dev --group debug
 
 # Make container use python installed inside the venv
 ENV PATH="/app/.venv/bin:$PATH"
@@ -55,8 +50,6 @@ COPY --from=builder /app/.venv /app/.venv
 COPY tool_pricing.yaml .
 
 ENV PATH="/app/.venv/bin:$PATH"
-
-EXPOSE 8000
 
 CMD ["python", "-m", "mcp_server_deepresearcher", "--host", "0.0.0.0", "--port", "8000"]
 

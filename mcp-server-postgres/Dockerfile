@@ -1,4 +1,3 @@
-# Use a Python image with uv pre-installed
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 # Install the project into `/app`
@@ -26,22 +25,21 @@ ADD . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --no-editable
 
-# Development stage - only install dependencies
+# Development stage - copy venv and add dev groups
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS dev
 
 WORKDIR /app
 
-# Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 ENV UV_FROZEN=1
 
-# Install ALL dependencies including dev dependencies, but don't install project itself
-# as it will be mounted
+COPY --from=builder /app/.venv /app/.venv
+
+# Add all dependency groups without wiping the existing environment
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --all-groups
+    uv pip install --all-groups
 
 ENV PATH="/app/.venv/bin:$PATH"
 
@@ -55,9 +53,6 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 
-# Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
-
-EXPOSE 8000
 
 CMD ["python", "-m", "mcp_server_postgres", "--host", "0.0.0.0", "--port", "8000"]

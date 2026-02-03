@@ -1,42 +1,50 @@
-# Use a Python image with uv pre-installed
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 WORKDIR /app
 
+ENV UV_LINK_MODE=copy
 ENV UV_COMPILE_BYTECODE=1
 
-# Copy project files first
-COPY . /app/
+# Install project dependencies using mounted uv.lock (ensure it exists locally)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev --no-editable
 
-# Create venv and install dependencies
-RUN uv venv && \
-    . .venv/bin/activate && \
-    uv pip install requests && \
-    uv pip install -e .
+# Install the project itself (done for layer caching optimization)
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-editable
 
-# Final stage - minimal runtime image
-FROM python:3.12-slim-bookworm
+# --- Dev stage --- #
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS dev
 
 WORKDIR /app
 
-# Copy only the installed virtual environment from the builder stage
+ENV UV_LINK_MODE=copy
+ENV UV_COMPILE_BYTECODE=1
+
+# Copy the application package from the builder stage
 COPY --from=builder /app/.venv /app/.venv
-# Copy source code including the src directory
-COPY --from=builder /app/src /app/src
 
-# Add the venv bin to the PATH
+# Additionally install dev and debug dependencies without removing the project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv pip install --group dev --group debug
+
+# Make container use python installed inside the venv
 ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONPATH="/app/src"
-ENV MCP_TELEGRAM_PORT=8002
 
-# Expose ports for the Telegram MCP server
-EXPOSE 8002
+CMD ["tail", "-f", "/dev/null"]
 
-# ---->HEALTHCHECK <----
-    HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8002/health || exit 1
+# --- Production stage --- #
+FROM python:3.12-slim-bookworm AS prod
 
-# Run the server
-CMD ["python", "-m", "mcp_server_telegram"]
+WORKDIR /app
+
+# Copy the application package from the builder stage
+COPY --from=builder /app/.venv /app/.venv
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+CMD ["python", "-m", "mcp_server_telegram", "--host", "0.0.0.0", "--port", "8000"]
