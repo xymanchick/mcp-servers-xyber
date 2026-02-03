@@ -11,7 +11,7 @@ from typing import Any
 from fastmcp.exceptions import ToolError
 from mcp_server_qdrant.exceptions import ValidationError
 from mcp_server_qdrant.qdrant import Entry, QdrantConnector
-from mcp_server_qdrant.shemas import QdrantFindRequest, QdrantGetCollectionInfoRequest, QdrantStoreRequest
+from mcp_server_qdrant.schemas import QdrantFindRequest, QdrantGetCollectionInfoRequest, QdrantStoreRequest
 from pydantic import ValidationError as PydanticValidationError
 from qdrant_client.models import CollectionInfo, ScoredPoint
 

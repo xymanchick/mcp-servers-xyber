@@ -1,15 +1,6 @@
-"""
-Pytest configuration and shared fixtures.
-"""
-import os
 import pytest
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import AsyncGenerator
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
-from mcp_server_lurky.app import create_app
 from mcp_server_lurky.lurky.module import LurkyClient
 from mcp_server_lurky.lurky.models import Discussion, SpaceDetails, SearchResponse
 
@@ -113,18 +104,6 @@ def sample_search_response(sample_discussion: Discussion) -> SearchResponse:
         page=0,
         limit=10
     )
-
-
-@pytest.fixture
-def app() -> FastAPI:
-    """Create FastAPI app for testing."""
-    return create_app()
-
-
-@pytest.fixture
-def client(app: FastAPI) -> TestClient:
-    """Create test client."""
-    return TestClient(app)
 
 
 @pytest.fixture(autouse=True)

@@ -28,21 +28,21 @@ def mock_wikipedia_page():
     page.summary = "This is a test article summary."
     page.text = "This is the full text of the test article."
     page.fullurl = "https://en.wikipedia.org/wiki/Test_Article"
-    
+
     # Mock sections
     section1 = Mock()
     section1.title = "Introduction"
     section2 = Mock()
     section2.title = "History"
     page.sections = [section1, section2]
-    
+
     # Mock links
     page.links = {
         "Related Article 1": Mock(),
         "Related Article 2": Mock(),
         "Related Article 3": Mock()
     }
-    
+
     return page
 
 
@@ -51,20 +51,20 @@ def mock_wikipedia_service(mock_config, mock_wikipedia_page):
     """Mock Wikipedia service with mocked dependencies."""
     with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
          patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib:
-        
+
         # Mock the wikipediaapi.Wikipedia instance
         mock_wiki_instance = Mock()
         mock_wiki_api.return_value = mock_wiki_instance
         mock_wiki_instance.page.return_value = mock_wikipedia_page
-        
+
         # Mock the wikipedia library functions
         mock_wiki_lib.set_lang = Mock()
         mock_wiki_lib.set_user_agent = Mock()
         mock_wiki_lib.search = Mock(return_value=["Result 1", "Result 2", "Result 3"])
-        
+
         # Create the service instance
         service = _WikipediaService(mock_config)
-        
+
         return service, mock_wiki_instance, mock_wiki_lib
 
 

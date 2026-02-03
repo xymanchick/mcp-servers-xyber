@@ -6,7 +6,7 @@ from tests.e2e.config import require_quill_api_key
 
 
 @pytest.mark.asyncio
-@pytest.mark.integration
+@pytest.mark.e2e
 @pytest.mark.payment_enabled
 async def test_hybrid_evm_token_info_requires_payment(rest_client) -> None:
     config, client = rest_client
@@ -18,7 +18,7 @@ async def test_hybrid_evm_token_info_requires_payment(rest_client) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.integration
+@pytest.mark.e2e
 @pytest.mark.payment_enabled
 async def test_hybrid_evm_token_info_succeeds_with_x402(paid_client) -> None:
     config, client = paid_client

@@ -12,7 +12,7 @@ import aiohttp
 import pytest
 from aiohttp import ClientConnectionError, ClientResponseError
 
-from mcp_server_aave.aave.client import AaveClient
+from mcp_server_aave.aave.module import AaveClient
 from mcp_server_aave.aave.config import (AaveApiError, AaveClientError,
                                          AaveConfig)
 from mcp_server_aave.aave.models import PoolData

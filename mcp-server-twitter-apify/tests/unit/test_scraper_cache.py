@@ -17,7 +17,7 @@ from db.models import Base
 from mcp_twitter.twitter.models import QueryDefinition, TwitterScraperInput
 from mcp_twitter.twitter.scraper import TwitterScraper
 
-from tests.fakes import FakeApifyClient
+from tests.unit.fakes import FakeApifyClient
 
 
 @pytest.fixture

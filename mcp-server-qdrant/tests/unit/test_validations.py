@@ -40,9 +40,15 @@ from qdrant_client.http.models.models import QueryResponse
                 ToolError,
                 match="Invalid parameters: information: Input should be a valid string",
             ),
-        ],
-        ids=["valid", "missed_required_fields", "validation_error"]
-    )
+            dict(
+                information=123,
+                collection_name="test_collection",
+            ),
+            None,
+        ),
+    ],
+    ids=["valid", "missed_required_fields", "validation_error"]
+)
 @patch('mcp_server_qdrant.qdrant.module.QdrantConnector.store', new_callable=AsyncMock)
 async def test_qdrant_store(_, mcp_server, error, request_data: dict, expected: str | None):
 
@@ -85,15 +91,9 @@ async def test_qdrant_store(_, mcp_server, error, request_data: dict, expected: 
                     )
                 ],
             ),
-            (
-                    raises(ToolError, match="Invalid parameters: collection_name: Field required"),
-                    dict(
-                        query="query",
-                        search_limit=1,
-                        filters={"key": "value"},
-                    ),
-                    (None, None)
-            ),
+        ),
+        (
+            raises(ToolError, match="Invalid parameters: collection_name: Field required"),
             dict(
                 query="query",
                 search_limit=1,
@@ -106,17 +106,25 @@ async def test_qdrant_store(_, mcp_server, error, request_data: dict, expected: 
                 ToolError,
                 match="Invalid parameters: search_limit: Input should be a valid integer",
             ),
-            (
-                    raises(ToolError, match="Invalid parameters: query: Field required"),
-                    dict(
-                        collection_name="test_collection",
-                        search_limit=1,
-                    ),
-                    (None, None)
+            dict(
+                query="query",
+                collection_name="test_collection",
+                search_limit="invalid",
+                filters={"key": "value"},
             ),
-        ],
-        ids=["valid", "valid_without_points", "missed_required_fields", "validation_error", "missed_query_field"]
-    )
+            (None, None),
+        ),
+        (
+            raises(ToolError, match="Invalid parameters: query: Field required"),
+            dict(
+                collection_name="test_collection",
+                search_limit=1,
+            ),
+            (None, None),
+        ),
+    ],
+    ids=["valid", "valid_without_points", "missed_required_fields", "validation_error", "missed_query_field"]
+)
 @patch('mcp_server_qdrant.qdrant.module.QdrantConnector.search', new_callable=AsyncMock)
 async def test_qdrant_find(mock_search, mcp_server, error, request_data: dict, expected: tuple):
     query_response, expected_response = expected
@@ -145,9 +153,11 @@ async def test_qdrant_find(mock_search, mcp_server, error, request_data: dict, e
                 ToolError,
                 match="Invalid parameters: collection_name: Input should be a valid string",
             ),
-        ],
-        ids=["valid", "missed_required_fields", "validation_error"]
-    )
+            dict(collection_name=123),
+        ),
+    ],
+    ids=["valid", "missed_required_fields", "validation_error"]
+)
 @patch('mcp_server_qdrant.qdrant.module.QdrantConnector.get_collection_details', new_callable=AsyncMock)
 async def test_get_collection_info(mock_get_details, mcp_server, error, request_data: dict):
     mock_get_details.return_value = {"name": "test_collection", "status": "green"}
@@ -155,7 +165,7 @@ async def test_get_collection_info(mock_get_details, mcp_server, error, request_
     with error:
         async with Client(mcp_server) as client:
             result = await client.call_tool("qdrant_get_collection_info", {"request": request_data})
-            
+
             if error.__class__.__name__ == "nullcontext":
                 assert result is not None
 
@@ -167,7 +177,7 @@ async def test_get_collections(mock_get_names, mcp_server):
 
     async with Client(mcp_server) as client:
         result = await client.call_tool("qdrant_get_collections", {})
-        
+
         assert result is not None
         assert result.content is not None
         import json

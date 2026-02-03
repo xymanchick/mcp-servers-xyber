@@ -1,10 +1,9 @@
 import asyncio
 import pytest
-from typing import Any, AsyncGenerator, Generator, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any, Generator, Dict, List
+from unittest.mock import AsyncMock, MagicMock
 
-from fastmcp import Context, FastMCP
-from qdrant_client.models import CollectionInfo, ScoredPoint, Record, PointStruct
+from qdrant_client.models import CollectionInfo, ScoredPoint
 
 from mcp_server_qdrant.qdrant import QdrantConnector
 
@@ -22,13 +21,13 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 @pytest.fixture
 def mock_qdrant_connector() -> AsyncMock:
     mock_connector = AsyncMock(spec=QdrantConnector)
-    
+
     mock_connector.store.return_value = None
-    
+
     mock_search_result = MagicMock()
     mock_search_result.points = []
     mock_connector.search.return_value = mock_search_result
-    
+
     mock_collection_info = MagicMock(spec=CollectionInfo)
     mock_collection_info.status = "green"
     mock_collection_info.vectors_count = 100
@@ -37,14 +36,15 @@ def mock_qdrant_connector() -> AsyncMock:
     mock_collection_info.ram_data_size = 512
     mock_collection_info.payload_schema = {"field": "keyword"}
     mock_connector.get_collection_details.return_value = mock_collection_info
-    
+
     mock_connector.get_collection_names.return_value = ["test_collection", "default_collection"]
-    
+
     return mock_connector
 
 
 @pytest.fixture
-def mock_context(mock_qdrant_connector: AsyncMock) -> Context:
+def mock_context(mock_qdrant_connector: AsyncMock):
+    from fastmcp import Context
     context = MagicMock(spec=Context)
     context.request_context.lifespan_context = {
         "qdrant_connector": mock_qdrant_connector
@@ -68,7 +68,7 @@ def sample_scored_points() -> List[ScoredPoint]:
     }
     point1.vector = None
     point1.shard_key = None
-    
+
     point2 = MagicMock(spec=ScoredPoint)
     point2.id = "point_2"
     point2.version = 1
@@ -83,7 +83,7 @@ def sample_scored_points() -> List[ScoredPoint]:
     }
     point2.vector = None
     point2.shard_key = None
-    
+
     point3 = MagicMock(spec=ScoredPoint)
     point3.id = "point_3"
     point3.version = 1
@@ -98,7 +98,7 @@ def sample_scored_points() -> List[ScoredPoint]:
     }
     point3.vector = None
     point3.shard_key = None
-    
+
     return [point1, point2, point3]
 
 
@@ -148,7 +148,7 @@ def sample_collection_info() -> CollectionInfo:
     mock_info.ram_data_size = 1048576   # ~1MB
     mock_info.payload_schema = {
         "user_id": "keyword",
-        "category": "keyword", 
+        "category": "keyword",
         "tags": "keyword",
         "priority": "keyword",
         "created_at": "keyword"

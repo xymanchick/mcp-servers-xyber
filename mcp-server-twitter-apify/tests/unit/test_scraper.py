@@ -7,7 +7,7 @@ from typing import Any
 import mcp_twitter.twitter.scraper as scraper_mod
 from mcp_twitter.twitter import QueryDefinition, TwitterScraper, TwitterScraperInput
 
-from tests.fakes import FakeApifyClient
+from tests.unit.fakes import FakeApifyClient
 
 
 def test_minimize_item_keeps_high_signal_fields_and_compacts_author() -> None:

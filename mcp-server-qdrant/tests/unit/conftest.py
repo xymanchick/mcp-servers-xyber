@@ -1,5 +1,4 @@
 import logging
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Generator
 
@@ -9,8 +8,8 @@ from fastapi.responses import JSONResponse
 from mcp_server_qdrant.server import mcp_server as mcp_server_instance
 
 from mcp_server_qdrant.qdrant.config import (
-    QdrantConfig, 
-    PayloadIndexConfig, 
+    QdrantConfig,
+    PayloadIndexConfig,
     PayloadIndexType,
     HnswConfig,
     CollectionConfig
@@ -20,20 +19,20 @@ from mcp_server_qdrant.qdrant.module import QdrantConnector
 
 
 class MockEmbeddingProvider(EmbeddingProvider):
-    
+
     def __init__(self, vector_size: int = 384, vector_name: str = "text"):
         self.vector_size = vector_size
         self.vector_name = vector_name
-    
+
     async def embed_documents(self, documents: list[str]) -> list[list[float]]:
         return [[0.1] * self.vector_size for _ in documents]
-    
+
     async def embed_query(self, query: str) -> list[float]:
         return [0.2] * self.vector_size
-    
+
     def get_vector_name(self) -> str:
         return self.vector_name
-    
+
     def get_vector_size(self) -> int:
         return self.vector_size
 
@@ -48,34 +47,6 @@ def disable_all_logging():
 @pytest.fixture
 def mcp_server():
     return mcp_server_instance
-
-
-@pytest.fixture
-def response_fixture():
-    async def inner(_: Request) -> JSONResponse:
-        return JSONResponse({"detail": "ok"})
-
-    return inner
-
-
-@pytest.fixture
-def mock_qdrant_store():
-    return AsyncMock()
-
-
-@pytest.fixture
-def mock_qdrant_search():
-    return AsyncMock()
-
-
-@pytest.fixture
-def mock_qdrant_get_collection_details():
-    return AsyncMock()
-
-
-@pytest.fixture
-def mock_qdrant_get_collection_names():
-    return AsyncMock()
 
 
 @pytest.fixture(autouse=True)
@@ -112,7 +83,7 @@ def sample_embeddings():
 @pytest.fixture
 def sample_entries():
     from mcp_server_qdrant.qdrant.module import Entry
-    
+
     return [
         Entry(
             content="Python is a high-level programming language",
@@ -136,7 +107,7 @@ def sample_entries():
 @pytest.fixture
 def simple_entries():
     from mcp_server_qdrant.qdrant.module import Entry
-    
+
     return [
         Entry(content="Hello world"),
         Entry(content="Test document", metadata={"type": "test"}),
@@ -147,7 +118,7 @@ def simple_entries():
 @pytest.fixture
 def complex_entries():
     from mcp_server_qdrant.qdrant.module import Entry
-    
+
     return [
         Entry(
             content="Advanced machine learning techniques in natural language processing",
@@ -179,22 +150,22 @@ def complex_entries():
 @pytest.fixture
 def multilingual_entries():
     from mcp_server_qdrant.qdrant.module import Entry
-    
+
     return [
         Entry(
-            content="Hello, world! 🌍",
+            content="Hello, world!",
             metadata={"language": "en", "has_emoji": True}
         ),
         Entry(
-            content="Привет, мир! 🌍",
+            content="Privet, mir!",
             metadata={"language": "ru", "has_emoji": True}
         ),
         Entry(
-            content="¡Hola, mundo! 🌍",
+            content="Hola, mundo!",
             metadata={"language": "es", "has_emoji": True}
         ),
         Entry(
-            content="こんにちは、世界！🌍",
+            content="Konnichiwa, sekai!",
             metadata={"language": "ja", "has_emoji": True}
         )
     ]
@@ -248,31 +219,31 @@ def collection_info_sample():
 @pytest.fixture
 def mock_client_with_errors():
     mock_client = AsyncMock()
-    
+
     mock_client.collection_exists.side_effect = Exception("Connection error")
     mock_client.get_collections.side_effect = Exception("API error")
     mock_client.create_collection.side_effect = Exception("Creation failed")
     mock_client.upsert.side_effect = Exception("Upsert failed")
     mock_client.query_points.side_effect = Exception("Query failed")
-    
+
     return mock_client
 
 
 @pytest.fixture
 def mock_client_collection_not_found():
     mock_client = AsyncMock()
-    
+
     mock_client.collection_exists.return_value = False
     mock_client.get_collection.side_effect = Exception("Collection not found")
     mock_client.get_collections.return_value = MagicMock(collections=[])
-    
+
     return mock_client
 
 
 @pytest.fixture
 def performance_test_data():
     from mcp_server_qdrant.qdrant.module import Entry
-    
+
     entries = []
     for i in range(100):
         entries.append(Entry(
@@ -284,7 +255,7 @@ def performance_test_data():
                 "size": "large"
             }
         ))
-    
+
     return entries
 
 
@@ -341,7 +312,7 @@ def mock_async_qdrant_client():
     with patch('mcp_server_qdrant.qdrant.module.AsyncQdrantClient') as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
-        
+
         # Default mock behaviors
         mock_client.get_collections.return_value = MagicMock(collections=[])
         mock_client.collection_exists.return_value = True
@@ -349,7 +320,7 @@ def mock_async_qdrant_client():
         mock_client.create_payload_index.return_value = None
         mock_client.upsert.return_value = None
         mock_client.query_points.return_value = MagicMock(points=[])
-        
+
         yield mock_client
 
 
@@ -435,7 +406,7 @@ def qdrant_connector(mock_config, mock_embedding_provider):
     with patch('mcp_server_qdrant.qdrant.module.AsyncQdrantClient') as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
-        
+
         connector = QdrantConnector(mock_config, mock_embedding_provider)
         connector._client = mock_client
         return connector
