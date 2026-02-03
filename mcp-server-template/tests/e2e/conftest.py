@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import base64
+import json
+
 import httpx
+import pytest
 import pytest_asyncio
 from eth_account import Account
 from x402.client import x402Client
@@ -9,6 +13,13 @@ from x402.mechanisms.evm.exact import register_exact_evm_client
 from x402.mechanisms.evm.signers import EthAccountSigner
 
 from tests.e2e.config import load_e2e_config, require_base_url, require_wallet
+
+
+def print_payment_info(response):
+    """Print decoded payment info from response headers."""
+    if "payment-response" in response.headers:
+        data = json.loads(base64.b64decode(response.headers["payment-response"]))
+        print(f"\n[Payment] tx={data.get('transaction')} network={data.get('network')}")
 
 
 @pytest_asyncio.fixture
@@ -50,4 +61,39 @@ async def paid_client():
         follow_redirects=True,
         trust_env=False,
     ) as client:
-        yield config, client
+        wrapper = PaymentTrackingClient(client)
+        yield config, wrapper
+
+
+class PaymentTrackingClient:
+    """Wrapper that tracks payment responses from x402HttpxClient."""
+
+    def __init__(self, client: x402HttpxClient):
+        self._client = client
+        self.last_payment_response = None
+
+    async def _track_payment(self, response):
+        if "payment-response" in response.headers:
+            self.last_payment_response = response.headers["payment-response"]
+            print_payment_info(response)
+        return response
+
+    async def get(self, *args, **kwargs):
+        response = await self._client.get(*args, **kwargs)
+        return await self._track_payment(response)
+
+    async def post(self, *args, **kwargs):
+        response = await self._client.post(*args, **kwargs)
+        return await self._track_payment(response)
+
+    async def put(self, *args, **kwargs):
+        response = await self._client.put(*args, **kwargs)
+        return await self._track_payment(response)
+
+    async def delete(self, *args, **kwargs):
+        response = await self._client.delete(*args, **kwargs)
+        return await self._track_payment(response)
+
+    async def patch(self, *args, **kwargs):
+        response = await self._client.patch(*args, **kwargs)
+        return await self._track_payment(response)
