@@ -40,19 +40,6 @@ services:
       - ./mcp-server-cartesia/.env
     restart: unless-stopped
 
-  mcp_server_imgen:
-    build:
-      context: ./mcp-server-imgen
-      dockerfile: Dockerfile
-    image: mcp_server_imgen
-    container_name: mcp_server_imgen
-    command: ["python", "-m", "mcp_server_imgen", "--port", "8102"]
-    ports:
-      - "8102:8102"
-    env_file:
-      - ./mcp-server-imgen/.env
-    restart: unless-stopped
-
   mcp_server_lurky:
     build:
       context: ./mcp-server-lurky
@@ -65,19 +52,6 @@ services:
       - ./mcp-server-lurky/.env
     environment:
       MCP_LURKY_PORT: "8112"
-    restart: unless-stopped
-
-  mcp_server_postgres:
-    build:
-      context: ./mcp-server-postgres
-      dockerfile: Dockerfile
-    image: mcp_server_postgres
-    container_name: mcp_server_postgres
-    command: ["python", "-m", "mcp_server_postgres", "--port", "8103"]
-    ports:
-      - "8103:8103"
-    env_file:
-      - ./mcp-server-postgres/.env
     restart: unless-stopped
 
   mcp_server_quill:
