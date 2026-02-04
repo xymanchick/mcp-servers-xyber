@@ -30,11 +30,29 @@ from x402.types import (
     x402PaymentRequiredResponse,
 )
 
-from mcp_twitter.config import PaymentOption, X402Config, get_x402_settings
+from mcp_twitter.x402_config import PaymentOption, X402Config, get_x402_settings
 
 logger = logging.getLogger(__name__)
 
 ID_TO_NETWORK_NAME = {int(v): k for k, v in NETWORK_TO_ID.items()}
+
+# CAIP-2 network -> block explorer base URL (for observable transactions, e.g. BaseScan)
+_EXPLORER_BASE: dict[str, str] = {
+    "eip155:1": "https://etherscan.io",
+    "eip155:8453": "https://basescan.org",
+    "eip155:84532": "https://sepolia.basescan.org",
+    "eip155:10": "https://optimistic.etherscan.io",
+    "eip155:42161": "https://arbiscan.io",
+    "eip155:137": "https://polygonscan.com",
+}
+
+
+def _explorer_tx_url(network: str, tx_hash: str) -> str:
+    """Build block explorer tx URL for a given CAIP-2 network and tx hash."""
+    base = _EXPLORER_BASE.get(network, "")
+    if not base or not tx_hash:
+        return ""
+    return f"{base}/tx/{tx_hash}"
 
 
 class X402WrapperMiddleware(BaseHTTPMiddleware):
@@ -158,6 +176,16 @@ class X402WrapperMiddleware(BaseHTTPMiddleware):
                     response.headers["X-PAYMENT-RESPONSE"] = base64.b64encode(
                         settle_response.model_dump_json(by_alias=True).encode("utf-8")
                     ).decode("utf-8")
+                    tx_hash = getattr(settle_response, "transaction", None) or ""
+                    network = getattr(settle_response, "network", None) or ""
+                    if tx_hash:
+                        explorer_url = _explorer_tx_url(network, tx_hash)
+                        logger.info(
+                            "Payment settled: tx=%s network=%s%s",
+                            tx_hash,
+                            network,
+                            f" | {explorer_url}" if explorer_url else "",
+                        )
                 else:
                     reason = settle_response.error_reason or "Unknown"
                     logger.error(

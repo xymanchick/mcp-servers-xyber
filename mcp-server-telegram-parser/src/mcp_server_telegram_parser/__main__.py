@@ -3,30 +3,12 @@ import logging
 import os
 
 import uvicorn
-from fastapi import FastAPI
 from mcp_server_telegram_parser.logging_config import LOGGING_LEVEL as logging_level
 from mcp_server_telegram_parser.logging_config import configure_logging
-from mcp_server_telegram_parser.server import mcp_server
+from mcp_server_telegram_parser.app import create_app
 
 configure_logging()
 logger = logging.getLogger(__name__)
-
-
-def create_app() -> FastAPI:
-    mcp_app = mcp_server.http_app(path="/mcp", transport="streamable-http")
-    app = FastAPI(
-        title="Telegram Parser MCP Server",
-        description="Parses public Telegram channels via Telethon",
-        version="1.0.0",
-        lifespan=mcp_app.router.lifespan_context,
-    )
-
-    @app.get("/health", status_code=200)
-    def health_check():
-        return {"status": "ok"}
-
-    app.mount("/mcp-server", mcp_app)
-    return app
 
 
 if __name__ == "__main__":

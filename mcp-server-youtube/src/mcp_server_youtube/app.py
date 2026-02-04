@@ -12,9 +12,9 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_youtube.api_routers import routers as api_routers
-from mcp_server_youtube.config import get_app_settings, get_x402_settings
+from mcp_server_youtube.config import get_app_settings
 from mcp_server_youtube.hybrid_routers import routers as hybrid_routers
-from mcp_server_youtube.mcp_routers import routers as mcp_routers
+from mcp_server_youtube.x402_config import get_x402_settings
 from mcp_server_youtube.middlewares import X402WrapperMiddleware
 from mcp_server_youtube.youtube import get_youtube_client, YouTubeVideoSearchAndTranscript
 
@@ -70,7 +70,7 @@ def create_app() -> FastAPI:
     Create and configure the main FastAPI application.
 
     This factory function:
-    1. Creates an MCP server from hybrid and MCP-only routers
+    1. Creates an MCP server from hybrid routers
     2. Combines lifespans for proper resource management
     3. Configures API routes with appropriate prefixes
     4. Sets up x402 payment middleware
@@ -82,8 +82,6 @@ def create_app() -> FastAPI:
     # --- MCP Server Generation ---
     mcp_source_app = FastAPI(title="MCP Source")
     for router in hybrid_routers:
-        mcp_source_app.include_router(router)
-    for router in mcp_routers:
         mcp_source_app.include_router(router)
 
     # Convert to MCP server
@@ -113,9 +111,6 @@ def create_app() -> FastAPI:
     # Hybrid routes: accessible via /hybrid/* (REST) and /mcp (MCP)
     for router in hybrid_routers:
         app.include_router(router, prefix="/hybrid")
-
-    # MCP-only routes: NOT mounted as REST endpoints
-    # They're only accessible through the /mcp endpoint below
 
     # Mount the MCP server at /mcp
     app.mount("/mcp", mcp_app)

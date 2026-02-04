@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_quill.api_routers import routers as api_routers
-from mcp_server_quill.config import get_x402_settings
+from mcp_server_quill.x402_config import get_x402_settings
 from mcp_server_quill.hybrid_routers import routers as hybrid_routers
 from mcp_server_quill.mcp_routers import routers as mcp_only_routers
 from mcp_server_quill.middlewares.x402_wrapper import X402WrapperMiddleware

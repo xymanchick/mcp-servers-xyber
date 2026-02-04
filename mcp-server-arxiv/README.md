@@ -1,52 +1,66 @@
 # MCP Arxiv Server
 
 > **General:** This repository provides an MCP (Model Context Protocol) server for searching and retrieving papers from the Arxiv preprint repository.
+> It demonstrates a **hybrid architecture** that exposes functionality through REST APIs, MCP, or both simultaneously.
 
-## Overview
+## Capabilities
 
-This server exposes functionality to search Arxiv through the Model Context Protocol (MCP). It allows language models and AI agents to find and access academic papers.
+### 1. **API-Only Endpoints** (`/api`)
 
-## MCP Tools:
+Standard REST endpoints for traditional clients (e.g., web apps, dashboards).
 
-1. `arxiv_search`
-    - **Description:** Searches Arxiv for papers, downloads their PDFs, and extracts the text content.
-    - **Input:**
-        - `query` (required): The search query.
-        - `max_results` (optional): Maximum number of papers to return.
-        - `max_text_length` (optional): Maximum number of characters of text to extract from each paper.
-    - **Output:** A formatted string containing the title, authors, summary, and extracted text for each paper found.
+| Method | Endpoint              | Price      | Description                            |
+| :----- | :-------------------- | :--------- | :------------------------------------- |
+| `GET`  | `/api/health`         | **Free**   | Checks the server's operational status |
+
+### 2. **Hybrid Endpoints** (`/hybrid`)
+
+Accessible via both REST and as MCP tools. Ideal for functionality shared between humans and AI.
+
+| Method/Tool                 | Price      | Description                                                    |
+| :-------------------------- | :--------- | :------------------------------------------------------------- |
+| `GET /hybrid/pricing`       | **Free**   | Returns tool pricing configuration                             |
+| `arxiv_search`              | **Free**   | Searches Arxiv for papers, downloads PDFs, and extracts text   |
+
+**`arxiv_search` Tool Details:**
+- **Input:**
+    - `query` (required): The search query.
+    - `max_results` (optional): Maximum number of papers to return.
+    - `max_text_length` (optional): Maximum number of characters of text to extract from each paper.
+- **Output:** A formatted string containing the title, authors, summary, and extracted text for each paper found.
+
+*Note: Paid endpoints require x402 payment protocol configuration. See `.env.example` for details.*
+
+## API Documentation
+
+This server automatically generates OpenAPI documentation. Once the server is running, you can access the interactive API docs at:
+
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs) (for REST endpoints)
+- **MCP Inspector**: Use an MCP-compatible client to view available agent tools [http://localhost:8000/mcp](http://localhost:8000/mcp)
+
+These interfaces allow you to explore all REST-accessible endpoints, view their schemas, and test them directly from your browser.
 
 ## Requirements
 
-- Python 3.12+
-- UV (for dependency management)
-- Docker (optional, for containerization)
+- **Python 3.12+**
+- **UV** (for dependency management)
+- **Docker** (optional, for containerization)
 
 ## Setup
 
-1. **Clone the Repository**:
-   ```bash
-   # path: /path/to/your/projects/
-   git clone <repository-url>
-   ```
+1.  **Clone & Configure**
+    ```bash
+    git clone <repository-url>
+    cd mcp-server-arxiv
+    cp .env.example .env
+    # Configure environment for x402, logging, etc. (see .env.example).
+    ```
 
-2. **Create `.env` File based on `.env.example`**:
-   Create a `.env` file inside `./mcp-server-arxiv/`.
-   ```dotenv
-   # Optional environment variables
-   ARXIV_DEFAULT_MAX_RESULTS=5
-   ARXIV_DEFAULT_MAX_TEXT_LENGTH=2000
-   ```
-
-3. **Install Dependencies**:
-   ```bash
-   # path: ./mcp-servers/mcp-server-arxiv/
-   # Using UV (recommended)
-   uv sync
-   
-   # Or install for development
-   uv sync --group dev
-   ```
+2.  **Virtual Environment**
+    ```bash
+    # working directory: ./mcp-servers/mcp-server-arxiv/
+    uv sync
+    ```
 
 ## Running the Server
 
@@ -91,6 +105,9 @@ docker run --rm -it -p 8000:8000 --env-file .env mcp-server-arxiv
 # path: ./mcp-servers/mcp-server-arxiv/
 # Run all tests
 uv run pytest
+
+# Run with verbose output
+uv run pytest -v
 ```
 
 ## Project Structure
@@ -99,26 +116,37 @@ uv run pytest
 mcp-server-arxiv/
 ├── src/
 │   └── mcp_server_arxiv/
-        └── arxiv/
-            ├── __init__.py
-            ├── config.py
-            ├── models.py
-            ├── module.py
-│       ├── __init__.py
-│       ├── __main__.py
-│       ├── logging_config.py
-│       ├── server.py
+│       ├── __main__.py              # Entry point (CLI + uvicorn)
+│       ├── app.py                   # Application factory & lifespan
+│       ├── config.py                # Settings with lru_cache factories
+│       ├── logging_config.py        # Logging configuration
+│       ├── dependencies.py          # FastAPI dependency injection
+│       ├── schemas.py               # Pydantic request/response models
+│       ├── x402_config.py           # x402 payment configuration
+│       │
+│       ├── api_routers/             # API-Only endpoints (REST)
+│       │   ├── __init__.py
+│       │   └── health.py            # Health check endpoint
+│       ├── hybrid_routers/          # Hybrid endpoints (REST + MCP)
+│       │   ├── __init__.py
+│       │   ├── pricing.py           # Pricing information
+│       │   └── search.py            # Arxiv search functionality
+│       ├── middlewares/
+│       │   ├── __init__.py
+│       │   └── x402_wrapper.py      # x402 payment middleware
+│       │
+│       └── xy_arxiv/                # Business logic layer
+│           ├── __init__.py
+│           ├── config.py
+│           ├── models.py
+│           ├── module.py
+│           └── errors.py
+│
 ├── tests/
-│   ├── conftest.py
-│   ├── test_module.py
-│   └── test_server.py
 ├── .env.example
-├── .gitignore
 ├── Dockerfile
-├── LICENSE
 ├── pyproject.toml
-├── README.md
-└── uv.lock
+└── README.md
 ```
 
 ## Contributing

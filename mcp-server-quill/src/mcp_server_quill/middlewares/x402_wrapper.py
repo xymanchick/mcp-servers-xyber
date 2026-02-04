@@ -32,7 +32,7 @@ from x402.mechanisms.evm.exact import ExactEvmServerScheme
 from x402.schemas import Network, PaymentPayload, PaymentRequired, PaymentRequirements
 from x402.server import x402ResourceServer
 
-from mcp_server_quill.config import (
+from mcp_server_quill.x402_config import (
     CHAIN_ID_TO_NETWORK,
     PaymentOptionConfig,
     X402Config,

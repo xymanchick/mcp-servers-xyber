@@ -3,14 +3,19 @@ import logging
 import yaml
 from fastapi import APIRouter, status
 
-from mcp_server_weather.config import get_x402_settings
+from mcp_server_weather.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-@router.get("/pricing", status_code=status.HTTP_200_OK)
+@router.get(
+    "/pricing",
+    status_code=status.HTTP_200_OK,
+    operation_id="weather_get_pricing",
+    tags=["Pricing"],
+)
 async def get_pricing() -> dict:
     """Get tool pricing configuration."""
     settings = get_x402_settings()

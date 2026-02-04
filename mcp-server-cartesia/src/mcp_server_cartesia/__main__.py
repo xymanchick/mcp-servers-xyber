@@ -6,33 +6,12 @@ import logging
 import os
 
 import uvicorn
-from fastapi import FastAPI
+
+from mcp_server_cartesia.app import create_app
 from mcp_server_cartesia.logging_config import configure_logging, logging_level
-from mcp_server_cartesia.server import mcp_server
 
 configure_logging()
 logger = logging.getLogger(__name__)
-
-# --- Application Factory --- #
-
-
-def create_app() -> FastAPI:
-    """Create a FastAPI application that can serve the provided mcp server with SSE."""
-    # Create the MCP ASGI app
-    mcp_app = mcp_server.http_app(path="/mcp", transport="streamable-http")
-
-    # Create FastAPI app
-    app = FastAPI(
-        title="Cartesia MCP Server",
-        description="MCP server for text-to-speech generation using Cartesia",
-        version="1.0.0",
-        lifespan=mcp_app.router.lifespan_context,
-    )
-
-    # Mount MCP server
-    app.mount("/mcp-server", mcp_app)
-
-    return app
 
 
 if __name__ == "__main__":

@@ -1,177 +1,209 @@
-"""Test cases for MCP server and tools."""
+"""Test cases for MCP routers."""
 
-import json
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-from fastmcp import Context
+from fastapi import Request
 from fastmcp.exceptions import ToolError
 
 from mcp_server_aave.aave import AaveApiError, AaveClientError
-from mcp_server_aave.aave.models import PoolData, ReserveData, RiskData
-from mcp_server_aave.schemas import (AssetSummary, ComprehensiveAaveData,
-                                     MarketOverview)
-from mcp_server_aave.server import app_lifespan, mcp_server
+from mcp_server_aave.mcp_routers.available_networks import get_available_networks
+from mcp_server_aave.mcp_routers.comprehensive_data import (
+    ComprehensiveAaveDataRequest,
+    get_comprehensive_aave_data,
+)
+from mcp_server_aave.schemas import ComprehensiveAaveData
 
 
-class TestGetComprehensiveAaveDataTool:
-    """Test cases for get_comprehensive_aave_data tool."""
+class TestGetAvailableNetworks:
+    """Test cases for get_available_networks router."""
 
     @pytest.fixture
-    def mock_context(self):
-        """Create a mock MCP context."""
-        context = Mock(spec=Context)
-        context.request_context = Mock()
-        context.request_context.lifespan_context = {"aave_client": Mock()}
-        return context
+    def mock_request(self):
+        """Create a mock FastAPI request."""
+        request = Mock(spec=Request)
+        request.app = Mock()
+        request.app.state = Mock()
+        request.app.state.aave_client = Mock()
+        return request
+
+    @pytest.mark.asyncio
+    async def test_get_available_networks_success(self, mock_request):
+        """Test successful retrieval of available networks."""
+        # Setup mock client
+        mock_request.app.state.aave_client.get_available_networks = AsyncMock(
+            return_value=["ethereum", "polygon", "avalanche"]
+        )
+
+        # Call the router
+        result = await get_available_networks(mock_request)
+
+        # Verify result
+        assert result == ["ethereum", "polygon", "avalanche"]
+        mock_request.app.state.aave_client.get_available_networks.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_available_networks_error(self, mock_request):
+        """Test handling of API errors."""
+        # Setup mock client to raise error
+        mock_request.app.state.aave_client.get_available_networks = AsyncMock(
+            side_effect=AaveApiError("API error")
+        )
+
+        # Call the router and expect error
+        with pytest.raises(ToolError, match="Failed to retrieve available networks"):
+            await get_available_networks(mock_request)
+
+
+class TestGetComprehensiveAaveData:
+    """Test cases for get_comprehensive_aave_data router."""
+
+    @pytest.fixture
+    def mock_request(self):
+        """Create a mock FastAPI request."""
+        request = Mock(spec=Request)
+        request.app = Mock()
+        request.app.state = Mock()
+        request.app.state.aave_client = Mock()
+        return request
 
     @pytest.mark.asyncio
     async def test_get_comprehensive_aave_data_success(
-        self, mock_context, sample_pool_data, sample_reserve_data, sample_risk_data
+        self, mock_request, sample_pool_data
     ):
         """Test successful comprehensive AAVE data retrieval."""
-        # Setup mock AAVE client
-        aave_client = mock_context.request_context.lifespan_context["aave_client"]
-        aave_client.get_markets_data = AsyncMock(return_value=[sample_pool_data])
-
-        # Call the comprehensive tool
-        result = await mcp_server.tools["get_comprehensive_aave_data"].handler(
-            mock_context,
-            network="ethereum",
-            asset_address=sample_reserve_data.underlying_token.address,
+        # Setup mock client
+        mock_request.app.state.aave_client.get_markets_data = AsyncMock(
+            return_value=[sample_pool_data]
         )
+        mock_request.app.state.aave_client.get_available_networks = AsyncMock(
+            return_value=["ethereum"]
+        )
+
+        # Create request data
+        request_data = ComprehensiveAaveDataRequest(
+            networks=["ethereum"], asset_symbols=None
+        )
+
+        # Call the router
+        result = await get_comprehensive_aave_data(request_data, mock_request)
 
         # Verify result
         assert isinstance(result, ComprehensiveAaveData)
+        assert len(result.data) > 0
         assert result.data[0].network == "Ethereum"
-        assert result.data[0].overview.total_reserves in (
-            0,
-            1,
-        )  # asset filter may reduce to 0/1
-        # When asset filtered, reserves list is either empty (no match) or single item
-        assert isinstance(result.data[0].reserves, list)
 
-        # Verify AAVE client was called correctly
-        aave_client.get_markets_data.assert_called_once()
+        # Verify client was called
+        mock_request.app.state.aave_client.get_markets_data.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_comprehensive_aave_data_no_asset(
-        self, mock_context, sample_pool_data
+    async def test_get_comprehensive_aave_data_with_asset_filter(
+        self, mock_request, sample_pool_data, sample_reserve_data
     ):
-        """Test comprehensive AAVE data retrieval without specific asset."""
-        # Setup mock AAVE client
-        aave_client = mock_context.request_context.lifespan_context["aave_client"]
-        aave_client.get_markets_data = AsyncMock(return_value=[sample_pool_data])
-
-        # Call the comprehensive tool without asset_address
-        result = await mcp_server.tools["get_comprehensive_aave_data"].handler(
-            mock_context, network="ethereum"
+        """Test comprehensive AAVE data retrieval with asset filter."""
+        # Setup mock client
+        mock_request.app.state.aave_client.get_markets_data = AsyncMock(
+            return_value=[sample_pool_data]
         )
+        mock_request.app.state.aave_client.get_available_networks = AsyncMock(
+            return_value=["ethereum"]
+        )
+
+        # Create request data with asset filter
+        request_data = ComprehensiveAaveDataRequest(
+            networks=["ethereum"],
+            asset_symbols=[sample_reserve_data.underlying_token.symbol],
+        )
+
+        # Call the router
+        result = await get_comprehensive_aave_data(request_data, mock_request)
 
         # Verify result
         assert isinstance(result, ComprehensiveAaveData)
-        assert result.data[0].network == "Ethereum"
-        assert result.data[0].overview.total_reserves == 1
-        assert len(result.data[0].reserves) == 1
-
-        # Verify only pool data was called
-        aave_client.get_markets_data.assert_called_once()
+        # Result may be empty if the filter doesn't match
+        for network_data in result.data:
+            assert network_data.network == "Ethereum"
 
     @pytest.mark.asyncio
-    async def test_get_comprehensive_aave_data_api_error(self, mock_context):
+    async def test_get_comprehensive_aave_data_all_networks(
+        self, mock_request, sample_pool_data
+    ):
+        """Test comprehensive AAVE data retrieval for all networks."""
+        # Setup mock client
+        mock_request.app.state.aave_client.get_markets_data = AsyncMock(
+            return_value=[sample_pool_data]
+        )
+        mock_request.app.state.aave_client.get_available_networks = AsyncMock(
+            return_value=["ethereum", "polygon"]
+        )
+
+        # Create request data without network filter
+        request_data = ComprehensiveAaveDataRequest(networks=None, asset_symbols=None)
+
+        # Call the router
+        result = await get_comprehensive_aave_data(request_data, mock_request)
+
+        # Verify result
+        assert isinstance(result, ComprehensiveAaveData)
+        # Verify get_available_networks was called
+        mock_request.app.state.aave_client.get_available_networks.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_comprehensive_aave_data_api_error(self, mock_request):
         """Test handling of API errors."""
-        # Setup mock AAVE client to raise API error
-        aave_client = mock_context.request_context.lifespan_context["aave_client"]
-        aave_client.get_markets_data = AsyncMock(
-            side_effect=AaveApiError("API key invalid")
+        # Setup mock client to raise error
+        mock_request.app.state.aave_client.get_markets_data = AsyncMock(
+            side_effect=AaveApiError("API error")
+        )
+        mock_request.app.state.aave_client.get_available_networks = AsyncMock(
+            return_value=["ethereum"]
         )
 
-        # Call the tool and expect error
-        with pytest.raises(ToolError, match="AAVE API error: API key invalid"):
-            await mcp_server.tools["get_comprehensive_aave_data"].handler(
-                mock_context, network="ethereum"
-            )
+        # Create request data
+        request_data = ComprehensiveAaveDataRequest(
+            networks=["ethereum"], asset_symbols=None
+        )
+
+        # Call the router and expect error
+        with pytest.raises(ToolError, match="AAVE API error"):
+            await get_comprehensive_aave_data(request_data, mock_request)
 
     @pytest.mark.asyncio
-    async def test_get_comprehensive_aave_data_client_error(self, mock_context):
+    async def test_get_comprehensive_aave_data_client_error(self, mock_request):
         """Test handling of client errors."""
-        # Setup mock AAVE client to raise client error
-        aave_client = mock_context.request_context.lifespan_context["aave_client"]
-        aave_client.get_markets_data = AsyncMock(
-            side_effect=AaveClientError("Failed to parse data")
+        # Setup mock client to raise error
+        mock_request.app.state.aave_client.get_markets_data = AsyncMock(
+            side_effect=AaveClientError("Client error")
+        )
+        mock_request.app.state.aave_client.get_available_networks = AsyncMock(
+            return_value=["ethereum"]
         )
 
-        # Call the tool and expect error
-        with pytest.raises(ToolError, match="AAVE client error: Failed to parse data"):
-            await mcp_server.tools["get_comprehensive_aave_data"].handler(
-                mock_context, network="ethereum"
-            )
+        # Create request data
+        request_data = ComprehensiveAaveDataRequest(
+            networks=["ethereum"], asset_symbols=None
+        )
+
+        # Call the router and expect error
+        with pytest.raises(ToolError, match="AAVE client error"):
+            await get_comprehensive_aave_data(request_data, mock_request)
 
     @pytest.mark.asyncio
-    async def test_get_comprehensive_aave_data_unexpected_error(self, mock_context):
+    async def test_get_comprehensive_aave_data_unexpected_error(self, mock_request):
         """Test handling of unexpected errors."""
-        # Setup mock AAVE client to raise unexpected error
-        aave_client = mock_context.request_context.lifespan_context["aave_client"]
-        aave_client.get_markets_data = AsyncMock(
+        # Setup mock client to raise error
+        mock_request.app.state.aave_client.get_markets_data = AsyncMock(
             side_effect=ValueError("Unexpected error")
         )
+        mock_request.app.state.aave_client.get_available_networks = AsyncMock(
+            return_value=["ethereum"]
+        )
 
-        # Call the tool and expect error
-        with pytest.raises(ToolError, match="An unexpected error occurred."):
-            await mcp_server.tools["get_comprehensive_aave_data"].handler(
-                mock_context, network="ethereum"
-            )
+        # Create request data
+        request_data = ComprehensiveAaveDataRequest(
+            networks=["ethereum"], asset_symbols=None
+        )
 
-
-class TestAppLifespan:
-    """Test cases for app_lifespan context manager."""
-
-    @pytest.mark.asyncio
-    async def test_app_lifespan_success(self):
-        """Test successful lifespan initialization."""
-        # Mock server
-        server = Mock()
-
-        # Mock get_aave_client
-        with patch("mcp_server_aave.server.get_aave_client") as mock_get_client:
-            mock_client = Mock()
-            mock_get_client.return_value = mock_client
-
-            # Use lifespan context manager
-            async with app_lifespan(server) as context:
-                # Verify context has AAVE client
-                assert "aave_client" in context
-                assert context["aave_client"] == mock_client
-
-                # Verify client was initialized
-                mock_get_client.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_app_lifespan_aave_error(self):
-        """Test lifespan with AAVE initialization error."""
-        # Mock server
-        server = Mock()
-
-        # Mock get_aave_client to raise error
-        with patch("mcp_server_aave.server.get_aave_client") as mock_get_client:
-            mock_get_client.side_effect = AaveApiError("Failed to initialize")
-
-            # Use lifespan context manager and expect error
-            with pytest.raises(AaveApiError, match="Failed to initialize"):
-                async with app_lifespan(server) as context:
-                    pass  # Should not reach here
-
-    @pytest.mark.asyncio
-    async def test_app_lifespan_unexpected_error(self):
-        """Test lifespan with unexpected initialization error."""
-        # Mock server
-        server = Mock()
-
-        # Mock get_aave_client to raise unexpected error
-        with patch("mcp_server_aave.server.get_aave_client") as mock_get_client:
-            mock_get_client.side_effect = Exception("Unexpected initialization error")
-
-            # Use lifespan context manager and expect error
-            with pytest.raises(Exception, match="Unexpected initialization error"):
-                async with app_lifespan(server) as context:
-                    pass  # Should not reach here
+        # Call the router and expect error
+        with pytest.raises(ToolError, match="An unexpected error occurred"):
+            await get_comprehensive_aave_data(request_data, mock_request)

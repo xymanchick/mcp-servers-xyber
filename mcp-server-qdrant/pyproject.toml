@@ -17,6 +17,7 @@ dependencies = [
     # Qdrant-specific dependencies
     "qdrant-client>=1.7.0",
     "fastembed>=0.7.0",
+    "x402[evm]>=2.0.0",
 ]
 
 [dependency-groups]

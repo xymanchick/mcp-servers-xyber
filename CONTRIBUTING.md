@@ -56,10 +56,18 @@ mcp-server-{name}/
 │   └── mcp_server_{name}/
 │       ├── __init__.py
 │       ├── __main__.py          # Entry point
-│       ├── server.py            # MCP server implementation
+│       ├── app.py               # FastAPI/MCP application factory
 │       ├── logging_config.py    # Logging setup
+│       ├── x402_config.py       # x402 payment protocol config
+│       ├── api_routers/         # REST-only endpoints
+│       │   └── *.py
+│       ├── hybrid_routers/      # Endpoints exposed via both REST and MCP
+│       │   └── *.py
+│       ├── mcp_routers/         # MCP-only tools
+│       │   └── *.py
+│       ├── middlewares/         # Custom middleware (e.g., x402)
+│       │   └── *.py
 │       └── {name}/              # Service-specific logic
-│           ├── __init__.py
 │           ├── config.py        # Configuration management
 │           ├── module.py        # Main business logic
 │           └── models.py        # Data models (if needed)
@@ -68,6 +76,7 @@ mcp-server-{name}/
 ├── pyproject.toml              # Dependencies & tool config
 ├── uv.lock                     # Locked dependencies
 ├── README.md                   # Service documentation
+├── tool_pricing.yaml           # x402 pricing config (optional)
 └── .env.example                # Environment template
 ```
 #### ⚙️ Configuration Management

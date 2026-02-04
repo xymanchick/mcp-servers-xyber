@@ -16,6 +16,7 @@ dependencies = [
     "fastapi>=0.115.12",
     "aiofiles>=23.0.0",
     "cartesia>=1.0.0",
+    "x402[evm]>=2.0.0",
 ]
 
 [dependency-groups]

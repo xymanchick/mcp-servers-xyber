@@ -6,9 +6,11 @@ Main responsibility: Collect hybrid (REST + MCP) FastAPI routers into a single l
 
 from fastapi import APIRouter
 
+from .pricing import router as pricing_router
 from .search import router as search_router
 
 routers: list[APIRouter] = [
+    pricing_router,
     search_router,
 ]
 

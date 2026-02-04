@@ -49,7 +49,7 @@ class X402Config(BaseSettings):
         extra="ignore",
     )
 
-    pricing_mode: Literal["off", "on"] = "on"
+    pricing_mode: Literal["off", "on"] = "off"
     payee_wallet_address: str | None = None
     facilitator_url: str | None = None
     cdp_api_key_id: str | None = None

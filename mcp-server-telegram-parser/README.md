@@ -1,54 +1,70 @@
 # MCP Telegram Parser Server
 
 > **General:** This repository provides an MCP (Model Context Protocol) server for parsing recent messages from public Telegram channels using Telethon.
+> It demonstrates a **hybrid architecture** that exposes functionality through REST APIs, MCP, or both simultaneously.
 
-## Overview
+## Capabilities
 
-This service exposes a tool for LLM agents to fetch recent posts from public Telegram channels with structured output. It relies on Telethon and a user session to access public channels without needing a bot.
+### 1. **API-Only Endpoints** (`/api`)
 
-## MCP Tools:
+Standard REST endpoints for traditional clients (e.g., web apps, dashboards).
 
-1. `parse_telegram_channels`
-    - **Description:** Retrieves the last N messages from a list of public Telegram channels.
-    - **Input:**
-        - `channels` (required): A list of channel usernames (e.g., `["durov", "nytimes"]`).
-        - `limit` (optional): The number of recent messages to fetch per channel (default: 10).
-    - **Output:** A structured result containing the messages from each channel, including text, date, views, and forwards.
+| Method | Endpoint              | Price      | Description                            |
+| :----- | :-------------------- | :--------- | :------------------------------------- |
+| `GET`  | `/api/health`         | **Free**   | Checks the server's operational status |
+
+### 2. **Hybrid Endpoints** (`/hybrid`)
+
+Accessible via both REST and as MCP tools. Ideal for functionality shared between humans and AI.
+
+| Method/Tool                                       | Price      | Description                                                              |
+| :------------------------------------------------ | :--------- | :----------------------------------------------------------------------- |
+| `GET /hybrid/pricing`                             | **Free**   | Returns tool pricing configuration                                       |
+| `POST /hybrid/parse-telegram-channels`            | **Free**   | Retrieves the last N messages from a list of public Telegram channels   |
+
+#### `parse-telegram-channels` Details:
+- **REST Endpoint:** `POST /hybrid/parse-telegram-channels`
+- **MCP Tool:** `telegram_parser_parse_channels`
+- **Input:**
+    - `channels` (required): A list of channel usernames (e.g., `["durov", "nytimes"]`).
+    - `limit` (optional): The number of recent messages to fetch per channel (default: 10).
+- **Output:** A structured result containing the messages from each channel, including text, date, views, and forwards.
+
+*Note: Paid endpoints require x402 payment protocol configuration. See `env.example` for details.*
+
+## API Documentation
+
+This server automatically generates OpenAPI documentation. Once the server is running, you can access the interactive API docs at:
+
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs) (for REST endpoints)
+- **MCP Inspector**: Use an MCP-compatible client to view available agent tools [http://localhost:8000/mcp](http://localhost:8000/mcp)
+
+These interfaces allow you to explore all REST-accessible endpoints, view their schemas, and test them directly from your browser.
 
 ## Requirements
 
-- Python 3.12+
-- UV (for dependency management)
-- Telethon API credentials (API ID and Hash from `my.telegram.org`)
-- A Telethon user session (StringSession is recommended)
-- Docker (optional, for containerization)
+- **Python 3.12+**
+- **UV** (for dependency management)
+- **Telethon API credentials** (API ID and Hash from `my.telegram.org`)
+- **A Telethon user session** (StringSession is recommended)
+- **Docker** (optional, for containerization)
 
 ## Setup
 
-1. **Clone the Repository**:
-   ```bash
-   # path: /path/to/your/projects/
-   git clone <repository-url>
-   ```
+1.  **Clone & Configure**
+    ```bash
+    git clone <repository-url>
+    cd mcp-server-telegram-parser
+    cp env.example .env
+    # Configure your Telethon credentials (see .env.example).
+    # Required: TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_STRING_SESSION
+    ```
 
-2. **Create `.env` File based on `.env.example`**:
-   Create a `.env` file inside `./mcp-server-telegram-parser/`. You must provide your Telethon API credentials and a session string.
-   ```dotenv
-   # Required Telethon credentials
-   TELEGRAM_API_ID="your_api_id"
-   TELEGRAM_API_HASH="your_api_hash"
-   TELEGRAM_STRING_SESSION="your_string_session"
-   ```
-
-3. **Install Dependencies**:
-   ```bash
-   # path: ./mcp-servers/mcp-server-telegram-parser/
-   # Using UV (recommended)
-   uv sync
-   
-   # Or install for development
-   uv sync --group dev
-   ```
+2.  **Virtual Environment**
+    ```bash
+    # working directory: ./mcp-servers/mcp-server-telegram-parser/
+    uv sync
+    ```
 
 ## Running the Server
 
@@ -89,7 +105,16 @@ docker run --rm -it -p 8000:8000 --env-file .env mcp-server-telegram-parser
 
 ## Testing
 
-At the moment, there are no dedicated tests for this service.
+```bash
+# path: ./mcp-servers/mcp-server-telegram-parser/
+# Run all tests
+uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+```
+
+*Note: At the moment, there are no dedicated tests for this service.*
 
 ## Project Structure
 
@@ -97,17 +122,32 @@ At the moment, there are no dedicated tests for this service.
 mcp-server-telegram-parser/
 ├── src/
 │   └── mcp_server_telegram_parser/
-│       ├── __main__.py
-│       ├── logging_config.py
-│       ├── schemas.py
-│       ├── server.py
-│       └── telegram/
+│       ├── __main__.py              # Entry point (CLI + uvicorn)
+│       ├── app.py                   # Application factory & lifespan
+│       ├── logging_config.py        # Logging configuration
+│       ├── schemas.py               # Pydantic request/response models
+│       ├── x402_config.py           # x402 payment configuration
+│       │
+│       ├── api_routers/             # API-Only endpoints (REST)
+│       │   ├── __init__.py
+│       │   └── health.py
+│       │
+│       ├── hybrid_routers/          # Hybrid endpoints (REST + MCP)
+│       │   ├── __init__.py
+│       │   ├── pricing.py
+│       │   └── parse_channels.py
+│       │
+│       ├── middlewares/             # x402 payment middleware
+│       │   ├── __init__.py
+│       │   └── x402_wrapper.py
+│       │
+│       └── telegram/                # Business logic layer
 │           ├── config.py
 │           └── module.py
+│
+├── tests/
 ├── .env.example
-├── .gitignore
 ├── Dockerfile
-├── LICENSE
 ├── pyproject.toml
 └── README.md
 ```

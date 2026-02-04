@@ -1,0 +1,140 @@
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastmcp import FastMCP
+
+from mcp_server_stability.api_routers import routers as api_routers
+from mcp_server_stability.hybrid_routers import routers as hybrid_routers
+from mcp_server_stability.mcp_routers import routers as mcp_routers
+from mcp_server_stability.stable_diffusion import (
+    StabilityService,
+    StableDiffusionClientError,
+    get_stability_service,
+)
+from mcp_server_stability.x402_config import get_x402_settings
+
+logger = logging.getLogger(__name__)
+
+
+# --- Lifespan Management ---
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    """
+    Manages the application's resources.
+
+    Currently manages:
+    - StabilityService for Stable Diffusion API calls
+
+    Note: The x402 middleware manages its own HTTP client lifecycle using
+    context managers, so no external resource management is needed.
+    """
+    logger.info("Lifespan: Initializing application services...")
+
+    # Initialize Stable Diffusion service
+    stability_service: StabilityService = None
+    try:
+        stability_service = await get_stability_service()
+        app.state.stability_service = stability_service
+        logger.info("Lifespan: Stable Diffusion service initialized successfully.")
+
+        yield
+
+    except StableDiffusionClientError as init_err:
+        logger.error(
+            f"FATAL: Lifespan initialization failed: {init_err}", exc_info=True
+        )
+        raise init_err
+    except Exception as startup_err:
+        logger.error(
+            f"FATAL: Unexpected error during lifespan initialization: {startup_err}",
+            exc_info=True,
+        )
+        raise startup_err
+    finally:
+        logger.info("Lifespan: Shutting down application services...")
+        if stability_service is not None:
+            await stability_service.cleanup()
+            logger.info("Lifespan: Stable Diffusion service cleanup completed.")
+
+
+# --- Application Factory ---
+def create_app() -> FastAPI:
+    """
+    Create and configure the main FastAPI application.
+
+    This factory function:
+    1. Creates an MCP server from hybrid and MCP-only routers
+    2. Combines lifespans for proper resource management
+    3. Configures API routes with appropriate prefixes
+    4. Sets up x402 payment middleware
+    5. Validates pricing configuration against available routes
+
+    Returns:
+        Configured FastAPI application ready to serve requests
+    """
+    # --- MCP Server Generation ---
+    # Create a FastAPI app containing only MCP-exposed endpoints
+    mcp_source_app = FastAPI(title="MCP Source")
+    for router in hybrid_routers:
+        mcp_source_app.include_router(router)
+    for router in mcp_routers:
+        mcp_source_app.include_router(router)
+
+    # Convert to MCP server
+    mcp_server = FastMCP.from_fastapi(app=mcp_source_app, name="MCP")
+    mcp_app = mcp_server.http_app(path="/")
+
+    # --- Combined Lifespan ---
+    # This correctly manages both our app's resources and FastMCP's internal state.
+    @asynccontextmanager
+    async def combined_lifespan(app: FastAPI):
+        async with app_lifespan(app):
+            async with mcp_app.lifespan(app):
+                yield
+
+    # --- Main Application ---
+    app = FastAPI(
+        title="Stable Diffusion MCP Server (Hybrid)",
+        description="A server with stable diffusion image generation, REST, MCP, and x402 payment capabilities.",
+        version="2.0.0",
+        lifespan=combined_lifespan,
+    )
+
+    # --- Router Configuration ---
+    # API-only routes: accessible via /api/* (REST only)
+    for router in api_routers:
+        app.include_router(router, prefix="/api")
+
+    # Hybrid routes: accessible via /hybrid/* (REST) and /mcp (MCP)
+    for router in hybrid_routers:
+        app.include_router(router, prefix="/hybrid")
+
+    # MCP-only routes: NOT mounted as REST endpoints
+    # They're only accessible through the /mcp endpoint below
+
+    # Mount the MCP server at /mcp
+    app.mount("/mcp", mcp_app)
+
+    # --- Pricing Configuration Validation ---
+    # First, validate that pricing_mode is consistent with pricing config
+    # This will fail fast if pricing_mode='on' but no config exists
+    x402_settings = get_x402_settings()
+    x402_settings.validate_pricing_mode()
+
+    # Then validate that all priced endpoints actually exist
+    # and warn about any misconfiguration
+    all_routes = app.routes + mcp_source_app.routes
+    x402_settings.validate_against_routes(all_routes)
+
+    # --- Middleware Configuration ---
+    if x402_settings.pricing_mode == "on":
+        from mcp_server_stability.middlewares import X402WrapperMiddleware
+
+        app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
+        logger.info("x402 payment middleware enabled.")
+    else:
+        logger.info("x402 payment middleware disabled (pricing_mode='off').")
+
+    logger.info("Application setup complete.")
+    return app

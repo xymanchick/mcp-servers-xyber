@@ -47,4 +47,4 @@ COPY --from=builder /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["python", "-m", "mcp_server_stable_diffusion", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "mcp_server_stability", "--host", "0.0.0.0", "--port", "8000"]

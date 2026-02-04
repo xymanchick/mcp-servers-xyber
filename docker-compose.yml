@@ -88,7 +88,7 @@ services:
       dockerfile: Dockerfile
     image: mcp_server_stability
     container_name: mcp_server_stability
-    command: ["python", "-m", "mcp_server_stable_diffusion", "--port", "8105"]
+    command: ["python", "-m", "mcp_server_stability", "--port", "8105"]
     ports:
       - "8105:8105"
     env_file:

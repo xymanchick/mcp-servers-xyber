@@ -1,42 +1,15 @@
-### src/mcp_server_telegram/__main__.py
 import argparse
 import logging
 import os
 
 import uvicorn
-from fastapi import FastAPI
+
+from mcp_server_telegram.app import create_app
 from mcp_server_telegram.logging_config import LOGGING_LEVEL as logging_level
 from mcp_server_telegram.logging_config import configure_logging
-from mcp_server_telegram.server import mcp_server
 
 configure_logging()
 logger = logging.getLogger(__name__)
-
-# --- Application Factory --- #
-
-
-def create_app() -> FastAPI:
-    """Create a FastAPI application that can serve the provided mcp server with SSE."""
-    # Create the MCP ASGI app
-    mcp_app = mcp_server.http_app(path="/mcp", transport="streamable-http")
-
-    # Create FastAPI app
-    app = FastAPI(
-        title="Telegram MCP Server",
-        description="MCP server for sending messages to Telegram channels",
-        version="1.0.0",
-        lifespan=mcp_app.router.lifespan_context,
-    )
-
-    # Add health check endpoint
-    @app.get("/health", status_code=200)
-    def health_check():
-        return {"status": "ok"}
-
-    # Mount MCP server
-    app.mount("/mcp-server", mcp_app)
-
-    return app
 
 
 if __name__ == "__main__":
@@ -66,7 +39,7 @@ if __name__ == "__main__":
     logger.info(f"Starting Telegram MCP server on {args.host}:{args.port}")
 
     uvicorn.run(
-        "mcp_server_telegram.__main__:create_app",
+        "mcp_server_telegram.app:create_app",
         host=args.host,
         port=args.port,
         reload=args.reload,

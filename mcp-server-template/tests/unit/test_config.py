@@ -9,7 +9,8 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from mcp_server_weather.config import AppSettings, PaymentOptionConfig, X402Config
+from mcp_server_weather.config import AppSettings
+from mcp_server_weather.x402_config import PaymentOptionConfig, X402Config
 
 
 class TestPaymentOptionConfig:
@@ -204,10 +205,10 @@ class TestX402ConfigFacilitator:
         with patch.dict("sys.modules", {"cdp": type("cdp", (), {"x402": type("x402", (), {"create_facilitator_config": lambda **kw: mock_config})()})}):
             # Re-import to pick up the mock
             import importlib
-            import mcp_server_weather.config
-            importlib.reload(mcp_server_weather.config)
+            import mcp_server_weather.x402_config
+            importlib.reload(mcp_server_weather.x402_config)
 
-            config = mcp_server_weather.config.X402Config(
+            config = mcp_server_weather.x402_config.X402Config(
                 cdp_api_key_id="key_id",
                 cdp_api_key_secret="key_secret",
                 pricing_config_path=Path("/nonexistent"),

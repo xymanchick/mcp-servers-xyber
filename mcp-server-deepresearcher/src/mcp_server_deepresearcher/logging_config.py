@@ -21,6 +21,12 @@ LOGGING_CONFIG = {
             "stream": "ext://sys.stdout",
         },
     },
+    "loggers": {
+        "docket": {"level": "WARNING"},
+        "fakeredis": {"level": "WARNING"},
+        "httpx": {"level": "WARNING"},
+        "httpcore": {"level": "WARNING"},
+    },
     "root": {"handlers": ["console"], "level": f"{LOGGING_LEVEL}"},
 }
 
