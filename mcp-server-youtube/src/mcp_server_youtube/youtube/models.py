@@ -1,208 +1,57 @@
-from __future__ import annotations
+from sqlalchemy import (
+    Column,
+    String,
+    Text,
+    DateTime,
+    Integer,
+    Boolean,
+    func,
+)
+from sqlalchemy.orm import declarative_base
 
-import re
-from collections.abc import Sequence
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Annotated, Literal
-
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from pydantic.types import StringConstraints
-from pydantic_core import PydanticCustomError
-
-
-class YouTubeVideo(BaseModel):
-    """Represents a YouTube video with its metadata and transcript information."""
-
-    video_id: str = Field(..., pattern=r"^[a-zA-Z0-9_-]{11}$")
-    title: str
-    channel: str
-    published_at: datetime
-    thumbnail: str
-    description: str = ""
-    transcript: str | None = None
-    transcript_language: str | None = None
-    has_transcript: bool = False
-
-    @property
-    def url(self) -> str:
-        return f"https://www.youtube.com/watch?v={self.video_id}"
-
-    def __str__(self) -> str:
-        transcript_info = (
-            f"Transcript: {self.transcript}\nLanguage: {self.transcript_language}"
-            if self.has_transcript
-            else "No transcript available"
-        )
-        return (
-            f"Video ID: {self.video_id}\nTitle: {self.title}\nChannel: {self.channel}\n"
-            f"Published at: {self.published_at}\nThumbnail: {self.thumbnail}\n"
-            f"Description: {self.description}\n{transcript_info}"
-        )
+# Define the base class for declarative class definitions
+Base = declarative_base()
 
 
-class YouTubeSearchResponse(BaseModel):
-    """Schema for YouTube search response."""
-    results: list[YouTubeVideo] = Field(default=[], description='List of search results')
-    total_results: int = Field(default=0, description='Total number of results')
-    next_page_token: str | None = Field(None, description='Token for next page')
+class YouTubeVideo(Base):
+    """
+    YouTube Video with metadata and transcript
+    Stores video information, metadata, and transcripts for caching
+    """
 
+    __tablename__ = "youtube_videos"
 
-    model_config = ConfigDict(
-        strict=True, from_attributes=True, extra="forbid", populate_by_name=True
-    )
+    # --- Primary Key ---
+    video_id = Column(String(255), primary_key=True)
 
+    # --- Video Information ---
+    title = Column(String(500), nullable=True)
+    channel = Column(String(255), nullable=True)
+    channel_id = Column(String(255), nullable=True)
+    channel_url = Column(Text, nullable=True)
+    video_url = Column(Text, nullable=True)
 
-ERROR_CODES = {
-    "QUERY_EMPTY": "query_empty",
-    "QUERY_TOO_LONG": "query_too_long",
-    "INVALID_LANGUAGE": "invalid_language",
-    "INVALID_DATE_FORMAT": "invalid_date_format",
-    "DATE_IN_FUTURE": "date_in_future",
-    "INVALID_ORDER_BY": "invalid_order_by",
-    "INVALID_MAX_RESULTS": "invalid_max_results",
-    "INVALID_VIDEO_ID": "invalid_video_id",
-    "INVALID_URL": "invalid_url",
-    "TEXT_TOO_LONG": "text_too_long",
-}
+    # --- Metadata ---
+    duration = Column(Integer, nullable=True)  # Duration in seconds
+    views = Column(Integer, nullable=True)
+    likes = Column(Integer, nullable=True)
+    comments = Column(Integer, nullable=True)
+    upload_date = Column(String(50), nullable=True)  # Format: YYYY-MM-DD
+    description = Column(Text, nullable=True)
+    thumbnail = Column(Text, nullable=True)
 
+    # --- Transcript Information ---
+    transcript_success = Column(Boolean, nullable=True)
+    transcript = Column(Text, nullable=True)
+    transcript_length = Column(Integer, nullable=True)  # Length of transcript in characters
+    error = Column(Text, nullable=True)
+    is_auto_generated = Column(Boolean, nullable=True)
+    language = Column(String(10), nullable=True)
 
-class LanguageCode(str, Enum):
-    ENGLISH = "en"
-    SPANISH = "es"
-    FRENCH = "fr"
-    GERMAN = "de"
-    PORTUGUESE = "pt"
-    ITALIAN = "it"
-    JAPANESE = "ja"
-    KOREAN = "ko"
-    RUSSIAN = "ru"
-    CHINESE = "zh"
+    # --- Timestamps ---
+    fetched_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    def __repr__(self):
+        return f"<YouTubeVideo(video_id='{self.video_id}', title='{self.title}', transcript_success={self.transcript_success})>"
 
-class TranscriptStatus(str, Enum):
-    """Status of transcript retrieval."""
-
-    SUCCESS = "success"
-    NO_TRANSCRIPT = "no_transcript"
-    BLOCKED = "blocked"
-    DISABLED = "disabled"
-    UNAVAILABLE = "unavailable"
-    ERROR = "error"
-
-
-class TranscriptResult(BaseModel):
-    """Result of transcript retrieval."""
-
-    status: TranscriptStatus
-    transcript: str | None | None = None
-    language: str | None | None = None
-    available_languages: Sequence[str | None] = Field(default_factory=list)
-    error_message: str | None | None = None
-
-    @model_validator(mode="after")
-    def validate_status(self) -> TranscriptResult:
-        """Validate that the status matches the data."""
-        if self.status == TranscriptStatus.SUCCESS:
-            assert self.transcript is not None, "Transcript must be present for success"
-            assert self.language is not None, "Language must be present for success"
-        return self
-
-
-class YouTubeSearchRequest(BaseModel):
-    """Schema for YouTube search requests."""
-
-    model_config = ConfigDict(
-        strict=True, from_attributes=True, extra="forbid", populate_by_name=True
-    )
-
-    query: Annotated[str, StringConstraints(min_length=1, max_length=500)] = Field(
-        ..., description="Search query string (1-500 characters)"
-    )
-
-    max_results: Annotated[int, Field(ge=1, le=20)] = Field(
-        default=5, description="Number of results to return (1-20)"
-    )
-
-    transcript_language: str | None = Field(
-        None, description="Transcript language code (e.g. 'en', 'fr')"
-    )
-
-    published_after: (
-        Annotated[
-            str,
-            StringConstraints(
-                pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$"
-            ),
-        ]
-        | None
-    ) = Field(None, description="Only include videos after this date (ISO 8601)")
-
-    published_before: (
-        Annotated[
-            str,
-            StringConstraints(
-                pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$"
-            ),
-        ]
-        | None
-    ) = Field(None, description="Only include videos before this date (ISO 8601)")
-
-    order_by: Literal["relevance", "date", "viewCount", "rating"] | None = Field(
-        None, description="Sort order: relevance, date, viewCount, rating"
-    )
-
-    @field_validator("query")
-    @classmethod
-    def query_not_whitespace(cls, v: str) -> str:
-        if not v.strip():
-            raise PydanticCustomError(
-                ERROR_CODES["QUERY_EMPTY"], "Query cannot be empty or whitespace"
-            )
-        return v
-
-    @field_validator("transcript_language")
-    @classmethod
-    def validate_language(cls, v: str | None) -> str | None:
-        if v is None:
-            return None
-        v = v.lower()
-        if not v.isalpha():
-            raise PydanticCustomError(
-                ERROR_CODES["INVALID_LANGUAGE"],
-                "Language code must contain only letters",
-            )
-        if v not in {lang.value for lang in LanguageCode}:
-            raise PydanticCustomError(
-                ERROR_CODES["INVALID_LANGUAGE"], f"Unsupported language code: {v}"
-            )
-        return v
-
-    @field_validator("published_after", "published_before")
-    @classmethod
-    def validate_date_format(cls, v: str | None) -> str | None:
-        if not v:
-            return None
-
-        if not re.match(
-            r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$", v
-        ):
-            raise PydanticCustomError(
-                ERROR_CODES["INVALID_DATE_FORMAT"], "Invalid ISO 8601 format"
-            )
-
-        try:
-            dt_str = v.replace("Z", "+00:00")
-            dt = datetime.fromisoformat(dt_str)
-            dt = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-
-            if dt > datetime.now(timezone.utc):
-                raise PydanticCustomError(
-                    ERROR_CODES["DATE_IN_FUTURE"],
-                    f"Date cannot be in the future (now: {datetime.now(timezone.utc).isoformat()})",
-                )
-
-        except ValueError as e:
-            raise PydanticCustomError(ERROR_CODES["INVALID_DATE_FORMAT"], str(e)) from e
-
-        return v

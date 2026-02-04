@@ -88,23 +88,6 @@ services:
     restart: unless-stopped
     environment: {}
 
-  mcp_server_imgen:
-    build:
-      context: ./mcp-server-imgen
-      dockerfile: Dockerfile
-      target: dev
-    image: mcp_server_imgen_debug
-    container_name: mcp_server_imgen_debug
-    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5704", "--wait-for-client", "-m", "mcp_server_imgen", "--port", "8104", "--reload"]
-    ports:
-      - "8104:8104"
-      - "5704:5704"
-    volumes:
-      - ./mcp-server-imgen/src/mcp_server_imgen:/app/mcp_server_imgen:ro
-    env_file: ./mcp-server-imgen/.env
-    restart: unless-stopped
-    environment: {}
-
   mcp_server_lurky:
     build:
       context: ./mcp-server-lurky
@@ -123,24 +106,6 @@ services:
     environment:
       MCP_LURKY_PORT: "8115"
       MCP_LURKY_HOT_RELOAD: "true"
-      <<: *debug-env
-
-  mcp_server_postgres:
-    build:
-      context: ./mcp-server-postgres
-      dockerfile: Dockerfile
-      target: dev
-    image: mcp_server_postgres_debug
-    container_name: mcp_server_postgres_debug
-    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5705", "--wait-for-client", "-m", "mcp_server_postgres", "--port", "8105", "--reload"]
-    ports:
-      - "8105:8105"
-      - "5705:5705"
-    volumes:
-      - ./mcp-server-postgres/src/mcp_server_postgres:/app/mcp_server_postgres:ro
-    env_file: ./mcp-server-postgres/.env
-    restart: unless-stopped
-    environment:
       <<: *debug-env
 
   mcp_server_quill:

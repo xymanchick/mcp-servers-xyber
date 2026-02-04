@@ -1,11 +1,20 @@
-from mcp_server_youtube.youtube.config import YouTubeClientError, YouTubeConfig
-from mcp_server_youtube.youtube.models import YouTubeSearchResponse
-from mcp_server_youtube.youtube.module import YouTubeSearcher, get_youtube_searcher
+"""
+YouTube service module - provides client, database, and models.
+"""
+
+from mcp_server_youtube.youtube.client import (
+    YouTubeVideoSearchAndTranscript,
+    get_youtube_client,
+)
+from mcp_server_youtube.youtube.methods import DatabaseManager, get_db_manager
+from mcp_server_youtube.youtube.models import Base, YouTubeVideo
 
 __all__ = [
-    "YouTubeSearcher",
-    "YouTubeConfig",
-    "YouTubeClientError",
-    "get_youtube_searcher",
-    "YouTubeSearchResponse",
+    "YouTubeVideoSearchAndTranscript",
+    "get_youtube_client",
+    "DatabaseManager",
+    "get_db_manager",
+    "YouTubeVideo",
+    "Base",
 ]
+
