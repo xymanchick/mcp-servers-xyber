@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_arxiv.api_routers import routers as api_routers
-from mcp_server_arxiv.config import get_x402_settings
 from mcp_server_arxiv.hybrid_routers import routers as hybrid_routers
+from mcp_server_arxiv.x402_config import get_x402_settings
 from mcp_server_arxiv.middlewares import X402WrapperMiddleware
 from mcp_server_arxiv.xy_arxiv import _ArxivService
 from mcp_server_arxiv.xy_arxiv import get_arxiv_service as create_arxiv_service

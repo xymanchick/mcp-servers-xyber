@@ -17,6 +17,7 @@ dependencies = [
     # Telegram-specific dependencies
     "python-telegram-bot>=20.0",
     "requests>=2.28.0",
+    "x402[evm]>=2.0.0",
 ]
 
 [dependency-groups]

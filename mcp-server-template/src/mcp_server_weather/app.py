@@ -11,8 +11,8 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_weather.api_routers import routers as api_routers
-from mcp_server_weather.config import get_x402_settings
 from mcp_server_weather.hybrid_routers import routers as hybrid_routers
+from mcp_server_weather.x402_config import get_x402_settings
 from mcp_server_weather.mcp_routers import routers as mcp_routers
 from mcp_server_weather.middlewares import X402WrapperMiddleware
 from mcp_server_weather.weather import (

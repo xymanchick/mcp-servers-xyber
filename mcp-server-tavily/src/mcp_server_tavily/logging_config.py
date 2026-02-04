@@ -31,6 +31,12 @@ def get_logging_config() -> dict:
                 "backupCount": 5,
             },
         },
+        "loggers": {
+            "docket": {"level": "WARNING"},
+            "fakeredis": {"level": "WARNING"},
+            "httpx": {"level": "WARNING"},
+            "httpcore": {"level": "WARNING"},
+        },
         "root": {"handlers": ["console"], "level": f"{logging_level}"},
     }
 

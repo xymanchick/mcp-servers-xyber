@@ -28,6 +28,12 @@ LOGGING_CONFIG = {
             "backupCount": 5,
         },
     },
+    "loggers": {
+        "docket": {"level": "WARNING"},
+        "fakeredis": {"level": "WARNING"},
+        "httpx": {"level": "WARNING"},
+        "httpcore": {"level": "WARNING"},
+    },
     "root": {"handlers": ["console", "file"], "level": f"{logging_level}"},
 }
 

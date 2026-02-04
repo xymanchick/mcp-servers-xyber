@@ -6,7 +6,9 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi_mcp import FastApiMCP
 from mcp_server_together_imgen.api_router import router as api_router
+from mcp_server_together_imgen.hybrid_routers import routers as hybrid_routers
 from mcp_server_together_imgen.logging_config import configure_logging, logging_level
+from mcp_server_together_imgen.x402_config import get_x402_settings
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -25,8 +27,24 @@ def create_app() -> FastAPI:
     # Mount API router - this is our single source of truth for the logic
     app.include_router(api_router, prefix="/api", tags=["api"])
 
+    # Include hybrid routers (REST endpoints)
+    for router in hybrid_routers:
+        app.include_router(router, prefix="/hybrid")
+
     mcp_server = FastApiMCP(app)
     mcp_server.mount_http()
+
+    # --- Pricing Configuration Validation ---
+    x402_settings = get_x402_settings()
+    x402_settings.validate_pricing_mode()
+
+    # --- Middleware Configuration ---
+    if x402_settings.pricing_mode == "on":
+        from mcp_server_together_imgen.middlewares import X402WrapperMiddleware
+        app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
+        logger.info("x402 payment middleware enabled.")
+    else:
+        logger.info("x402 payment middleware disabled (pricing_mode='off').")
 
     return app
 

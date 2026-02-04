@@ -117,14 +117,40 @@ mcp-server-wikipedia/
 ├── src/
 │   └── mcp_server_wikipedia/
 │       ├── __init__.py
-│       ├── __main__.py
-│       ├── server.py
-│       ├── logging_config.py
-│       └── wikipedia/
+│       ├── __main__.py              # Entry point (CLI + uvicorn)
+│       ├── app.py                   # Application factory & lifespan
+│       ├── logging_config.py        # Logging configuration
+│       ├── schemas.py               # Pydantic request/response models
+│       ├── x402_config.py           # x402 payment configuration
+│       │
+│       ├── api_routers/             # API-Only endpoints (REST)
+│       │   ├── __init__.py
+│       │   └── health.py
+│       │
+│       ├── hybrid_routers/          # Hybrid endpoints (REST + MCP)
+│       │   ├── __init__.py
+│       │   └── pricing.py
+│       │
+│       ├── mcp_routers/             # MCP-Only endpoints
+│       │   ├── __init__.py
+│       │   ├── search.py
+│       │   ├── article.py
+│       │   ├── summary.py
+│       │   ├── sections.py
+│       │   ├── links.py
+│       │   └── related.py
+│       │
+│       ├── middlewares/             # x402 payment middleware
+│       │   ├── __init__.py
+│       │   └── x402_wrapper.py
+│       │
+│       └── wikipedia/               # Business logic layer
 │           ├── __init__.py
 │           ├── config.py
 │           ├── models.py
 │           └── module.py
+│
+├── tests/
 ├── .gitignore
 ├── Dockerfile
 ├── pyproject.toml

@@ -3,7 +3,7 @@ import logging
 import yaml
 from fastapi import APIRouter, status
 
-from mcp_server_quill.config import get_x402_settings
+from mcp_server_quill.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
 

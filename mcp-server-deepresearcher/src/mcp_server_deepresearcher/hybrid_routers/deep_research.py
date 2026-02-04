@@ -113,7 +113,7 @@ async def perform_deep_research(
     tools_description: list[Any],
 ) -> dict[str, Any]:
     """
-    Core research logic extracted from server.py for reuse.
+    Core research logic.
     """
     # Get configuration for deep researcher
     deep_researcher_config = DeepResearcherConfig()

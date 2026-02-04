@@ -111,19 +111,33 @@ uv run pytest
 mcp-server-hangman/
 ├── src/
 │   └── mcp_server_hangman/
-│       ├── hangman/
-│       │   ├── __init__.py
-│       │   ├── game.py
-│       │   └── state.py
 │       ├── __init__.py
-│       ├── __main__.py
-│       ├── logging_config.py
-│       └── server.py
+│       ├── __main__.py              # Entry point (CLI + uvicorn)
+│       ├── app.py                   # Application factory & lifespan
+│       ├── config.py                # Settings configuration
+│       ├── logging_config.py        # Logging configuration
+│       ├── dependencies.py          # FastAPI dependency injection
+│       ├── schemas.py               # Pydantic request/response models
+│       ├── x402_config.py           # x402 payment configuration
+│       │
+│       ├── api_routers/             # API-Only endpoints (REST)
+│       │   ├── __init__.py
+│       │   └── health.py            # Health check endpoint
+│       ├── hybrid_routers/          # Hybrid endpoints (REST + MCP)
+│       │   ├── __init__.py
+│       │   ├── pricing.py           # Tool pricing configuration
+│       │   ├── start_game.py        # Start new hangman game
+│       │   └── guess_letter.py      # Make letter guess
+│       ├── middlewares/
+│       │   ├── __init__.py
+│       │   └── x402_wrapper.py      # x402 payment middleware
+│       │
+│       └── hangman/                 # Business logic layer
+│           ├── models.py            # Game state models
+│           └── module.py            # Core game logic
+│
 ├── tests/
-│   └── test_server.py
-├── .gitignore
 ├── Dockerfile
-├── LICENSE
 ├── pyproject.toml
 ├── README.md
 └── uv.lock

@@ -9,7 +9,8 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from mcp_server_tavily.config import AppSettings, PaymentOption, X402Config
+from mcp_server_tavily.config import AppSettings
+from mcp_server_tavily.x402_config import PaymentOption, X402Config
 
 
 @pytest.fixture(autouse=True)
@@ -205,7 +206,7 @@ class TestX402ConfigFacilitator:
 
     def test_facilitator_with_cdp_keys(self):
         """CDP API keys present configures mainnet facilitator."""
-        with patch("mcp_server_tavily.config.create_facilitator_config") as mock:
+        with patch("mcp_server_tavily.x402_config.create_facilitator_config") as mock:
             mock.return_value = {"url": "https://cdp.facilitator"}
             config = X402Config(
                 cdp_api_key_id="key_id",
@@ -237,7 +238,7 @@ class TestX402ConfigFacilitator:
 
     def test_facilitator_cdp_takes_precedence(self):
         """CDP keys take precedence over facilitator_url."""
-        with patch("mcp_server_tavily.config.create_facilitator_config") as mock:
+        with patch("mcp_server_tavily.x402_config.create_facilitator_config") as mock:
             mock.return_value = {"url": "https://cdp.facilitator"}
             config = X402Config(
                 cdp_api_key_id="key_id",

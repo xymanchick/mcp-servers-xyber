@@ -12,7 +12,7 @@ from httpx import ASGITransport, AsyncClient
 from x402.clients.base import x402Client
 from x402.types import PaymentPayload, PaymentRequirements, x402PaymentRequiredResponse
 
-from mcp_server_arxiv.config import PaymentOption
+from mcp_server_arxiv.x402_config import PaymentOption
 from mcp_server_arxiv.middlewares import X402WrapperMiddleware
 
 

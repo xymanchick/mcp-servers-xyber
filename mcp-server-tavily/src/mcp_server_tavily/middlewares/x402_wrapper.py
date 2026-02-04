@@ -21,7 +21,7 @@ from x402.types import (
     x402PaymentRequiredResponse,
 )
 
-from mcp_server_tavily.config import PaymentOption, X402Config, get_x402_settings
+from mcp_server_tavily.x402_config import PaymentOption, X402Config, get_x402_settings
 
 logger = logging.getLogger(__name__)
 

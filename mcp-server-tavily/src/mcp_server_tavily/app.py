@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_tavily.api_routers import routers as api_routers
-from mcp_server_tavily.config import get_x402_settings
 from mcp_server_tavily.hybrid_routers import routers as hybrid_routers
+from mcp_server_tavily.x402_config import get_x402_settings
 from mcp_server_tavily.middlewares import X402WrapperMiddleware
 from mcp_server_tavily.tavily import _TavilyService
 from mcp_server_tavily.tavily import get_tavily_service as create_tavily_service

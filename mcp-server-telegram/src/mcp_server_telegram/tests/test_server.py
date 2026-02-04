@@ -8,7 +8,7 @@ from mcp_server_telegram.telegram import TelegramServiceError
 
 
 async def post_to_telegram_impl(ctx: Context, message: str, mock_get_telegram_service=None) -> str:
-    from mcp_server_telegram.server import logger
+    from mcp_server_telegram.mcp_routers.post_to_telegram import logger
     from mcp_server_telegram.telegram import get_telegram_service
     
     request: Request = ctx.request_context.request
@@ -165,7 +165,7 @@ class TestPostToTelegram:
         def mock_get_service(token, channel):
             return mock_telegram_service
         
-        with patch('mcp_server_telegram.server.logger') as mock_logger:
+        with patch('mcp_server_telegram.mcp_routers.post_to_telegram.logger') as mock_logger:
             result = await post_to_telegram_impl(mock_context, message, mock_get_service)
             
             assert result == "Message successfully posted to the Telegram channel '@test_channel'"

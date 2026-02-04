@@ -21,6 +21,7 @@ dependencies = [
     "pillow>=10.3.0",
     "fastapi-mcp",
     "httpx>=0.27.0",
+    "x402[evm]>=2.0.0",
 ]
 
 [dependency-groups]

@@ -3,47 +3,12 @@ import logging
 import os
 
 import uvicorn
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+
+from mcp_server_qdrant.app import create_app
 from mcp_server_qdrant.logging_config import configure_logging, logging_level
-from mcp_server_qdrant.middleware import PayloadSizeMiddleware
-from mcp_server_qdrant.server import mcp_server
 
 configure_logging()
 logger = logging.getLogger(__name__)
-
-# --- Application Factory --- #
-
-
-def create_app() -> FastAPI:
-    """Create a FastAPI application that can serve the provided mcp server with SSE."""
-    # Create the MCP ASGI app
-    mcp_app = mcp_server.http_app(path="/mcp", transport="streamable-http")
-
-    # Create FastAPI app
-    app = FastAPI(
-        title="Qdrant MCP Server",
-        description="MCP server for vector database operations using Qdrant",
-        version="1.0.0",
-        lifespan=mcp_app.router.lifespan_context,
-    )
-
-    # Add CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    # Add custom middleware for payload size limit
-    app.add_middleware(PayloadSizeMiddleware)
-
-    # Mount MCP server
-    app.mount("/mcp-server", mcp_app)
-
-    return app
 
 
 if __name__ == "__main__":
@@ -73,7 +38,7 @@ if __name__ == "__main__":
     logger.info(f"Starting Qdrant MCP server on {args.host}:{args.port}")
 
     uvicorn.run(
-        "mcp_server_qdrant.__main__:create_app",
+        "mcp_server_qdrant.app:create_app",
         host=args.host,
         port=args.port,
         reload=args.reload,

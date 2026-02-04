@@ -20,6 +20,7 @@ dependencies = [
     "eth-account>=0.10.0",
     "eth-typing>=4.0.0",
     "pydantic>=2.5.0",
+    "x402[evm]>=2.0.0",
 ]
 
 [dependency-groups]

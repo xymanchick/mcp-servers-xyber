@@ -3,35 +3,11 @@ import logging
 import os
 
 import uvicorn
-from fastapi import FastAPI
 from mcp_server_twitter.logging_config import configure_logging, logging_level
-from mcp_server_twitter.server import mcp_server, get_health_status, get_metrics
+from mcp_server_twitter.app import create_app
 
 configure_logging()
 logger = logging.getLogger(__name__)
-
-# --- Application Factory --- #
-def create_app() -> FastAPI:
-    """Create a FastAPI application that can serve the provided mcp server with SSE."""
-    # Create the MCP ASGI app
-    mcp_app = mcp_server.http_app(path="/mcp", transport="streamable-http")
-
-    # Create FastAPI app with proper FastMCP lifespan
-    app = FastAPI(
-        title="Twitter MCP Server",
-        description="MCP server for Twitter integration",
-        version="1.0.0",
-        lifespan=mcp_app.lifespan,
-    )
-
-    # Mount MCP server
-    app.mount("/mcp-server", mcp_app)
-
-    # Add health and metrics endpoints
-    app.add_api_route("/health", get_health_status, methods=["GET"])
-    app.add_api_route("/metrics", get_metrics, methods=["GET"])
-
-    return app
 
 
 if __name__ == "__main__":

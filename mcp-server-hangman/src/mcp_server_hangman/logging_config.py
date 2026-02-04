@@ -21,9 +21,19 @@ LOGGING_CONFIG = {
             "stream": "ext://sys.stdout",
         }
     },
+    "loggers": {
+        "docket": {"level": "WARNING"},
+        "fakeredis": {"level": "WARNING"},
+        "httpx": {"level": "WARNING"},
+        "httpcore": {"level": "WARNING"},
+    },
     "root": {"handlers": ["console"], "level": LOGGING_LEVEL},
 }
 
 
 def configure_logging() -> None:
     dictConfig(LOGGING_CONFIG)
+
+
+def get_logging_config() -> dict:
+    return LOGGING_CONFIG

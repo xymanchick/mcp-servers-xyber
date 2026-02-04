@@ -545,48 +545,61 @@ See `tests/README_TESTING.md` for detailed testing documentation.
 mcp-server-deepresearcher/
 ├── src/
 │   └── mcp_server_deepresearcher/
-│       ├── api_routers/          # REST-only endpoints
-│       │   ├── health.py         # Health check endpoint
-│       │   └── reports.py        # Report retrieval endpoints
-│       ├── db/                   # PostgreSQL database layer
-│       │   ├── database.py       # Connection and operations
-│       │   └── models.py         # SQLAlchemy models
-│       ├── deepresearcher/       # Core research agent
-│       │   ├── config.py         # Configuration classes
-│       │   ├── graph.py          # LangGraph definition
-│       │   ├── mcp_init.py       # MCP server initialization
-│       │   ├── prompts.py        # LLM prompts
-│       │   ├── state.py          # Graph state definition
-│       │   └── utils.py          # Utility functions
-│       ├── hybrid_routers/       # REST + MCP endpoints
-│       │   └── deep_research.py
-│       ├── mcp_routers/          # MCP-only endpoints
-│       │   └── research_analyzer.py
-│       ├── middlewares/          # Middleware components
-│       │   └── x402_wrapper.py   # Payment middleware
 │       ├── __init__.py
-│       ├── __main__.py           # Entry point
-│       ├── app.py                # FastAPI app factory
-│       ├── dependencies.py       # FastAPI dependencies
-│       ├── logging_config.py     # Logging setup
-│       ├── schemas.py            # Pydantic schemas
-│       ├── server.py             # MCP server (legacy)
-│       └── x402_config.py        # Payment configuration
-├── scripts/                       # Helper scripts
-│   ├── start-db.sh              # Start PostgreSQL
-│   └── start-server.sh          # Start server
-├── tests/                        # Test suite
-│   ├── e2e/                     # End-to-end tests
-│   ├── middlewares/             # Middleware tests
-│   ├── conftest.py              # Pytest fixtures
-│   ├── README_TESTING.md        # Testing documentation
-│   └── test_*.py                # Test files
+│       ├── __main__.py              # Entry point (CLI + uvicorn)
+│       ├── app.py                   # Application factory & lifespan
+│       ├── dependencies.py          # FastAPI dependency injection
+│       ├── logging_config.py        # Logging configuration
+│       ├── schemas.py               # Pydantic request/response models
+│       ├── x402_config.py           # x402 payment configuration
+│       │
+│       ├── api_routers/             # API-Only endpoints (REST)
+│       │   ├── __init__.py
+│       │   ├── health.py            # Health check endpoint
+│       │   └── reports.py           # Report retrieval endpoints
+│       │
+│       ├── hybrid_routers/          # Hybrid endpoints (REST + MCP)
+│       │   ├── __init__.py
+│       │   ├── deep_research.py     # Main research endpoint
+│       │   └── pricing.py           # Pricing information
+│       │
+│       ├── mcp_routers/             # MCP-Only endpoints
+│       │   ├── __init__.py
+│       │   └── research_analyzer.py # Research analysis tools
+│       │
+│       ├── middlewares/             # x402 payment middleware
+│       │   ├── __init__.py
+│       │   └── x402_wrapper.py      # Payment validation
+│       │
+│       ├── db/                      # PostgreSQL database layer
+│       │   ├── __init__.py
+│       │   ├── database.py          # Connection and operations
+│       │   └── models.py            # SQLAlchemy models
+│       │
+│       └── deepresearcher/          # Core research agent (business logic)
+│           ├── __init__.py
+│           ├── config.py            # Configuration classes
+│           ├── graph.py             # LangGraph definition
+│           ├── mcp_init.py          # MCP server initialization
+│           ├── prompts.py           # LLM prompts
+│           ├── state.py             # Graph state definition
+│           └── utils.py             # Utility functions
+│
+├── scripts/                         # Helper scripts
+│   ├── start-db.sh                  # Start PostgreSQL
+│   └── start-server.sh              # Start server
+├── tests/                           # Test suite
+│   ├── e2e/                         # End-to-end tests
+│   ├── middlewares/                 # Middleware tests
+│   ├── conftest.py                  # Pytest fixtures
+│   ├── README_TESTING.md            # Testing documentation
+│   └── test_*.py                    # Test files
 ├── .gitignore
 ├── Dockerfile
 ├── LICENSE
 ├── pyproject.toml
 ├── README.md
-├── tool_pricing.yaml            # x402 pricing configuration
+├── tool_pricing.yaml                # x402 pricing configuration
 └── uv.lock
 ```
 

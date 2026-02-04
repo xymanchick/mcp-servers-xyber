@@ -98,14 +98,37 @@ uv run pytest
 mcp-server-telegram/
 ├── src/
 │   └── mcp_server_telegram/
-│       └── telegram/
-│           ├── __init__.py
-│           ├── config.py
-│           └── module.py
 │       ├── __init__.py
-│       ├── __main__.py
-│       ├── logging_config.py
-│       └── server.py
+│       ├── __main__.py              # Entry point (CLI + uvicorn)
+│       ├── app.py                   # Application factory & lifespan
+│       ├── logging_config.py        # Logging configuration
+│       ├── dependencies.py          # FastAPI dependency injection
+│       ├── schemas.py               # Pydantic request/response models
+│       ├── x402_config.py           # x402 payment configuration
+│       │
+│       ├── api_routers/             # API-Only endpoints (REST)
+│       │   ├── __init__.py
+│       │   └── health.py
+│       ├── hybrid_routers/          # Hybrid endpoints (REST + MCP)
+│       │   ├── __init__.py
+│       │   └── pricing.py
+│       ├── mcp_routers/             # MCP-Only endpoints
+│       │   ├── __init__.py
+│       │   └── post_to_telegram.py
+│       ├── middlewares/             # x402 payment middleware
+│       │   ├── __init__.py
+│       │   └── x402_wrapper.py
+│       │
+│       ├── telegram/                # Business logic layer
+│       │   ├── __init__.py
+│       │   ├── config.py
+│       │   └── module.py
+│       │
+│       └── tests/
+│           ├── conftest.py
+│           ├── test_module.py
+│           └── test_server.py
+│
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile

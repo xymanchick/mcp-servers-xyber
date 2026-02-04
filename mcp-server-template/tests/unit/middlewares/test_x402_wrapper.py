@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from x402.http import safe_base64_encode
 
-from mcp_server_weather.config import PaymentOptionConfig
+from mcp_server_weather.x402_config import PaymentOptionConfig
 from mcp_server_weather.middlewares import X402WrapperMiddleware
 
 

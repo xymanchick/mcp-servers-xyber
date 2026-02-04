@@ -126,35 +126,47 @@ uv run pytest
 mcp-server-qdrant/
 ├── src/
 │   └── mcp_server_qdrant/
-│       └── qdrant/
+│       ├── __main__.py              # Entry point (CLI + uvicorn)
+│       ├── app.py                   # Application factory & lifespan
+│       ├── schemas.py               # Pydantic request/response models
+│       ├── exceptions.py            # Custom exception definitions
+│       ├── logging_config.py        # Logging configuration
+│       ├── middleware.py            # Middleware configuration
+│       ├── x402_config.py           # x402 payment configuration
+│       ├── tools.py                 # Tool definitions
+│       │
+│       ├── api_routers/             # API-Only endpoints (REST)
+│       │   ├── __init__.py
+│       │   └── health.py            # Health check endpoint
+│       │
+│       ├── hybrid_routers/          # Hybrid endpoints (REST + MCP)
+│       │   ├── __init__.py
+│       │   └── pricing.py           # Pricing information
+│       │
+│       ├── mcp_routers/             # MCP-Only endpoints
+│       │   ├── __init__.py
+│       │   └── qdrant_tools.py      # Qdrant MCP tools
+│       │
+│       ├── middlewares/             # x402 payment middleware
+│       │   ├── __init__.py
+│       │   └── x402_wrapper.py
+│       │
+│       └── qdrant/                  # Business logic layer
 │           ├── __init__.py
-│           ├── config.py
-│           ├── module.py
-│           └── embeddings/
+│           ├── config.py            # Qdrant configuration
+│           ├── module.py            # Core Qdrant operations
+│           └── embeddings/          # Embedding providers
 │               ├── __init__.py
-│               ├── base.py
-│               ├── factory.py
-│               ├── fastembed.py
-│               └── types.py
-│       └── tests/
-│           ├── __init__.py
-│           ├── conftest.py
-│           ├── test_middlewares.py
-│           └── test_validations.py
-│       ├── __init__.py
-│       ├── __main__.py
-│       ├── exceptions.py
-│       ├── logging_config.py
-│       ├── middlewares.py
-│       ├── server.py
-│       └── schemas.py
+│               ├── base.py          # Base embedding interface
+│               ├── factory.py       # Embedding factory
+│               ├── fastembed.py     # FastEmbed implementation
+│               └── types.py         # Type definitions
+│
+├── tests/
 ├── .env.example
-├── .gitignore
 ├── Dockerfile
-├── LICENSE
 ├── pyproject.toml
-├── README.md
-└── uv.lock
+└── README.md
 ```
 
 ## Contributing

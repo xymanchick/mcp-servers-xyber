@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_twitter.api_routers import routers as api_routers
-from mcp_twitter.config import get_x402_settings
+from mcp_twitter.x402_config import get_x402_settings
 from mcp_twitter.hybrid_routers import routers as hybrid_routers
 from mcp_twitter.mcp_routers import routers as mcp_routers
 from mcp_twitter.middlewares import X402WrapperMiddleware
@@ -144,10 +144,14 @@ def create_app() -> FastAPI:
     app.mount("/mcp", mcp_app)
 
     # --- Pricing Configuration Validation ---
-    # This validates that all priced endpoints actually exist
-    # and warns about any misconfiguration
-    all_routes = app.routes + mcp_source_app.routes
+    # First, validate that pricing_mode is consistent with pricing config
+    # This will fail fast if pricing_mode='on' but no config exists
     x402_settings = get_x402_settings()
+    x402_settings.validate_pricing_mode()
+
+    # Then validate that all priced endpoints actually exist
+    # and warn about any misconfiguration
+    all_routes = app.routes + mcp_source_app.routes
     x402_settings.validate_against_routes(all_routes)
 
     # --- Middleware Configuration ---

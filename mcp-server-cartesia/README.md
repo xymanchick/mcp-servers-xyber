@@ -1,56 +1,68 @@
 # MCP Cartesia Server
 
 > **General:** This repository provides an MCP (Model Context Protocol) server for text-to-speech (TTS) synthesis using the Cartesia API.
+> It demonstrates a **hybrid architecture** that exposes functionality through REST APIs, MCP, or both simultaneously.
 
-## Overview
+## Capabilities
 
-This server exposes functionality to generate speech from text through the Model Context Protocol (MCP). It allows language models and AI agents to create audio from text inputs.
+### 1. **API-Only Endpoints** (`/api`)
 
-## MCP Tools:
+Standard REST endpoints for traditional clients (e.g., web apps, dashboards).
 
-1. `generate_cartesia_tts`
-    - **Description:** Synthesizes speech from the provided text using a specified voice and model, then saves it as a WAV file.
-    - **Input:**
-        - `text` (required): The text to be converted to speech.
-        - `voice_id` (optional): The ID of the voice to use for the synthesis.
-        - `model_id` (optional): The ID of the TTS model to use.
-    - **Output:** The file path to the generated WAV audio file.
+| Method | Endpoint              | Price      | Description                            |
+| :----- | :-------------------- | :--------- | :------------------------------------- |
+| `GET`  | `/api/health`         | **Free**   | Checks the server's operational status |
+
+### 2. **Hybrid Endpoints** (`/hybrid`)
+
+Accessible via both REST and as MCP tools. Ideal for functionality shared between humans and AI.
+
+| Method/Tool                 | Price      | Description                         |
+| :-------------------------- | :--------- | :---------------------------------- |
+| `GET /hybrid/pricing`       | **Free**   | Returns tool pricing configuration  |
+| `cartesia_get_pricing`      | **Free**   | Returns tool pricing configuration  |
+
+### 3. **MCP-Only Endpoints**
+
+Tools exposed exclusively to AI agents. Not available as REST endpoints.
+
+| Tool                        | Price      | Description                                          |
+| :-------------------------- | :--------- | :--------------------------------------------------- |
+| `generate_cartesia_tts`     | **Free**   | Synthesizes speech from text and saves as WAV file   |
+
+*Note: Paid endpoints require x402 payment protocol configuration. See `.env.example` for details.*
+
+## API Documentation
+
+This server automatically generates OpenAPI documentation. Once the server is running, you can access the interactive API docs at:
+
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs) (for REST endpoints)
+- **MCP Inspector**: Use an MCP-compatible client to view available agent tools [http://localhost:8000/mcp](http://localhost:8000/mcp)
+
+These interfaces allow you to explore all REST-accessible endpoints, view their schemas, and test them directly from your browser.
 
 ## Requirements
 
-- Python 3.12+
-- UV (for dependency management)
-- Cartesia API Key
-- Docker (optional, for containerization)
+- **Python 3.12+**
+- **UV** (for dependency management)
+- **Cartesia API Key** (required for TTS generation)
+- **Docker** (optional, for containerization)
 
 ## Setup
 
-1. **Clone the Repository**:
-   ```bash
-   # path: /path/to/your/projects/
-   git clone <repository-url>
-   ```
+1.  **Clone & Configure**
+    ```bash
+    git clone <repository-url>
+    cd mcp-server-cartesia
+    cp .env.example .env
+    # Configure environment for Cartesia API key, x402, logging, etc. (see .env.example).
+    ```
 
-2. **Create `.env` File based on `.env.example`**:
-   Create a `.env` file inside `./mcp-server-cartesia/`. You must provide your Cartesia API key.
-   ```dotenv
-   # Required environment variables
-   CARTESIA_API_KEY="your_cartesia_api_key"
-   
-   # Optional environment variables
-   CARTESIA_VOICE_ID="your_default_voice_id"
-   CARTESIA_MODEL_ID="your_default_model_id"
-   ```
-
-3. **Install Dependencies**:
-   ```bash
-   # path: ./mcp-servers/mcp-server-cartesia/
-   # Using UV (recommended)
-   uv sync
-   
-   # Or install for development
-   uv sync --group dev
-   ```
+2.  **Virtual Environment**
+    ```bash
+    # working directory: ./mcp-servers/mcp-server-cartesia/
+    uv sync
+    ```
 
 ## Running the Server
 
@@ -103,24 +115,35 @@ uv run pytest
 mcp-server-cartesia/
 ├── src/
 │   └── mcp_server_cartesia/
-        └── cartesia/
-            ├── __init__.py
-            ├── config.py
-            ├── module.py
 │       ├── __init__.py
-│       ├── __main__.py
-│       ├── logging_config.py
-│       ├── server.py
+│       ├── __main__.py              # Entry point (CLI + uvicorn)
+│       ├── app.py                   # Application factory & lifespan
+│       ├── config.py                # Settings with lru_cache factories
+│       ├── logging_config.py        # Logging configuration
+│       ├── dependencies.py          # FastAPI dependency injection
+│       ├── schemas.py               # Pydantic request/response models
+│       ├── client.py                # Cartesia client wrapper
+│       │
+│       ├── api_routers/             # API-Only endpoints (REST)
+│       │   └── health.py            # Health check endpoint
+│       ├── hybrid_routers/          # Hybrid endpoints (REST + MCP)
+│       │   └── pricing.py           # Pricing configuration
+│       ├── mcp_routers/             # MCP-Only endpoints
+│       │   └── tts.py               # Text-to-speech generation
+│       ├── middlewares/
+│       │   └── x402_wrapper.py      # x402 payment middleware
+│       ├── x402_config.py           # x402 payment configuration
+│       │
+│       └── cartesia_client/         # Business logic layer
+│           ├── __init__.py
+│           ├── config.py
+│           └── client.py
+│
 ├── tests/
-│   ├── conftest.py
-│   └── test_server.py
 ├── .env.example
-├── .gitignore
 ├── Dockerfile
-├── LICENSE
 ├── pyproject.toml
-├── README.md
-└── uv.lock
+└── README.md
 ```
 
 ## Contributing
