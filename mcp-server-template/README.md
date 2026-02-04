@@ -20,6 +20,7 @@ Accessible via both REST and as MCP tools. Ideal for functionality shared betwee
 
 | Method/Tool                 | Price      | Description                         |
 | :-------------------------- | :--------- | :---------------------------------- |
+| `GET /hybrid/pricing`       | **Free**   | Returns tool pricing configuration  |
 | `get_current_weather`       | **Free**   | Gets current weather for a location |
 | `get_weather_forecast`      | **Paid**   | Retrieves a multi-day forecast      |
 

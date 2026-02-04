@@ -72,4 +72,4 @@ class GetRelatedTopicsRequest(BaseModel):
 class RelatedTopicsResponse(BaseModel):
     """Output schema listing topics related to a Wikipedia article."""
 
-    topics: List[str] = Field(..., description="List of related topic titles")
+    topics: list[str] = Field(..., description="List of related topic titles")

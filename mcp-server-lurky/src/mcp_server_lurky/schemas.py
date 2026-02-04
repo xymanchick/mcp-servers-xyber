@@ -9,8 +9,8 @@ class DiscussionSchema(BaseModel):
     title: str
     summary: str
     timestamp: Optional[int] = None
-    coins: List[Dict[str, Any]] = []
-    categories: List[str] = []
+    coins: list[Dict[str, Any]] = []
+    categories: list[str] = []
 
 
 class SpaceDetailsSchema(BaseModel):
@@ -26,17 +26,17 @@ class SpaceDetailsSchema(BaseModel):
     participant_count: int = 0
     subscriber_count: int = 0
     likes: int = 0
-    categories: List[str] = []
+    categories: list[str] = []
     created_at: Optional[int] = None
     started_at: Optional[int] = None
     scheduled_at: Optional[int] = None
     ended_at: Optional[int] = None
     analyzed_at: Optional[int] = None
-    discussions: List[DiscussionSchema] = []
+    discussions: list[DiscussionSchema] = []
 
 
 class SearchResponseSchema(BaseModel):
-    discussions: List[DiscussionSchema]
+    discussions: list[DiscussionSchema]
     total: int
     page: int
     limit: int

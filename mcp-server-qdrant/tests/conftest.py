@@ -53,7 +53,7 @@ def mock_context(mock_qdrant_connector: AsyncMock):
 
 
 @pytest.fixture
-def sample_scored_points() -> List[ScoredPoint]:
+def sample_scored_points() -> list[ScoredPoint]:
     point1 = MagicMock(spec=ScoredPoint)
     point1.id = "point_1"
     point1.version = 1

@@ -182,7 +182,7 @@ class SearchVideosRequest(BaseModel):
 
 class ExtractTranscriptsRequest(BaseModel):
     """Request model for extracting transcripts from video IDs."""
-    video_ids: List[str] = Field(..., min_length=1, max_length=50, description="List of YouTube video IDs")
+    video_ids: list[str] = Field(..., min_length=1, max_length=50, description="List of YouTube video IDs")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -197,15 +197,15 @@ class SearchTranscriptsResponse(BaseModel):
     """Response model for search and extract transcripts endpoint."""
     query: str
     num_videos: int
-    videos: List[VideoResponse]
+    videos: list[VideoResponse]
     total_found: int
     cached_count: int
 
 
 class ExtractTranscriptsResponse(BaseModel):
     """Response model for extract transcripts endpoint."""
-    video_ids: List[str]
-    videos: List[VideoResponse]
+    video_ids: list[str]
+    videos: list[VideoResponse]
     total_processed: int
     cached_count: int
 
@@ -215,6 +215,6 @@ class SearchOnlyResponse(BaseModel):
     query: str
     max_results: int  # Keep for backward compatibility
     num_videos: int | None = None  # New field
-    videos: List[VideoSearchResponse]
+    videos: list[VideoSearchResponse]
     total_found: int
 

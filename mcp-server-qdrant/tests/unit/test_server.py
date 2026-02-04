@@ -160,7 +160,7 @@ class TestQdrantFind:
         self,
         mock_qdrant_connector: AsyncMock,
         valid_find_request: Dict[str, Any],
-        sample_scored_points: List[ScoredPoint]
+        sample_scored_points: list[ScoredPoint]
     ):
         mock_search_result = MagicMock()
         mock_search_result.points = sample_scored_points
@@ -217,7 +217,7 @@ class TestQdrantFind:
     async def test_find_with_default_values(
         self,
         mock_qdrant_connector: AsyncMock,
-        sample_scored_points: List[ScoredPoint]
+        sample_scored_points: list[ScoredPoint]
     ):
         request = {
             "collection_name": "test_collection",
@@ -243,7 +243,7 @@ class TestQdrantFind:
     async def test_find_with_complex_filters(
         self,
         mock_qdrant_connector: AsyncMock,
-        sample_scored_points: List[ScoredPoint]
+        sample_scored_points: list[ScoredPoint]
     ):
         request = {
             "collection_name": "test_collection",
@@ -312,7 +312,7 @@ class TestQdrantFind:
     async def test_find_large_search_limit(
         self,
         mock_qdrant_connector: AsyncMock,
-        sample_scored_points: List[ScoredPoint]
+        sample_scored_points: list[ScoredPoint]
     ):
         request = {
             "collection_name": "test_collection",
@@ -624,7 +624,7 @@ class TestIntegrationScenarios:
     async def test_complete_document_management_workflow(
         self,
         mock_qdrant_connector: AsyncMock,
-        sample_scored_points: List[ScoredPoint]
+        sample_scored_points: list[ScoredPoint]
     ):
         """Test a complete workflow: store documents, search them, and get collection info."""
         # Step 1: Store multiple documents
@@ -690,7 +690,7 @@ class TestIntegrationScenarios:
     async def test_multi_collection_workflow(
         self,
         mock_qdrant_connector: AsyncMock,
-        sample_scored_points: List[ScoredPoint]
+        sample_scored_points: list[ScoredPoint]
     ):
         """Test workflow across multiple collections."""
 
@@ -838,7 +838,7 @@ class TestEdgeCasesAndValidation:
     async def test_boundary_search_limits(
         self,
         mock_qdrant_connector: AsyncMock,
-        sample_scored_points: List[ScoredPoint]
+        sample_scored_points: list[ScoredPoint]
     ):
         """Test boundary conditions for search limits."""
 

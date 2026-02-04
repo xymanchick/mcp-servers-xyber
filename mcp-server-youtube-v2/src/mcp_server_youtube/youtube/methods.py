@@ -33,16 +33,16 @@ class NullDatabaseManager:
     def save_video(self, video_data: Dict) -> bool:
         return False
 
-    def batch_get_videos(self, video_ids: List[str]) -> Dict[str, Optional[YouTubeVideo]]:
+    def batch_get_videos(self, video_ids: list[str]) -> Dict[str, Optional[YouTubeVideo]]:
         return {video_id: None for video_id in video_ids}
 
-    def batch_check_transcripts(self, video_ids: List[str]) -> Dict[str, bool]:
+    def batch_check_transcripts(self, video_ids: list[str]) -> Dict[str, bool]:
         return {video_id: False for video_id in video_ids}
     
     def video_exists(self, video_id: str) -> bool:
         return False
     
-    def batch_check_video_exists(self, video_ids: List[str]) -> Dict[str, bool]:
+    def batch_check_video_exists(self, video_ids: list[str]) -> Dict[str, bool]:
         return {video_id: False for video_id in video_ids}
 
 
@@ -185,7 +185,7 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def batch_get_videos(self, video_ids: List[str]) -> Dict[str, Optional[YouTubeVideo]]:
+    def batch_get_videos(self, video_ids: list[str]) -> Dict[str, Optional[YouTubeVideo]]:
         """
         Get multiple videos from database.
 
@@ -209,7 +209,7 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def batch_check_transcripts(self, video_ids: List[str]) -> Dict[str, bool]:
+    def batch_check_transcripts(self, video_ids: list[str]) -> Dict[str, bool]:
         """
         Check which videos have transcripts in database.
         Also checks if video exists (even with failed transcript) to avoid retrying.
@@ -241,7 +241,7 @@ class DatabaseManager:
         video = self.get_video(video_id)
         return video is not None
     
-    def batch_check_video_exists(self, video_ids: List[str]) -> Dict[str, bool]:
+    def batch_check_video_exists(self, video_ids: list[str]) -> Dict[str, bool]:
         """
         Check which videos exist in database (regardless of transcript success).
         Used to avoid retrying transcript extraction for videos we've already attempted.

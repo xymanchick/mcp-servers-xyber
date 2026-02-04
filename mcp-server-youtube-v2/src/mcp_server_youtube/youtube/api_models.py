@@ -32,7 +32,7 @@ class YouTubeSearchResult(BaseModel):
     upload_date: Optional[str] = None
     description: Optional[str] = None
     thumbnail: Optional[str] = None
-    thumbnails: Optional[List[dict]] = None
+    thumbnails: Optional[list[dict]] = None
 
     @classmethod
     def from_dict(cls, entry: dict) -> "YouTubeSearchResult":
@@ -66,7 +66,7 @@ class ApifyTranscriptResult(BaseModel):
     error: Optional[str] = None
 
     @classmethod
-    def from_apify_response(cls, video_id: str, dataset_items: List[dict]) -> "ApifyTranscriptResult":
+    def from_apify_response(cls, video_id: str, dataset_items: list[dict]) -> "ApifyTranscriptResult":
         """Create ApifyTranscriptResult from Apify dataset items."""
         if not dataset_items:
             return cls(
