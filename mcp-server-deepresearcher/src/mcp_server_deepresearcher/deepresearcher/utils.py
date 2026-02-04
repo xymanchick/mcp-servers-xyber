@@ -584,7 +584,7 @@ def load_mcp_servers_config(
 def create_mcp_tasks(
     mcp_tools,
     search_query,
-    topic: Optional[str] = None,
+    simplified_search_query: Optional[str] = None,
     twitter_sources: Optional[List[str]] = None,
     telegram_sources: Optional[List[str]] = None,
 ):
@@ -601,6 +601,32 @@ def create_mcp_tasks(
     Returns:
         Tuple of (tasks, task_names) where tasks are coroutines with validated parameters
     """
+    def _tool_args_schema_has_field(tool_obj: Any, field_name: str) -> bool:
+        """
+        Best-effort detection of whether a tool expects a wrapper field like `request`.
+
+        We see both pydantic v1 (`__fields__`) and pydantic v2 (`model_fields`) depending
+        on tool implementation.
+        """
+        args_schema = getattr(tool_obj, "args_schema", None)
+        if not args_schema:
+            return False
+        try:
+            model_fields = getattr(args_schema, "model_fields", None)
+            if model_fields and field_name in model_fields:
+                return True
+        except Exception:
+            pass
+        try:
+            v1_fields = getattr(args_schema, "__fields__", None)
+            if v1_fields and field_name in v1_fields:
+                return True
+        except Exception:
+            pass
+        if isinstance(args_schema, dict) and field_name in args_schema:
+            return True
+        return False
+
     tasks = []
     task_names = []
     for tool in mcp_tools:
@@ -619,10 +645,13 @@ def create_mcp_tasks(
                 task_names.append(tool.name)  # Track the name
                 logger.info(f"  - Added task: {tool.name}")
         elif tool.name == "arxiv_search":
-            # Arxiv might also expect a 'request' parameter
-            tasks.append(
-                tool.coroutine(request={"query": search_query, "max_results": 3})
-            )
+            # IMPORTANT: ArXiv expects top-level args like {"query": "..."} (not {"request": {...}}).
+            # Some tool wrappers expose a `request` field in their args_schema, so we support both.
+            request_payload = {"query": search_query, "max_results": 3}
+            if _tool_args_schema_has_field(tool, "request"):
+                tasks.append(tool.coroutine(request=request_payload))
+            else:
+                tasks.append(tool.coroutine(**request_payload))
             task_names.append(tool.name)  # Track the name
             logger.info(f"  - Added task: {tool.name}")
         elif tool.name == "youtube_search_and_transcript":
@@ -633,7 +662,14 @@ def create_mcp_tasks(
             logger.info(f"  - Added task: {tool.name}")
         elif tool.name == "twitter_search_topic":
             # Twitter search topic tool - expects topic parameter
-            request_data = {"topic": search_query}
+            twitter_query = simplified_search_query or search_query
+            logger.info(
+                "Twitter query shaping (twitter_search_topic): search_query=%r simplified_search_query=%r -> twitter_query=%r",
+                search_query,
+                simplified_search_query,
+                twitter_query,
+            )
+            request_data = {"topic": twitter_query}
             tasks.append(tool.coroutine(**request_data))
             task_names.append(tool.name)
             logger.info(f"  - Added task: {tool.name}")
@@ -657,6 +693,14 @@ def create_mcp_tasks(
         # Support both tweet-scraper and twitter-scraper-lite
         elif tool.name in ["apidojo-slash-tweet-scraper", "apidojo-slash-twitter-scraper-lite"]:
             logger.info(f"  - Adding task: {tool.name}")
+            twitter_query = simplified_search_query or search_query
+            logger.info(
+                "Twitter query shaping (%s): search_query=%r simplified_search_query=%r -> twitter_query=%r",
+                tool.name,
+                search_query,
+                simplified_search_query,
+                twitter_query,
+            )
 
             if twitter_sources:
                 # Extract usernames from Twitter URLs
@@ -697,7 +741,7 @@ def create_mcp_tasks(
                     # Fallback to search query if no usernames extracted
                     logger.warning("No usernames extracted, falling back to search query")
                     request_data = {
-                        "searchTerms": [search_query],
+                        "searchTerms": [twitter_query],
                         "maxItems": 20,
                         "sort": "Latest",
                     }
@@ -706,7 +750,7 @@ def create_mcp_tasks(
             else:
                 # Create Pydantic schema object for validation, then convert to dict
                 request_data = {
-                    "searchTerms": [search_query],
+                    "searchTerms": [twitter_query],
                     "maxItems": 20,
                     "sort": "Latest",
                 }
@@ -716,6 +760,29 @@ def create_mcp_tasks(
             tasks.append(tool.coroutine(**request_data))
             task_names.append(tool.name)
     return tasks, task_names
+
+
+def filter_mcp_tools_for_deepresearcher(mcp_tools: List[Any]) -> List[Any]:
+    """
+    Filter the tool list exposed to the DeepResearcher agent.
+
+    - Keep only one YouTube tool (`search_and_extract_transcripts`) if present, to
+      avoid tool selection ambiguity and duplicate capabilities.
+    """
+    if not mcp_tools:
+        return []
+
+    tool_names = {getattr(t, "name", None) for t in mcp_tools}
+    if "search_and_extract_transcripts" in tool_names:
+        youtube_extras = {
+            "mcp_search_youtube_videos",
+            "extract_transcripts",
+            "youtube_search_and_transcript",
+        }
+        filtered = [t for t in mcp_tools if getattr(t, "name", None) not in youtube_extras]
+        return filtered
+
+    return mcp_tools
 
 
 def extract_source_info(content: str, source_name: str) -> Dict[str, str]:

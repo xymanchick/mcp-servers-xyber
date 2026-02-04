@@ -13,6 +13,7 @@ from mcp_server_deepresearcher.api_routers import routers as api_routers
 from mcp_server_deepresearcher.deepresearcher.config import LLM_Config, SearchMCP_Config
 from mcp_server_deepresearcher.deepresearcher.utils import (
     construct_tools_description_yaml,
+    filter_mcp_tools_for_deepresearcher,
     load_mcp_servers_config,
     parse_tools_description_from_yaml,
     setup_llm,
@@ -103,10 +104,17 @@ async def app_lifespan(app: FastAPI):
                 )
                 
                 if server_tools:
+                    # Optionally filter tools immediately (helps avoid duplicate capabilities like YouTube).
+                    # This also ensures per-server log messages reflect what the agent will actually see.
+                    before_server_count = len(server_tools)
+                    server_tools = filter_mcp_tools_for_deepresearcher(server_tools)
+                    removed_server = before_server_count - len(server_tools)
+
                     mcp_tools.extend(server_tools)
                     successful_servers.append(server_name)
                     logger.info(
-                        f"✓ Successfully connected to {server_name} and fetched {len(server_tools)} tools"
+                        f"✓ Successfully connected to {server_name} and fetched {before_server_count} tools"
+                        + (f" ({removed_server} filtered, {len(server_tools)} kept)" if removed_server else "")
                     )
                 else:
                     successful_servers.append(server_name)
@@ -173,6 +181,13 @@ async def app_lifespan(app: FastAPI):
             logger.error(error_summary)
             if not mcp_connection_error:
                 mcp_connection_error = error_summary
+
+        # Reduce duplicate/overlapping tools (notably YouTube) to simplify agent tool selection.
+        before_count = len(mcp_tools)
+        mcp_tools = filter_mcp_tools_for_deepresearcher(mcp_tools)
+        removed = before_count - len(mcp_tools)
+        if removed > 0:
+            logger.info(f"Filtered MCP tools for agent: removed {removed} tool(s), now {len(mcp_tools)} total.")
         
         # Construct tools_description from mcp_tools
         tools_description_yaml = construct_tools_description_yaml(mcp_tools)
