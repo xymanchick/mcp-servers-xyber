@@ -97,13 +97,13 @@ class LurkyClient:
         data = await self._make_request("GET", f"spaces/{space_id}/mind-map")
         return MindMap(**data)
 
-    async def get_space_discussions(self, space_id: str) -> List[Discussion]:
+    async def get_space_discussions(self, space_id: str) -> list[Discussion]:
         """Get all discussion blocks for a specific space."""
         data = await self._make_request("GET", f"spaces/{space_id}/discussions")
         # The API returns {"discussions": [...]}
         return [Discussion(**d) for d in data.get("discussions", [])]
 
-    async def get_latest_summaries(self, topic: str, count: int = 3) -> List[SpaceDetails]:
+    async def get_latest_summaries(self, topic: str, count: int = 3) -> list[SpaceDetails]:
         """Fetch the latest N unique space summaries for a given topic."""
         search_results = await self.search_discussions(topic, limit=20)
         

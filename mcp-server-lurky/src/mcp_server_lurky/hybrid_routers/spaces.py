@@ -1,10 +1,13 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from mcp_server_lurky.dependencies import get_lurky_client, get_db
+from mcp_server_lurky.dependencies import get_db, get_lurky_client
+from mcp_server_lurky.lurky.errors import (
+    LurkyAPIError,
+    LurkyAuthError,
+    LurkyNotFoundError,
+)
 from mcp_server_lurky.lurky.module import LurkyClient
-from mcp_server_lurky.lurky.errors import LurkyAuthError, LurkyNotFoundError, LurkyAPIError
-from mcp_server_lurky.schemas import SpaceDetailsSchema, SearchResponseSchema
+from mcp_server_lurky.schemas import SearchResponseSchema, SpaceDetailsSchema
 
 router = APIRouter(tags=["Spaces"])
 
@@ -85,7 +88,7 @@ async def perform_get_latest_summaries(
     count: int,
     client: LurkyClient,
     db,
-) -> List[SpaceDetailsSchema]:
+) -> list[SpaceDetailsSchema]:
     """Core logic for getting latest summaries for a topic."""
     import logging
     logger = logging.getLogger(__name__)
@@ -185,11 +188,31 @@ async def perform_get_latest_summaries(
 # --- FastAPI Route Handlers ---
 # These are the REST endpoints that use the shared business logic functions
 
-@router.get("/search", response_model=SearchResponseSchema, operation_id="lurky_search_spaces")
+@router.get(
+    "/search",
+    response_model=SearchResponseSchema,
+    operation_id="lurky_search_spaces",
+    summary="Search Twitter Spaces",
+    description="""
+Search for Twitter Spaces discussions based on a keyword or phrase.
+
+Returns a list of discussions that match the search term, including space metadata
+and summary information. Results are paginated.
+
+**Examples:**
+- Search for crypto discussions: `q=bitcoin`
+- Search for AI topics: `q=artificial intelligence`
+- Search for specific projects: `q=ethereum defi`
+""",
+)
 async def search_spaces(
-    q: str = Query(..., description="Search term for spaces"),
-    limit: int = Query(10, ge=1, le=20),
-    page: int = Query(0, ge=0),
+    q: str = Query(
+        ...,
+        description="Search keyword or phrase (e.g., 'bitcoin', 'AI agents', 'crypto news')",
+        examples=["bitcoin", "artificial intelligence", "defi"],
+    ),
+    limit: int = Query(10, ge=1, le=20, description="Number of results per page (1-20)"),
+    page: int = Query(0, ge=0, description="Page number for pagination (0-indexed)"),
     client: LurkyClient = Depends(get_lurky_client)
 ):
     """Search for discussions based on a keyword."""
@@ -203,7 +226,24 @@ async def search_spaces(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/spaces/{space_id}", response_model=SpaceDetailsSchema, operation_id="lurky_get_space_details")
+@router.get(
+    "/spaces/{space_id}",
+    response_model=SpaceDetailsSchema,
+    operation_id="lurky_get_space_details",
+    summary="Get Space Details",
+    description="""
+Get full details, summary, and segmented discussions for a specific Twitter Space.
+
+The `space_id` can be obtained from search results or directly from Twitter Space URLs.
+Results are cached locally to minimize API calls.
+
+**Response includes:**
+- Space metadata (title, creator, timestamps)
+- AI-generated summary and minimized summary
+- Sentiment analysis
+- Segmented discussions with individual summaries
+""",
+)
 async def get_space_details(
     space_id: str,
     client: LurkyClient = Depends(get_lurky_client),
@@ -222,10 +262,42 @@ async def get_space_details(
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
-@router.get("/latest-summaries", response_model=List[SpaceDetailsSchema], operation_id="lurky_get_latest_summaries")
+@router.get(
+    "/latest-summaries",
+    response_model=list[SpaceDetailsSchema],
+    operation_id="lurky_get_latest_summaries",
+    summary="Get Latest Summaries by Topic",
+    description="""
+Fetch the latest unique Twitter Space summaries for a given topic.
+
+The `topic` parameter is a **search keyword** (same as the `/search` endpoint).
+This endpoint searches for spaces matching the topic, then fetches full details
+for each unique space found.
+
+**How it works:**
+1. Searches for discussions matching the topic keyword
+2. Extracts unique Space IDs from results
+3. Fetches full details for each space (with caching)
+4. Returns up to `count` unique space summaries
+
+**Example topics:**
+- `bitcoin` - Get latest Bitcoin-related Space summaries
+- `AI agents` - Get latest AI agent discussions
+- `solana defi` - Get latest Solana DeFi discussions
+""",
+)
 async def get_latest_summaries(
-    topic: str = Query(..., description="Topic to fetch latest summaries for"),
-    count: int = Query(3, ge=1, le=10),
+    topic: str = Query(
+        ...,
+        description="Search keyword to find spaces (e.g., 'bitcoin', 'ethereum', 'AI agents')",
+        examples=["bitcoin", "AI agents", "crypto news", "solana defi"],
+    ),
+    count: int = Query(
+        3,
+        ge=1,
+        le=10,
+        description="Number of unique space summaries to return (1-10)",
+    ),
     client: LurkyClient = Depends(get_lurky_client),
     db = Depends(get_db)
 ):

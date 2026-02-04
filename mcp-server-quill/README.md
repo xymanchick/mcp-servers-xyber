@@ -1,159 +1,175 @@
 # Quill MCP Server
+> **General:** An MCP (Model Context Protocol) server for Quill Shield AI security audits.
+> It demonstrates a **hybrid architecture** that exposes functionality through REST APIs, MCP, or both simultaneously, with integrated x402 payment support.
 
-An MCP (Model Context Protocol) server for Quill Shield AI security audits. This server provides both an MCP interface for AI agents and a standard REST API to search for tokens and analyze their security on EVM and Solana chains, with integrated x402 payment support.
+## Capabilities
 
-## Features
+### 1. **API-Only Endpoints** (`/api`)
 
-- **Token Search**: Find token addresses by name or symbol across multiple chains (Ethereum, BSC, Solana, etc.) using DexScreener.
-- **EVM Security**: Analyze security of tokens on EVM-compatible chains using QuillCheck.
-- **Solana Security**: Analyze security of tokens on Solana using QuillCheck.
-- **Hybrid Interface**: Support for both MCP tools and standard REST endpoints.
-- **Monetization**: Built-in x402 payment protocol support for monetizing tools and endpoints.
+Standard REST endpoints for traditional clients (e.g., web apps, dashboards).
 
-## Prerequisites
+| Method | Endpoint              | Price      | Description                            |
+| :----- | :-------------------- | :--------- | :------------------------------------- |
+| `GET`  | `/api/health`         | **Free**   | Checks the server's operational status |
+| `GET`  | `/hybrid/pricing`     | **Free**   | Returns tool pricing configuration     |
 
-- Python 3.12 or higher
-- [uv](https://github.com/astral-sh/uv) (recommended)
-- Quill API Key (get one from Quill Audits)
+### 2. **Hybrid Endpoints** (`/hybrid`)
 
-## Installation
+Accessible via both REST and as MCP tools. Ideal for functionality shared between humans and AI.
 
-1.  Clone the repository (if you haven't already):
+| Method/Tool                | Price      | Description                                              |
+| :------------------------- | :--------- | :------------------------------------------------------- |
+| `search_token_address`     | **Free**   | Search for token contract address by name/symbol         |
+| `get_evm_token_info`       | **Paid**   | Security analysis for EVM tokens (Ethereum, BSC, etc.)   |
+| `get_solana_token_info`    | **Paid**   | Security analysis for Solana tokens                      |
+
+### 3. **MCP-Only Endpoints**
+
+Tools exposed exclusively to AI agents. Not available as REST endpoints.
+
+*Currently, all tools are available as hybrid endpoints.*
+
+*Note: Paid endpoints require x402 payment protocol configuration. See `.env.example` for details.*
+
+## API Documentation
+
+This server automatically generates OpenAPI documentation. Once the server is running, you can access the interactive API docs at:
+
+- **Swagger UI**: [http://localhost:8001/docs](http://localhost:8001/docs) (for REST endpoints)
+- **MCP Inspector**: Use an MCP-compatible client to view available agent tools [http://localhost:8001/mcp](http://localhost:8001/mcp)
+
+These interfaces allow you to explore all REST-accessible endpoints, view their schemas, and test them directly from your browser.
+
+## Requirements
+
+- **Python 3.12+**
+- **UV** (for dependency management)
+- **Quill API Key** (get one from Quill Audits)
+- **Docker** (optional, for containerization)
+
+## Setup
+
+1.  **Clone & Configure**
     ```bash
     git clone <repository-url>
     cd mcp-server-quill
+    cp .env.example .env
+    # Configure environment for Quill API, x402, etc.
     ```
 
-2.  Create a `.env` file from the example:
+2.  **Virtual Environment**
     ```bash
-    cp .example.env .env
-    ```
-
-3.  Edit `.env` and add your configuration:
-    ```bash
-    # Required
-    QUILL_API_KEY=your_quill_api_key_here
-    
-    # Optional Server Config
-    MCP_QUILL_HOST=0.0.0.0
-    MCP_QUILL_PORT=8001
-    MCP_QUILL_LOGGING_LEVEL=INFO
-    
-    # Optional Payment Config (x402)
-    MCP_QUILL_X402_PRICING_MODE=off  # Set to 'on' to enable payments
-    MCP_QUILL_X402_PAYEE_WALLET_ADDRESS=your_wallet_address
-    MCP_QUILL_X402_CDP_API_KEY_ID=your_cdp_id
-    MCP_QUILL_X402_CDP_API_KEY_SECRET=your_cdp_secret
-    ```
-
-4.  Install dependencies:
-    ```bash
+    # working directory: ./mcp-servers/mcp-server-quill/
     uv sync
     ```
 
-## Usage
+## Running the Server
 
-### MCP Integration
+### Using Docker Compose (Recommended)
 
-The MCP server is mounted at `http://localhost:8001/mcp`. You can use it with any MCP-compatible client (like Cursor, Claude Desktop, etc.).
+From the root `mcp-servers` directory, you can run the service for production or development.
 
-**Available MCP Tools:**
+```bash
+# path: ./mcp-servers
+# Run the production container
+docker compose up mcp_server_quill
 
--   `search_token_address`: Search for a token's contract address by name or symbol across chains.
--   `get_evm_token_info`: Get comprehensive security analysis for an EVM-compatible token (Ethereum, BSC, Polygon, etc.).
--   `get_solana_token_info`: Get comprehensive security analysis for a Solana token.
+# Run the development container with hot-reloading
+docker compose -f docker-compose.debug.yml up mcp_server_quill
+```
 
-### REST API
+### Locally
 
-The server exposes standard REST endpoints for direct integration:
+```bash
+# path: ./mcp-servers/mcp-server-quill/
 
--   `GET /api/health`: Health check.
--   `GET /search/{query}?chain={chain}`: Search for a token address.
--   `GET /evm/{query}?quill_chain_id={id}`: Get EVM token security analysis.
--   `GET /solana/{query}`: Get Solana token security analysis.
+# Basic run
+uv run python -m mcp_server_quill
 
-Documentation is available at `http://localhost:8001/docs`.
+# Or with custom port
+uv run python -m mcp_server_quill --port 8001 --reload
+```
+
+### Using Docker (Standalone)
+
+```bash
+# path: ./mcp-servers/mcp-server-quill/
+# Build the image
+docker build -t mcp-server-quill .
+
+# Run the container
+docker run --rm -it -p 8001:8001 --env-file .env mcp-server-quill
+```
+
+## Testing
+
+```bash
+# path: ./mcp-servers/mcp-server-quill/
+# Run all tests
+uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+
+# Run specific test files
+uv run pytest tests/hybrid_routers/test_security.py
+```
+
+## Project Structure
+
+```
+mcp-server-quill/
+├── src/
+│   └── mcp_server_quill/
+│       ├── __init__.py
+│       ├── __main__.py              # Entry point (CLI + uvicorn)
+│       ├── app.py                   # Application factory & lifespan
+│       ├── config.py                # Settings with lru_cache factories
+│       ├── logging_config.py        # Logging configuration
+│       ├── dependencies.py          # FastAPI dependency injection
+│       │
+│       ├── api_routers/             # API-Only endpoints (REST)
+│       ├── hybrid_routers/          # Hybrid endpoints (REST + MCP)
+│       │   ├── search.py            # Token search endpoint
+│       │   ├── security.py          # Security analysis endpoints
+│       │   └── pricing.py           # Pricing endpoint
+│       ├── mcp_routers/             # MCP-Only endpoints
+│       ├── middlewares/
+│       │   └── x402_wrapper.py      # x402 payment middleware
+│       │
+│       └── quill/                   # Business logic layer
+│           ├── client.py
+│           ├── models.py
+│           └── errors.py
+│
+├── tests/
+├── scripts/
+├── .env.example
+├── Dockerfile
+├── pyproject.toml
+├── tool_pricing.yaml
+└── README.md
+```
 
 ## x402 Payment Integration
 
 This server uses the x402 protocol for monetization. Pricing for each tool and endpoint is defined in `tool_pricing.yaml`.
 
-To enable payments, set `MCP_QUILL_X402_PRICING_MODE=on` in your `.env` and configure your wallet and CDP credentials.
-
-## Running the Server
-
-You can run the server in two ways:
-
-### Option 1: Docker (Recommended for Production)
-
-The easiest way to run the server in Docker is using the provided script:
-
+To enable payments, configure the following in your `.env`:
 ```bash
-# Make sure scripts are executable
-chmod +x scripts/*.sh
-
-# Start the server in Docker (will build image if needed)
-./scripts/start-docker.sh
-
-# Rebuild and restart
-./scripts/start-docker.sh --rebuild
-
-# Restart on a different port
-./scripts/start-docker.sh --restart --port 8002
+MCP_QUILL_X402_PRICING_MODE=on
+MCP_QUILL_X402_PAYEE_WALLET_ADDRESS=your_wallet_address
+MCP_QUILL_X402_CDP_API_KEY_ID=your_cdp_id
+MCP_QUILL_X402_CDP_API_KEY_SECRET=your_cdp_secret
 ```
 
-The script will:
-- Check if Docker is running
-- Build the Docker image if it doesn't exist
-- Start the server container with proper configuration
-- Map port 8001 (or custom port) to the container
-- Show logs automatically
+## Contributing
 
-**Available options:**
-- `--restart`: Stop and restart the container
-- `--rebuild`: Rebuild the Docker image and restart
-- `--port PORT`: Specify a custom port (default: 8001)
-- `--help`: Show help message
-
-### Option 2: Local Development
-
-The easiest way to start the server locally is using the provided script:
-
-```bash
-# Start the server
-./scripts/start-server.sh
-```
-
-The script will:
-- Check for `uv` installation
-- Create `.env` from example if missing
-- Start the server on `http://localhost:8001` using Python 3.12
-
-### Manual Start
-
-You can also run the server manually using `uv`:
-
-```bash
-uv run --python 3.12 python -m mcp_server_quill
-```
-
-## Testing
-
-Run tests using pytest:
-
-```bash
-# Install test dependencies
-uv sync --group dev
-
-# Run all tests
-uv run pytest
-
-# Run specific test files
-uv run pytest tests/hybrid_routers/test_security.py
-
-# Run with verbose output
-uv run pytest -v
-```
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 

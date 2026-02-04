@@ -43,10 +43,10 @@ class ResearchGraph:
         self,
         LLM,
         LLM_THINKING,
-        tools: List[Union[Tool, StructuredTool]],
+        tools: list[Union[Tool, StructuredTool]],
         research_topic: str,
         research_loop_max: int,
-        tools_description: List[ToolDescription] = None,
+        tools_description: list[ToolDescription] = None,
     ):
         self.llm = LLM
         self.llm_thinking = LLM_THINKING

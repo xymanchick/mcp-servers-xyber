@@ -9,8 +9,8 @@ class Discussion(BaseModel):
     title: str
     summary: str
     timestamp: Optional[int] = None
-    coins: List[Dict[str, Any]] = []
-    categories: List[str] = []
+    coins: list[Dict[str, Any]] = []
+    categories: list[str] = []
 
 
 class SpaceDetails(BaseModel):
@@ -26,13 +26,13 @@ class SpaceDetails(BaseModel):
     participant_count: int = 0
     subscriber_count: int = 0
     likes: int = 0
-    categories: List[str] = []
+    categories: list[str] = []
     created_at: Optional[int] = None
     started_at: Optional[int] = None
     scheduled_at: Optional[int] = None
     ended_at: Optional[int] = None
     analyzed_at: Optional[int] = None
-    discussions: List[Discussion] = []
+    discussions: list[Discussion] = []
 
 
 class MindMapNode(BaseModel):
@@ -43,11 +43,11 @@ class MindMapNode(BaseModel):
 
 
 class MindMap(BaseModel):
-    nodes: List[MindMapNode]
+    nodes: list[MindMapNode]
 
 
 class SearchResponse(BaseModel):
-    discussions: List[Discussion]
+    discussions: list[Discussion]
     total: int
     page: int
     limit: int

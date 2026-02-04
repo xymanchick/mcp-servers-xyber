@@ -400,7 +400,7 @@ def load_mcp_servers_config(
     mcp_tavily_url: Optional[str] = None,
     mcp_arxiv_url: Optional[str] = None,
     mcp_twitter_url: Optional[str] = None,
-    apify_actors_list: Optional[List[str]] = None,
+    apify_actors_list: Optional[list[str]] = None,
     mcp_deepresearch_url: Optional[str] = None,
     mcp_image_generation_url: Optional[str] = None,
     mcp_telegram_parser_url: Optional[str] = None,
@@ -877,7 +877,7 @@ def extract_title_near_url(content_str: str, url: str, max_distance: int = 500) 
     return ""
 
 
-def extract_sources_from_raw_content(content: Any, source_name: str) -> List[Dict[str, str]]:
+def extract_sources_from_raw_content(content: Any, source_name: str) -> list[Dict[str, str]]:
     """Generic source extractor that looks for URLs in raw content using multiple patterns.
     
     This function replaces instrument-specific parsing for sources by looking for 
@@ -972,7 +972,7 @@ def extract_sources_from_raw_content(content: Any, source_name: str) -> List[Dic
     return sources
 
 
-def filter_invalid_sources(sources: List[Dict[str, str]]) -> List[Dict[str, str]]:
+def filter_invalid_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]]:
     """Filter out invalid sources that indicate no results or empty responses.
     
     Removes sources with:
@@ -1033,7 +1033,7 @@ def filter_invalid_sources(sources: List[Dict[str, str]]) -> List[Dict[str, str]
     return valid_sources
 
 
-def are_sources_valid(sources: List[Dict[str, str]]) -> bool:
+def are_sources_valid(sources: list[Dict[str, str]]) -> bool:
     """Check if sources list contains at least one valid source.
     
     Args:
@@ -1089,7 +1089,7 @@ def is_formatted_sources_valid(formatted_sources: str) -> bool:
     return True
 
 
-def deduplicate_sources(sources: List[Dict[str, str]]) -> List[Dict[str, str]]:
+def deduplicate_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]]:
     """Deduplicate sources based on URL and title combination.
     
     Sources are considered duplicates if they have the same URL (and URL is not "N/A").
@@ -1126,7 +1126,7 @@ def deduplicate_sources(sources: List[Dict[str, str]]) -> List[Dict[str, str]]:
 # --- Helper Function 2: To format the final sources list ---
 
 
-def format_sources(sources: List[Dict[str, str]], include_source_name: bool = False) -> str:
+def format_sources(sources: list[Dict[str, str]], include_source_name: bool = False) -> str:
     """Formats a list of source dictionaries into a numbered string.
     
     Args:
@@ -1225,7 +1225,7 @@ def clean_apify_tweet_data(data: str) -> str:
     return final_result
 
 
-def get_twitter_sources_for_topic(topic: str, topics_file_path: str) -> List[str]:
+def get_twitter_sources_for_topic(topic: str, topics_file_path: str) -> list[str]:
     """
     Loads twitter sources from the provided topics YAML file for a given topic.
 
@@ -1255,7 +1255,7 @@ def get_twitter_sources_for_topic(topic: str, topics_file_path: str) -> List[str
     return []
 
 
-def get_telegram_sources_for_topic(topic: str, topics_file_path: str) -> List[str]:
+def get_telegram_sources_for_topic(topic: str, topics_file_path: str) -> list[str]:
     """
     Loads telegram sources from the provided topics YAML file for a given topic.
 
@@ -1283,7 +1283,7 @@ def get_telegram_sources_for_topic(topic: str, topics_file_path: str) -> List[st
 
     logger.warning(f"No Telegram sources found for topic '{topic}'")
     return []
-def construct_tools_yaml(mcp_tools: List[Any], tool_to_server_map: Optional[Dict[str, str]] = None) -> str:
+def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict[str, str]] = None) -> str:
     """
     Constructs valid YAML specification from MCP tools.
     
@@ -1467,7 +1467,7 @@ def construct_tools_yaml(mcp_tools: List[Any], tool_to_server_map: Optional[Dict
     return yaml_output
 
 
-def construct_tools_description_yaml(mcp_tools: List[Any], tool_to_server_map: Optional[Dict[str, str]] = None) -> str:
+def construct_tools_description_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict[str, str]] = None) -> str:
     """
     Constructs a simplified YAML with only name and description for each tool.
     
@@ -1506,7 +1506,7 @@ def construct_tools_description_yaml(mcp_tools: List[Any], tool_to_server_map: O
     return yaml_output
 
 
-def parse_tools_description_from_yaml(yaml_content: str) -> List[Dict[str, Any]]:
+def parse_tools_description_from_yaml(yaml_content: str) -> list[Dict[str, Any]]:
     """
     Parse YAML content and return list of tool descriptions as dictionaries.
     

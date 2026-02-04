@@ -28,7 +28,7 @@ class PrometheusMetricsParser:
     """Proper Prometheus metrics parser that handles labels correctly."""
     
     @staticmethod
-    def parse_metrics(metrics_text: str) -> Dict[str, List[Tuple[Dict[str, str], float]]]:
+    def parse_metrics(metrics_text: str) -> Dict[str, list[Tuple[Dict[str, str], float]]]:
         """Parse Prometheus metrics format correctly."""
         metrics = defaultdict(list)
         

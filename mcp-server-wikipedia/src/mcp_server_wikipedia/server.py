@@ -72,7 +72,7 @@ def _get_service(ctx: Context) -> _WikipediaService:
 
 # --- Tool Definitions ---
 @mcp_server.tool()
-async def search_wikipedia(ctx: Context, query: str, limit: int = 10) -> List[str]:
+async def search_wikipedia(ctx: Context, query: str, limit: int = 10) -> list[str]:
     """Search Wikipedia for articles matching a query and return a list of titles."""
     try:
         # Validate input
@@ -143,7 +143,7 @@ async def get_summary(ctx: Context, title: str) -> str:
 
 
 @mcp_server.tool()
-async def get_sections(ctx: Context, title: str) -> List[str]:
+async def get_sections(ctx: Context, title: str) -> list[str]:
     """Get the section titles of a Wikipedia article."""
     try:
         # Validate input
@@ -166,7 +166,7 @@ async def get_sections(ctx: Context, title: str) -> List[str]:
 
 
 @mcp_server.tool()
-async def get_links(ctx: Context, title: str) -> List[str]:
+async def get_links(ctx: Context, title: str) -> list[str]:
     """Get the links contained within a Wikipedia article."""
     try:
         # Validate input
@@ -189,7 +189,7 @@ async def get_links(ctx: Context, title: str) -> List[str]:
 
 
 @mcp_server.tool()
-async def get_related_topics(ctx: Context, title: str, limit: int = 20) -> List[str]:
+async def get_related_topics(ctx: Context, title: str, limit: int = 20) -> list[str]:
     """Get topics related to a Wikipedia article based on its internal links."""
     try:
         # Validate input

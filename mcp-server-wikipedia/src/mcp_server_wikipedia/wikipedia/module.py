@@ -43,7 +43,7 @@ class _WikipediaService:
             raise ArticleNotFoundError(title)
         return page
 
-    async def search(self, query: str, limit: int = 10) -> List[str]:
+    async def search(self, query: str, limit: int = 10) -> list[str]:
         """Search Wikipedia for articles matching a query."""
         if not query:
             raise ValueError("Search query cannot be empty.")
@@ -77,19 +77,19 @@ class _WikipediaService:
         page = self._get_page(title)
         return page.summary
 
-    async def get_sections(self, title: str) -> List[str]:
+    async def get_sections(self, title: str) -> list[str]:
         """Get the section titles of a Wikipedia article."""
         logger.info(f"Fetching sections for: '{title}'")
         page = self._get_page(title)
         return [s.title for s in page.sections]
 
-    async def get_links(self, title: str) -> List[str]:
+    async def get_links(self, title: str) -> list[str]:
         """Get the links contained within a Wikipedia article."""
         logger.info(f"Fetching links for: '{title}'")
         page = self._get_page(title)
         return list(page.links.keys())
 
-    async def get_related_topics(self, title: str, limit: int = 20) -> List[str]:
+    async def get_related_topics(self, title: str, limit: int = 20) -> list[str]:
         """Get topics related to an article (based on its links)."""
         logger.info(f"Fetching related topics for: '{title}'")
         page = self._get_page(title)
