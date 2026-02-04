@@ -33,6 +33,10 @@ Please ensure your queries account for the most current information available as
 <FORMAT>
 Format your response as a JSON object with these exact keys:
    - "query": The actual search query string, short, concise, and to the point without any extra information.
+   - "simplified_search_query": A very short/simple version of the query (2-8 words) meant specifically for Twitter/Apify-style search tools.
+        - Must preserve the core entity/keyword(s) (e.g., company name, product name, ticker).
+        - Avoid long/abstract phrasing like "companies with names similar to...".
+        - Examples: "xyber inc", "xyber ICO TGE", "OpenAI o3 release".
    - "rationale": Brief explanation of why this query is relevant
    - "tools": The list of tools you will use to efferctively perform the research
 </FORMAT>
@@ -41,6 +45,7 @@ Format your response as a JSON object with these exact keys:
 Example output:
 {{
     "query": "Machine learning updates",
+    "simplified_search_query": "machine learning updates",
     "rationale": "Understanding the fundamental structure of transformer models",
     "tools": ["twitter_search", "telegram_search", "mcp_search_youtube_videos", mcp_search_and_transcripts_youtube_videos"]
 }}
@@ -121,6 +126,7 @@ Ensure if summary is good enough, you can stop the research, for this output "st
 Format your response as a JSON object with these exact keys:
 - knowledge_gap: Describe what information is missing or needs clarification
 - follow_up_query: Follow up question to address the knowledge gap. Short, concise, and to the point without any extra information.
+- simplified_search_query: A very short/simple version of follow_up_query (2-8 words) for Twitter/Apify-style tools (same rules as above).
 - tools: The list of tools you will use to perform the research
 - stop_research: If summary is good enough, you can stop the research, for this output "stop_research = true"
 If summary is not good output "stop_research = false"
@@ -131,6 +137,7 @@ Example output:
 {{
     "knowledge_gap": "The summary lacks information about performance metrics and benchmarks",
     "follow_up_query": "News from quantum computing in crypto",
+    "simplified_search_query": "quantum computing crypto",
     "tools": ["twitter_search", "telegram_search", "mcp_search_youtube_videos", mcp_search_and_transcripts_youtube_videos"]
     "stop_research": false
 }}
@@ -139,6 +146,7 @@ Example output:
 {{
     "knowledge_gap": "The summary is good enough, you can stop the research",
     "follow_up_query": "None",
+    "simplified_search_query": "None",
     "tools": [],
     "stop_research": true
 }}

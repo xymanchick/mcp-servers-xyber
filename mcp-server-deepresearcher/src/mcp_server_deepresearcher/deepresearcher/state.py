@@ -31,6 +31,7 @@ class ToolDescription(BaseModel):
 class ResearchState:
     messages: Annotated[list[BaseMessage], add_messages] = field(default_factory=list)
     search_query: str = field(default=None)  # Search query
+    simplified_search_query: str = field(default=None)  # Simple query for Twitter/Apify tools
     web_research_results: list = field(default_factory=list)
     sources_gathered: Annotated[list, operator.add] = field(default_factory=list)
     research_loop_count: int = field(default=0)  # Research loop count

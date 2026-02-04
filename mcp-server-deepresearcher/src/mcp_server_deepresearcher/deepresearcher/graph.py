@@ -135,6 +135,11 @@ class ResearchGraph:
             search_query = result.get("query")
             reasoning = result.get("reasoning") or result.get("rationale")
             tools_to_use = result.get("tools", [])
+            simplified_search_query = (
+                result.get("simplified_search_query")
+                or result.get("simple_query")
+                or search_query
+            )
             
             if not search_query or not reasoning:
                 raise ValueError(
@@ -151,6 +156,7 @@ class ResearchGraph:
 
             
             state.search_query = search_query
+            state.simplified_search_query = simplified_search_query
             state.reasoning = reasoning
             state.tools_to_use = tools_to_use
             logger.info(f"Tools to use: {state.tools_to_use}")
@@ -185,7 +191,11 @@ class ResearchGraph:
             logger.info(f"No tools specified, using all {len(selected_tools)} available tools")
 
         # 1. Create and execute tasks in parallel
-        tasks, task_names = create_mcp_tasks(selected_tools, state.search_query)
+        tasks, task_names = create_mcp_tasks(
+            selected_tools,
+            state.search_query,
+            simplified_search_query=state.simplified_search_query,
+        )
         # return_exceptions=True is crucial for resilience
         parallel_results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -519,6 +529,11 @@ class ResearchGraph:
         state.follow_up_query = result["follow_up_query"]
         state.knowledge_gap = result["knowledge_gap"]
         state.search_query = state.follow_up_query
+        state.simplified_search_query = (
+            result.get("simplified_search_query")
+            or result.get("simple_query")
+            or state.follow_up_query
+        )
         state.stop_research = result["stop_research"]
         logger.info(f"Follow-up query: {state.follow_up_query}")
         logger.info(f"Knowledge gap: {state.knowledge_gap}")
