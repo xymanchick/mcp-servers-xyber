@@ -247,6 +247,38 @@ class X402Config(BaseSettings):
         logger.info(f"Successfully loaded pricing for {len(validated_pricing)} tools.")
         return validated_pricing
 
+    def validate_pricing_mode(self) -> None:
+        """
+        Validates the consistency of pricing_mode with the actual pricing config.
+
+        Raises:
+            ValueError: If pricing_mode='on' but no pricing configuration exists.
+                       This fails fast rather than silently running without payments.
+
+        Logs warnings for:
+            - pricing_mode='off' when pricing config exists (payments disabled but config present)
+        """
+        has_pricing = bool(self.pricing)
+
+        if self.pricing_mode == "on" and not has_pricing:
+            raise ValueError(
+                "pricing_mode is 'on' but no pricing configuration found. "
+                "Either set MCP_QUILL_X402_PRICING_MODE=off or provide a valid "
+                f"pricing config at '{self.pricing_config_path}'."
+            )
+
+        if self.pricing_mode == "off" and has_pricing:
+            logger.warning(
+                f"Pricing configuration found ({len(self.pricing)} endpoints) but "
+                "pricing_mode='off'. x402 payments are disabled. "
+                "Set MCP_QUILL_X402_PRICING_MODE=on to enable payments."
+            )
+        elif self.pricing_mode == "on" and has_pricing:
+            logger.info(
+                f"x402 payment validation passed: pricing_mode='on' with "
+                f"{len(self.pricing)} priced endpoints."
+            )
+
     def validate_against_routes(self, routes: list):
         """
         Checks pricing configuration against all available routes and logs status.

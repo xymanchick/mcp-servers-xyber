@@ -121,8 +121,13 @@ def create_app() -> FastAPI:
     app.mount("/mcp", mcp_app)
 
     # --- Pricing Configuration Validation ---
-    all_routes = app.routes + mcp_source_app.routes
+    # First, validate that pricing_mode is consistent with pricing config
+    # This will fail fast if pricing_mode='on' but no config exists
     x402_settings = get_x402_settings()
+    x402_settings.validate_pricing_mode()
+
+    # Then validate that all priced endpoints actually exist
+    all_routes = app.routes + mcp_source_app.routes
     x402_settings.validate_against_routes(all_routes)
 
     # --- Middleware Configuration ---

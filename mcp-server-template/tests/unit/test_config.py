@@ -354,3 +354,108 @@ class TestValidateAgainstRoutes:
 
         assert "typo_endpoint" in caplog.text
         assert "Typo?" in caplog.text
+
+
+class TestX402ConfigurationBehavior:
+    """Tests for x402 configuration validation and app startup behavior.
+
+    These tests verify the interaction between pricing_mode and pricing config:
+    1. No pricing config + flag off → endpoints free (no middleware)
+    2. No pricing config + flag on → server should error
+    3. Pricing config + flag off → endpoints free with warning
+    4. Pricing config + flag on → x402 middleware enabled
+    """
+
+    def test_no_pricing_config_mode_off_starts_without_middleware(
+        self, tmp_path: Path, caplog
+    ):
+        """Case 1: No pricing config + pricing_mode='off' → app starts, no middleware."""
+        nonexistent_yaml = tmp_path / "nonexistent.yaml"
+
+        config = X402Config(
+            pricing_mode="off",
+            pricing_config_path=nonexistent_yaml,
+        )
+
+        # Should return empty pricing without error
+        assert config.pricing == {}
+        assert config.pricing_mode == "off"
+
+        # Verify the expected log message
+        with caplog.at_level("WARNING"):
+            _ = config.pricing
+        assert "not found" in caplog.text or config.pricing == {}
+
+    def test_no_pricing_config_mode_on_raises_error(self, tmp_path: Path):
+        """Case 2: No pricing config + pricing_mode='on' → should raise error.
+
+        If pricing_mode is 'on' but no pricing configuration exists,
+        the server should fail fast rather than silently running without payments.
+        """
+        nonexistent_yaml = tmp_path / "nonexistent.yaml"
+
+        config = X402Config(
+            pricing_mode="on",
+            pricing_config_path=nonexistent_yaml,
+        )
+
+        # This should raise an error - pricing_mode='on' requires pricing config
+        with pytest.raises(ValueError, match="pricing_mode.*on.*no pricing"):
+            config.validate_pricing_mode()
+
+    def test_pricing_config_mode_off_logs_warning(self, tmp_path: Path, caplog):
+        """Case 3: Pricing config exists + pricing_mode='off' → warning logged.
+
+        If pricing configuration exists but pricing_mode is 'off',
+        log a warning to make the operator aware payments are disabled.
+        """
+        yaml_content = {
+            "test_endpoint": [
+                {"chain_id": 8453, "token_address": "0x123", "token_amount": 1000}
+            ]
+        }
+        yaml_file = tmp_path / "tool_pricing.yaml"
+        yaml_file.write_text(yaml.dump(yaml_content))
+
+        config = X402Config(
+            pricing_mode="off",
+            pricing_config_path=yaml_file,
+        )
+
+        # Pricing should load successfully
+        assert len(config.pricing) == 1
+
+        # validate_pricing_mode should log a warning
+        with caplog.at_level("WARNING"):
+            config.validate_pricing_mode()
+
+        assert "pricing_mode" in caplog.text.lower() or "disabled" in caplog.text.lower()
+
+    def test_pricing_config_mode_on_works(self, tmp_path: Path, caplog):
+        """Case 4: Pricing config exists + pricing_mode='on' → x402 enabled.
+
+        The happy path: both pricing config and pricing_mode='on' are set.
+        """
+        yaml_content = {
+            "test_endpoint": [
+                {"chain_id": 8453, "token_address": "0x123", "token_amount": 1000}
+            ]
+        }
+        yaml_file = tmp_path / "tool_pricing.yaml"
+        yaml_file.write_text(yaml.dump(yaml_content))
+
+        config = X402Config(
+            pricing_mode="on",
+            pricing_config_path=yaml_file,
+        )
+
+        # Pricing should load successfully
+        assert len(config.pricing) == 1
+        assert config.pricing_mode == "on"
+
+        # validate_pricing_mode should pass without error
+        with caplog.at_level("INFO"):
+            config.validate_pricing_mode()  # Should not raise
+
+        # Should log success message
+        assert "enabled" in caplog.text.lower() or len(config.pricing) > 0

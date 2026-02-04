@@ -70,13 +70,18 @@ def create_app() -> FastAPI:
     # Mount the MCP server at /mcp
     app.mount("/mcp", mcp_app)
 
-    # --- Payment Middleware Configuration ---
-    # This validates that all priced endpoints actually exist
-    # and warns about any misconfiguration
-    all_routes = app.routes + mcp_source_app.routes
+    # --- Pricing Configuration Validation ---
+    # First, validate that pricing_mode is consistent with pricing config
+    # This will fail fast if pricing_mode='on' but no config exists
     x402_settings = get_x402_settings()
+    x402_settings.validate_pricing_mode()
+
+    # Then validate that all priced endpoints actually exist
+    # and warn about any misconfiguration
+    all_routes = app.routes + mcp_source_app.routes
     x402_settings.validate_against_routes(all_routes)
 
+    # --- Middleware Configuration ---
     if x402_settings.pricing_mode == "on":
         app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
         logger.info("x402 payment middleware enabled.")
