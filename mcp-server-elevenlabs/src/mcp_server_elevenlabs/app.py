@@ -49,16 +49,21 @@ An MCP (Model Context Protocol) server that provides ElevenLabs Text-to-Speech c
 It exposes the same functionality via:
 
 - **REST (Hybrid)**: `/hybrid/*`
-- **MCP tools**: mounted at `/mcp` (generated from the same hybrid routes)
+- **MCP tools**: mounted at `/mcp/` (generated from the same hybrid routes)
 
 ### Endpoints
 
 - **API-only**
   - `GET /api/health` — health check
+  - `POST /api/generate-voice-file` — generate and download MP3 directly (single-step REST)
 - **Hybrid (REST + MCP)**
-  - `POST /hybrid/generate-voice` — generates an MP3 audio file from text
+  - `POST /hybrid/generate-voice` — generates an MP3 audio file from text (returns JSON)
 - **Downloads**
   - `GET /hybrid/audio/{filename}` — download generated audio files
+
+### Notes
+
+- MCP tools should return JSON. `POST /hybrid/generate-voice` includes a `download_url` and can optionally embed `audio_base64`.
 """.strip(),
         version="0.1.0",
         lifespan=combined_lifespan,
