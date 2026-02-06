@@ -23,6 +23,16 @@ These are exposed as both REST endpoints and MCP tools.
 | :----- | :-------------------------- | :------------------------ |
 | `GET`  | `/hybrid/audio/{filename}`  | Download generated audio  |
 
+### Returning audio in MCP
+
+MCP tools should return **JSON**, not a streaming file response.
+So `elevenlabs_generate_voice` returns:
+
+- `download_url`: fetch the MP3 via REST (`GET /hybrid/audio/{filename}`)
+- Optional `audio_base64`: set `return_audio_base64=true` in the request
+
+To prevent huge MCP payloads, base64 embedding is size-limited via `max_audio_bytes` (default: 5,000,000).
+
 ## API Documentation
 
 Once the server is running:
