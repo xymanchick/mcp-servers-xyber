@@ -8,6 +8,7 @@
 | Method | Endpoint       | Description               |
 | :----- | :------------- | :------------------------ |
 | `GET`  | `/api/health`  | Health check              |
+| `POST` | `/api/generate-voice-file` | Generate & download MP3 directly (single-step REST) |
 
 ### 2. **Hybrid Endpoints** (`/hybrid`)
 

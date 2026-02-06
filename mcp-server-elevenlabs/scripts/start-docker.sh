@@ -127,6 +127,32 @@ fi
 # Ensure a local voice dir exists if you want persistence on the host.
 mkdir -p voice
 
+# Load env for ElevenLabs credentials (recommended: .env file).
+# We intentionally do NOT bake secrets into the Docker image.
+ENV_FILE_ARGS=()
+if [ -f ".env" ]; then
+  ENV_FILE_ARGS+=(--env-file ".env")
+else
+  # Fall back to forwarding env vars from the current shell, if present.
+  # (This keeps behavior similar to local runs.)
+  if [ -n "${ELEVENLABS_API_KEY-}" ]; then
+    ENV_FILE_ARGS+=(-e "ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}")
+  fi
+  if [ -n "${ELEVENLABS_VOICE_ID-}" ]; then
+    ENV_FILE_ARGS+=(-e "ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE_ID}")
+  fi
+  if [ -n "${ELEVENLABS_MODEL_ID-}" ]; then
+    ENV_FILE_ARGS+=(-e "ELEVENLABS_MODEL_ID=${ELEVENLABS_MODEL_ID}")
+  fi
+fi
+
+if [ -z "${ELEVENLABS_API_KEY-}" ] && [ ! -f ".env" ]; then
+  echo "Warning: ELEVENLABS_API_KEY is not set and .env was not found."
+  echo "         The TTS endpoint/tool will return 400 until you provide it."
+  echo "         Fix: create .env (recommended) or export ELEVENLABS_API_KEY before running."
+  echo ""
+fi
+
 echo "Starting ElevenLabs MCP Server in Docker..."
 echo "Container: ${CONTAINER_NAME}"
 echo "Image: ${IMAGE_NAME}"
@@ -139,6 +165,7 @@ echo ""
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --network host \
+  "${ENV_FILE_ARGS[@]}" \
   -e "HOST=0.0.0.0" \
   -e "PORT=${PORT}" \
   -v "$(pwd)/voice:/app/media/voice" \

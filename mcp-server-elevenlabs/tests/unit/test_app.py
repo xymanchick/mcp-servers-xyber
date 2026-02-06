@@ -4,8 +4,11 @@ from starlette.routing import Mount
 def test_api_routers_only_health():
     from mcp_server_elevenlabs.api_routers import routers
 
-    assert len(routers) == 1
-    assert any(r.path == "/health" for r in routers[0].routes)
+    # Health + REST-only direct download
+    assert len(routers) == 2
+    all_paths = {route.path for r in routers for route in r.routes}
+    assert "/health" in all_paths
+    assert "/generate-voice-file" in all_paths
 
 
 def test_app_mounts_expected_routes():
