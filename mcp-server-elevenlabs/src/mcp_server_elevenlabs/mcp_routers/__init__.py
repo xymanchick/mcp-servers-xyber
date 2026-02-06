@@ -1,0 +1,5 @@
+"""
+MCP-only routers.
+"""
+
+routers = []

@@ -1,0 +1,62 @@
+[project]
+name = "mcp-server-elevenlabs"
+version = "0.1.0"
+description = "MCP Server for ElevenLabs Text-to-Speech"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=1.8.0,<2.0.0",
+    "fastmcp>=2.3.4",
+    "pydantic-settings>=2.0",
+    "python-dotenv>=1.0.0",
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    "elevenlabs>=0.2.26",
+    "pydantic>=2.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_server_elevenlabs"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.2",
+    "ruff>=0.1.6",
+    "black>=23.11.0",
+    "isort>=5.12.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warnings
+    "B",   # flake8-bugbear
+]
+ignore = []
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--disable-warnings",
+    "-v",
+]

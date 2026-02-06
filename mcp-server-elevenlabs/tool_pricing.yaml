@@ -1,0 +1,11 @@
+version: 1
+
+# Tool pricing configuration.
+# This server does not enforce payments; all tools are free by default.
+
+tools:
+  elevenlabs_generate_voice:
+    price: 0
+    currency: "USD"
+    unit: "call"
+    description: "Generate an MP3 audio file from text using the ElevenLabs API."
