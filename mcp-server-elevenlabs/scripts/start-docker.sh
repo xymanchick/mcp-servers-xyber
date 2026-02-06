@@ -102,6 +102,13 @@ if [ "$RESTART" = true ]; then
     echo "Waiting 2 seconds before restarting..."
     sleep 2
 else
+    # If a container with the same name is already running, docker run will fail.
+    if is_container_running; then
+        echo "Error: container '${CONTAINER_NAME}' is already running."
+        echo "       Use --restart (or --rebuild) to replace it."
+        exit 1
+    fi
+
     # Remove stopped container with same name
     if docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
         if ! is_container_running; then
@@ -156,16 +163,29 @@ fi
 echo "Starting ElevenLabs MCP Server in Docker..."
 echo "Container: ${CONTAINER_NAME}"
 echo "Image: ${IMAGE_NAME}"
-echo "Network: host (sharing host network stack)"
+if [ "$(uname -s)" = "Linux" ]; then
+  echo "Network: host (sharing host network stack)"
+else
+  echo "Network: port mapping (Docker Desktop)"
+  echo "Note: --network host is Linux-only; using -p ${PORT}:${PORT} instead."
+fi
 echo "Server will be available at: http://localhost:${PORT}"
 echo "API docs: http://localhost:${PORT}/docs"
 echo "MCP endpoint: http://localhost:${PORT}/mcp/"
 echo ""
 
+DOCKER_NET_ARGS=()
+if [ "$(uname -s)" = "Linux" ]; then
+  DOCKER_NET_ARGS+=(--network host)
+else
+  DOCKER_NET_ARGS+=(-p "${PORT}:${PORT}")
+fi
+
 docker run -d \
   --name "${CONTAINER_NAME}" \
-  --network host \
+  "${DOCKER_NET_ARGS[@]}" \
   "${ENV_FILE_ARGS[@]}" \
+  --user "$(id -u):$(id -g)" \
   -e "HOST=0.0.0.0" \
   -e "PORT=${PORT}" \
   -v "$(pwd)/voice:/app/media/voice" \

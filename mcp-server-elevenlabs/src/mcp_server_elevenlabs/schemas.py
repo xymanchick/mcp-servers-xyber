@@ -46,7 +46,6 @@ Available models: eleven_v3, eleven_ttv_v3, eleven_multilingual_v2, eleven_flash
 class GenerateVoiceResponse(BaseModel):
     success: bool
     filename: str
-    file_path: str
     media_type: str
     download_url: str
     audio_bytes: int

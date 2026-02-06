@@ -31,7 +31,8 @@ async def generate_voice_endpoint(request: VoiceRequest, http_request: Request) 
     try:
         settings = get_app_settings()
 
-        filename = generate_voice(
+        filename = await asyncio.to_thread(
+            generate_voice,
             text=request.text,
             api_config=settings.elevenlabs,
             file_path=str(settings.media.voice_output_dir),
@@ -63,7 +64,6 @@ async def generate_voice_endpoint(request: VoiceRequest, http_request: Request) 
         return GenerateVoiceResponse(
             success=True,
             filename=filename,
-            file_path=str(file_path),
             media_type="audio/mpeg",
             download_url=download_url,
             audio_bytes=audio_bytes,
@@ -77,7 +77,7 @@ async def generate_voice_endpoint(request: VoiceRequest, http_request: Request) 
         raise
     except Exception as e:  # noqa: BLE001
         logger.exception("Unexpected error generating audio")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get(
@@ -90,7 +90,13 @@ async def download_audio(filename: str):
     """Serve audio files for download."""
     settings = get_app_settings()
     audio_dir = settings.media.voice_output_dir
-    file_path = audio_dir / filename
+
+    # Path traversal protection: ensure resolved path stays within audio_dir.
+    base = audio_dir.resolve()
+    candidate = (audio_dir / filename).resolve()
+    if not candidate.is_relative_to(base):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    file_path = candidate
     
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"Audio file '{filename}' not found")

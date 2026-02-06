@@ -1,5 +1,4 @@
 import base64
-from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -35,7 +34,7 @@ def test_hybrid_generate_voice_returns_json_and_writes_file(monkeypatch):
     assert data["audio_bytes"] > 0
     assert data["audio_base64"] is None
 
-    assert Path(data["file_path"]).exists()
+    assert (settings.media.voice_output_dir / data["filename"]).exists()
 
 
 def test_hybrid_generate_voice_can_embed_base64(monkeypatch):
@@ -134,4 +133,16 @@ def test_hybrid_audio_download_404_for_missing_file():
 
     dl = client.get("/hybrid/audio/does_not_exist.mp3")
     assert dl.status_code == 404
+
+
+def test_hybrid_audio_download_rejects_path_traversal():
+    from mcp_server_elevenlabs.app import create_app
+
+    app = create_app()
+    client = TestClient(app)
+
+    # `{filename}` does not accept slashes, but ".." itself would escape the base dir without checks.
+    # Use URL-encoded dots to avoid client-side path normalization.
+    dl = client.get("/hybrid/audio/%2e%2e")
+    assert dl.status_code == 400
 

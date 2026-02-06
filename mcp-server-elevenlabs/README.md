@@ -90,7 +90,7 @@ docker run --rm -it -p 8000:8000 -v $(pwd)/voice:/app/media/voice mcp-server-ele
 
 ## Project Structure
 
-```
+```text
 mcp-server-elevenlabs/
 ├── src/
 │   └── mcp_server_elevenlabs/

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException
@@ -30,7 +31,8 @@ async def generate_voice_file_endpoint(request: VoiceRequest) -> FileResponse:
     """
     settings = get_app_settings()
     try:
-        filename = generate_voice(
+        filename = await asyncio.to_thread(
+            generate_voice,
             text=request.text,
             api_config=settings.elevenlabs,
             file_path=str(settings.media.voice_output_dir),
@@ -47,5 +49,5 @@ async def generate_voice_file_endpoint(request: VoiceRequest) -> FileResponse:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:  # noqa: BLE001
         logger.exception("Unexpected error generating audio")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
