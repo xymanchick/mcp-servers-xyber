@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from mcp_server_tavily.dependencies import get_tavily_client
+from mcp_server_tavily.dependencies import get_tavily_service
 from mcp_server_tavily.schemas import SearchRequest, TavilySearchResultResponse
 from mcp_server_tavily.tavily import (
     TavilyApiError,
@@ -36,7 +36,7 @@ async def tavily_search(
             "If provided, this header takes precedence over the environment variable."
         ),
     ),
-    tavily_client: _TavilyService = Depends(get_tavily_client),
+    tavily_client: _TavilyService = Depends(get_tavily_service),
 ) -> list[TavilySearchResultResponse]:
     try:
         results = await tavily_client.search(

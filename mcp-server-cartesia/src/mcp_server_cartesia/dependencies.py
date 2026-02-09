@@ -4,27 +4,76 @@ FastAPI dependency injection for the Cartesia MCP Server.
 Main responsibility: Provide dependency injection functions for shared resources.
 """
 
-from functools import lru_cache
+import logging
 
 from mcp_server_cartesia.cartesia_client import (
     _CartesiaService,
-    get_cartesia_service as _get_cartesia_service,
+    get_cartesia_service as create_cartesia_service,
 )
 
+logger = logging.getLogger(__name__)
 
-@lru_cache(maxsize=1)
-def get_cartesia_service() -> _CartesiaService:
+
+class DependencyContainer:
     """
-    Dependency injection function to get the Cartesia service.
+    Centralized container for all application dependencies.
 
-    This function is cached to ensure only one instance of the service
-    is created and reused across requests.
+    Usage:
+        # In app.py lifespan:
+        DependencyContainer.initialize()
+        yield
+        await DependencyContainer.shutdown()
 
-    Returns:
-        An initialized _CartesiaService instance.
-
-    Raises:
-        CartesiaConfigError: If configuration loading or validation fails.
-        CartesiaClientError: If the Cartesia library isn't installed.
+        # In route handlers via Depends():
+        @router.post("/endpoint")
+        async def endpoint(cartesia_service: _CartesiaService = Depends(get_cartesia_service)):
+            ...
     """
-    return _get_cartesia_service()
+
+    _cartesia_service: _CartesiaService | None = None
+
+    @classmethod
+    def initialize(cls) -> None:
+        """
+        Initialize all dependencies.
+
+        Call this once during application startup (in lifespan).
+        """
+        logger.info("Initializing dependencies...")
+
+        cls._cartesia_service = create_cartesia_service()
+
+        logger.info("Dependencies initialized successfully.")
+
+    @classmethod
+    async def shutdown(cls) -> None:
+        """
+        Shut down all dependencies gracefully.
+
+        Call this once during application shutdown (in lifespan).
+        """
+        logger.info("Shutting down dependencies...")
+
+        cls._cartesia_service = None
+
+        logger.info("Dependencies shut down successfully.")
+
+    @classmethod
+    def get_cartesia_service(cls) -> _CartesiaService:
+        """
+        Get the CartesiaService instance.
+
+        Usage as FastAPI dependency:
+            @router.post("/generate-tts")
+            async def generate_tts(cartesia_service: _CartesiaService = Depends(get_cartesia_service)):
+                ...
+        """
+        if cls._cartesia_service is None:
+            raise RuntimeError(
+                "DependencyContainer not initialized. Call DependencyContainer.initialize() first."
+            )
+        return cls._cartesia_service
+
+
+# Alias the class method for use as FastAPI dependency
+get_cartesia_service = DependencyContainer.get_cartesia_service

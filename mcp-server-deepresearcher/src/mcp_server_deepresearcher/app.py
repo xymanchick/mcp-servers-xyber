@@ -21,6 +21,7 @@ from mcp_server_deepresearcher.deepresearcher.utils import (
     initialize_llm,
 )
 from mcp_server_deepresearcher.deepresearcher.state import ToolDescription
+from mcp_server_deepresearcher.dependencies import DependencyContainer
 from mcp_server_deepresearcher.hybrid_routers import routers as hybrid_routers
 from mcp_server_deepresearcher.logging_config import configure_logging
 from mcp_server_deepresearcher.middlewares import X402WrapperMiddleware
@@ -193,12 +194,14 @@ async def app_lifespan(app: FastAPI):
         tools_description_dicts = parse_tools_description_from_yaml(tools_description_yaml)
         tools_description_objects = [ToolDescription(**tool_dict) for tool_dict in tools_description_dicts]
 
-        # Store resources in app state
-        app.state.llm = llm_with_fallbacks
-        app.state.llm_thinking = llm_thinking
-        app.state.mcp_tools = mcp_tools
-        app.state.tools_description = tools_description_objects
-        app.state.mcp_connection_error = mcp_connection_error  # Store error for better error messages
+        # Initialize DependencyContainer with all resources
+        await DependencyContainer.initialize(
+            llm=llm_with_fallbacks,
+            llm_thinking=llm_thinking,
+            mcp_tools=mcp_tools,
+            tools_description=tools_description_objects,
+            mcp_connection_error=mcp_connection_error,
+        )
 
         if mcp_connection_error:
             logger.warning(
@@ -217,6 +220,7 @@ async def app_lifespan(app: FastAPI):
     
     finally:
         logger.info("Lifespan: Shutting down application services...")
+        await DependencyContainer.shutdown()
         logger.info("Lifespan: Services shut down gracefully.")
 
 
@@ -249,15 +253,7 @@ def create_app() -> FastAPI:
     # This correctly manages both our app's resources and FastMCP's internal state.
     @asynccontextmanager
     async def combined_lifespan(app: FastAPI):
-        async with app_lifespan(app) as _:
-            # Share app state with mcp_source_app so hybrid routers can access resources
-            # FastMCP makes internal HTTP calls to mcp_source_app, so it needs the same state
-            mcp_source_app.state.llm = app.state.llm
-            mcp_source_app.state.llm_thinking = app.state.llm_thinking
-            mcp_source_app.state.mcp_tools = app.state.mcp_tools
-            mcp_source_app.state.tools_description = app.state.tools_description
-            mcp_source_app.state.mcp_connection_error = getattr(app.state, "mcp_connection_error", None)
-            
+        async with app_lifespan(app):
             async with mcp_app.lifespan(app):
                 yield
 

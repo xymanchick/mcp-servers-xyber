@@ -5,11 +5,10 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_tavily.api_routers import routers as api_routers
+from mcp_server_tavily.dependencies import DependencyContainer
 from mcp_server_tavily.hybrid_routers import routers as hybrid_routers
 from mcp_server_tavily.x402_config import get_x402_settings
 from mcp_server_tavily.middlewares import X402WrapperMiddleware
-from mcp_server_tavily.tavily import _TavilyService
-from mcp_server_tavily.tavily import get_tavily_service as create_tavily_service
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +17,13 @@ logger = logging.getLogger(__name__)
 async def app_lifespan(app: FastAPI):
     logger.info("Lifespan: Initializing application services...")
 
-    tavily_service: _TavilyService = create_tavily_service()
-    app.state.tavily_service = tavily_service
+    DependencyContainer.initialize()
 
     logger.info("Lifespan: Services initialized successfully.")
     yield
     logger.info("Lifespan: Shutting down application services...")
+
+    await DependencyContainer.shutdown()
 
     logger.info("Lifespan: Services shut down gracefully.")
 

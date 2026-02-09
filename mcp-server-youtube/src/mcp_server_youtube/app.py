@@ -13,10 +13,10 @@ from fastmcp import FastMCP
 
 from mcp_server_youtube.api_routers import routers as api_routers
 from mcp_server_youtube.config import get_app_settings
+from mcp_server_youtube.dependencies import DependencyContainer
 from mcp_server_youtube.hybrid_routers import routers as hybrid_routers
 from mcp_server_youtube.x402_config import get_x402_settings
 from mcp_server_youtube.middlewares import X402WrapperMiddleware
-from mcp_server_youtube.youtube import get_youtube_client, YouTubeVideoSearchAndTranscript
 
 logger = logging.getLogger(__name__)
 
@@ -39,28 +39,13 @@ async def app_lifespan(app: FastAPI):
         "enabled" if apify_token_loaded else "disabled",
     )
 
-    # Initialize YouTube client
-    youtube_client: YouTubeVideoSearchAndTranscript = get_youtube_client()
-    app.state.youtube_client = youtube_client
-
-    # Initialize database connection (fail fast if misconfigured/unreachable)
-    from mcp_server_youtube.dependencies import get_db_manager
-
-    try:
-        db_manager = get_db_manager()
-        app.state.db_manager = db_manager
-        logger.info("Lifespan: Database manager initialized.")
-    except Exception as e:
-        # Should be rare now (dependencies uses a NullDatabaseManager fallback),
-        # but keep this to guarantee the server starts.
-        app.state.db_manager = None
-        logger.warning(
-            "Lifespan: Database initialization failed; caching disabled. Error: %s", e
-        )
+    DependencyContainer.initialize()
 
     logger.info("Lifespan: Services initialized successfully.")
     yield
     logger.info("Lifespan: Shutting down application services...")
+
+    await DependencyContainer.shutdown()
 
     logger.info("Lifespan: Services shut down gracefully.")
 

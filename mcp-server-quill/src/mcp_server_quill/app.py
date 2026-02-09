@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_quill.api_routers import routers as api_routers
+from mcp_server_quill.dependencies import DependencyContainer
 from mcp_server_quill.x402_config import get_x402_settings
 from mcp_server_quill.hybrid_routers import routers as hybrid_routers
 from mcp_server_quill.mcp_routers import routers as mcp_only_routers
@@ -19,8 +20,16 @@ async def app_lifespan(app: FastAPI):
     Manages the application's resources.
     """
     logger.info("Lifespan: Initializing application services...")
+
+    DependencyContainer.initialize()
+
+    logger.info("Lifespan: Services initialized successfully.")
     yield
     logger.info("Lifespan: Shutting down application services...")
+
+    await DependencyContainer.shutdown()
+
+    logger.info("Lifespan: Services shut down gracefully.")
 
 
 def create_app() -> FastAPI:

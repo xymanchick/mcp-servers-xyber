@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_hangman.api_routers import routers as api_routers
-from mcp_server_hangman.hangman.module import HangmanService, get_hangman_service
+from mcp_server_hangman.dependencies import DependencyContainer
 from mcp_server_hangman.hybrid_routers import routers as hybrid_routers
 from mcp_server_hangman.middlewares import X402WrapperMiddleware
 from mcp_server_hangman.x402_config import get_x402_settings
@@ -17,12 +17,13 @@ logger = logging.getLogger(__name__)
 async def app_lifespan(app: FastAPI):
     logger.info("Lifespan: Initializing application services...")
 
-    hangman_service: HangmanService = get_hangman_service()
-    app.state.hangman_service = hangman_service
+    DependencyContainer.initialize()
 
     logger.info("Lifespan: Services initialized successfully.")
     yield
     logger.info("Lifespan: Shutting down application services...")
+
+    await DependencyContainer.shutdown()
 
     logger.info("Lifespan: Services shut down gracefully.")
 

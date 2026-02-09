@@ -5,13 +5,11 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_lurky.api_routers import routers as api_routers
-from mcp_server_lurky.config import get_app_settings
+from mcp_server_lurky.dependencies import DependencyContainer
 from mcp_server_lurky.hybrid_routers import routers as hybrid_routers
 from mcp_server_lurky.x402_config import get_x402_settings
 from mcp_server_lurky.mcp_routers import routers as mcp_routers
 from mcp_server_lurky.middlewares.x402_wrapper import X402WrapperMiddleware
-from mcp_server_lurky.lurky.config import get_lurky_config
-from mcp_server_lurky.lurky.module import LurkyClient
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +17,15 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     logger.info("Lifespan: Initializing application services...")
-    
-    # Initialize lurky client
-    config = get_lurky_config()
-    app.state.lurky_client = LurkyClient(config)
-    
+
+    DependencyContainer.initialize()
+
     logger.info("Lifespan: Services initialized successfully.")
     yield
     logger.info("Lifespan: Shutting down application services...")
-    app.state.lurky_client = None
+
+    await DependencyContainer.shutdown()
+
     logger.info("Lifespan: Services shut down gracefully.")
 
 
@@ -49,8 +47,6 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def combined_lifespan(app: FastAPI):
         async with app_lifespan(app):
-            # Share state with mcp_source_app
-            mcp_source_app.state.lurky_client = app.state.lurky_client
             async with mcp_app.lifespan(app):
                 yield
 

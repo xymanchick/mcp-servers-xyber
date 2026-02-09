@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from mcp_server_arxiv.dependencies import get_arxiv_client
+from mcp_server_arxiv.dependencies import get_arxiv_service
 from mcp_server_arxiv.schemas import ArxivPaperResponse, SearchRequest
 from mcp_server_arxiv.xy_arxiv import (
     ArxivApiError,
@@ -22,7 +22,7 @@ router = APIRouter()
 )
 async def arxiv_search(
     search: SearchRequest,
-    arxiv_client: _ArxivService = Depends(get_arxiv_client),
+    arxiv_client: _ArxivService = Depends(get_arxiv_service),
 ) -> list[ArxivPaperResponse]:
     """
     Search ArXiv papers by query or fetch a specific paper by ID.

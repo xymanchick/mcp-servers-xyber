@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_telegram.api_routers import routers as api_routers
+from mcp_server_telegram.dependencies import DependencyContainer
 from mcp_server_telegram.hybrid_routers import routers as hybrid_routers
 from mcp_server_telegram.mcp_routers import routers as mcp_routers
 from mcp_server_telegram.middlewares import X402WrapperMiddleware
@@ -31,10 +32,15 @@ async def app_lifespan(app: FastAPI):
     context managers, so no external resource management is needed.
     """
     logger.info("Lifespan: Initializing application services...")
-    logger.info("Lifespan: Telegram service uses cached instances (no explicit init).")
+
+    DependencyContainer.initialize()
+
     logger.info("Lifespan: Services initialized successfully.")
     yield
     logger.info("Lifespan: Shutting down application services...")
+
+    await DependencyContainer.shutdown()
+
     logger.info("Lifespan: Services shut down gracefully.")
 
 

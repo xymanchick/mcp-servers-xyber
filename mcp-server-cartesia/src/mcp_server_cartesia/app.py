@@ -12,14 +12,11 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_cartesia.api_routers import routers as api_routers
+from mcp_server_cartesia.dependencies import DependencyContainer
 from mcp_server_cartesia.hybrid_routers import routers as hybrid_routers
 from mcp_server_cartesia.mcp_routers import routers as mcp_routers
 from mcp_server_cartesia.middlewares import X402WrapperMiddleware
 from mcp_server_cartesia.x402_config import get_x402_settings
-from mcp_server_cartesia.cartesia_client import (
-    _CartesiaService,
-    get_cartesia_service as create_cartesia_service,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +35,14 @@ async def app_lifespan(app: FastAPI):
     """
     logger.info("Lifespan: Initializing application services...")
 
-    # Initialize Cartesia service
-    cartesia_service: _CartesiaService = create_cartesia_service()
-    app.state.cartesia_service = cartesia_service
+    DependencyContainer.initialize()
 
     logger.info("Lifespan: Services initialized successfully.")
     yield
     logger.info("Lifespan: Shutting down application services...")
 
-    # Cartesia service doesn't require explicit cleanup
-    # but we log the shutdown for completeness
+    await DependencyContainer.shutdown()
+
     logger.info("Lifespan: Services shut down gracefully.")
 
 
