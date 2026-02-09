@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 class ModelFamily(str, Enum):
     """Model family identifiers."""
+
     FLUX_1 = "FLUX.1"
     FLUX_2 = "FLUX.2"
     OTHER = "OTHER"
@@ -21,7 +22,9 @@ class ModelCapabilities(BaseModel):
 
     supports_negative_prompt: bool = False
     supports_guidance_scale: bool = False
-    supports_guidance_param: bool = False  # For FLUX.2-flex which uses "guidance" not "guidance_scale"
+    supports_guidance_param: bool = (
+        False  # For FLUX.2-flex which uses "guidance" not "guidance_scale"
+    )
     supports_steps: bool = True  # Most models support steps, but FLUX.2-pro doesn't
     supports_lora: bool = False
     requires_disable_safety_checker: bool = False
@@ -32,7 +35,9 @@ class ModelCapabilities(BaseModel):
 class ModelSchema(BaseModel):
     """Schema definition for a specific model."""
 
-    model_name: str = Field(..., description="Full model identifier (e.g., black-forest-labs/FLUX.2-dev)")
+    model_name: str = Field(
+        ..., description="Full model identifier (e.g., black-forest-labs/FLUX.2-dev)"
+    )
     family: ModelFamily = Field(..., description="Model family")
     capabilities: ModelCapabilities = Field(..., description="Model capabilities")
 
@@ -52,7 +57,10 @@ class ModelSchema(BaseModel):
         # Only include steps if the model supports it
         if self.capabilities.supports_steps and request_params.get("steps") is not None:
             api_params["steps"] = request_params["steps"]
-        elif request_params.get("steps") is not None and not self.capabilities.supports_steps:
+        elif (
+            request_params.get("steps") is not None
+            and not self.capabilities.supports_steps
+        ):
             # Steps was provided but model doesn't support it - will be validated later
             pass
         if request_params.get("seed") is not None and request_params.get("seed") != 0:
@@ -62,13 +70,19 @@ class ModelSchema(BaseModel):
         if self.capabilities.requires_disable_safety_checker:
             api_params["disable_safety_checker"] = True
 
-        if self.capabilities.supports_negative_prompt and request_params.get("negative_prompt"):
+        if self.capabilities.supports_negative_prompt and request_params.get(
+            "negative_prompt"
+        ):
             api_params["negative_prompt"] = request_params["negative_prompt"]
 
-        if self.capabilities.supports_guidance_param and request_params.get("guidance_scale"):
+        if self.capabilities.supports_guidance_param and request_params.get(
+            "guidance_scale"
+        ):
             # FLUX.2-flex uses "guidance" parameter
             api_params["guidance"] = request_params["guidance_scale"]
-        elif self.capabilities.supports_guidance_scale and request_params.get("guidance_scale"):
+        elif self.capabilities.supports_guidance_scale and request_params.get(
+            "guidance_scale"
+        ):
             # FLUX.1 and older models use "guidance_scale"
             api_params["guidance_scale"] = request_params["guidance_scale"]
 
@@ -201,4 +215,3 @@ def get_model_schema(model_name: str) -> ModelSchema:
 def list_available_models() -> list[str]:
     """List all available model names in the registry."""
     return list(MODEL_REGISTRY.keys())
-

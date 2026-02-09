@@ -11,11 +11,10 @@ from unittest.mock import MagicMock, Mock, patch
 import aiohttp
 import pytest
 from aiohttp import ClientConnectionError, ClientResponseError
-
-from mcp_server_aave.aave.module import AaveClient
 from mcp_server_aave.aave.config import (AaveApiError, AaveClientError,
                                          AaveConfig)
 from mcp_server_aave.aave.models import PoolData
+from mcp_server_aave.aave.module import AaveClient
 
 # Test data constants
 TEST_NETWORKS = {

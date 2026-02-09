@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
 from apify_client import ApifyClient
-
-import logging
-
 from mcp_twitter.config import AppSettings
-from mcp_twitter.twitter.models import OutputFormat, QueryDefinition, QueryType, TwitterScraperInput
+from mcp_twitter.twitter.models import (OutputFormat, QueryDefinition,
+                                        QueryType, TwitterScraperInput)
 
 # Import moved to _get_db method to avoid circular import
 
@@ -35,19 +34,19 @@ class TwitterScraper:
         if actor_name is None:
             settings = AppSettings()
             actor_name = settings.apify.actor_name
-        
+
         self.apify_token = apify_token
         self.client = ApifyClient(apify_token)
         self.actor_id = actor_name  # Internal name remains actor_id for Apify client
         self.output_format: OutputFormat = output_format
         self.use_cache = use_cache
-        
+
         # Database instance (lazy-loaded)
         self._db: "Database | None" = None
-        
+
         # Store last run items for API access
         self._last_items: list[dict[str, Any]] | None = None
-        
+
         # Legacy file support (deprecated)
         if results_dir:
             self.results_dir = results_dir
@@ -93,6 +92,7 @@ class TwitterScraper:
         if self._db is None:
             try:
                 from db import Database, get_db_instance
+
                 self._db = get_db_instance()
             except Exception as e:
                 log.warning(f"Failed to initialize database cache: {e}")
@@ -118,27 +118,36 @@ class TwitterScraper:
         """
         db = self._get_db()
         run_dict: dict[str, Any] = run_input.model_dump(exclude_none=True)
-        
+
         # Try cache first if enabled
         if db and query_type:
             from db import generate_query_key
+
             query_key = generate_query_key(query_type, run_dict)
             cached_items = db.get_cached_query(query_key, self.output_format)
             if cached_items is not None:
-                log.info(f"Cache hit for query_type={query_type}, returning {len(cached_items)} items")
+                log.info(
+                    f"Cache hit for query_type={query_type}, returning {len(cached_items)} items"
+                )
                 self._last_items = cached_items
                 # Still write to file for backward compatibility if results_dir exists
                 if self.results_dir and output_filename:
-                    filename = output_filename if output_filename.endswith(".json") else f"{output_filename}.json"
+                    filename = (
+                        output_filename
+                        if output_filename.endswith(".json")
+                        else f"{output_filename}.json"
+                    )
                     output_path = self.results_dir / filename
                     with open(output_path, "w", encoding="utf-8") as f:
                         json.dump(cached_items, f, indent=2, ensure_ascii=False)
                     return output_path
                 # Return a dummy path if no file writing
                 return Path(output_filename or "cached_results.json")
-        
+
         # Cache miss or cache disabled - call Apify
-        log.info(f"Cache miss or cache disabled, calling Apify for query_type={query_type}")
+        log.info(
+            f"Cache miss or cache disabled, calling Apify for query_type={query_type}"
+        )
         run = self.client.actor(self.actor_id).call(run_input=run_dict)
         dataset_id = run["defaultDatasetId"]
         print("💾 Dataset:", f"https://console.apify.com/storage/datasets/{dataset_id}")
@@ -158,6 +167,7 @@ class TwitterScraper:
         if db and query_type:
             try:
                 from db import generate_query_key
+
                 db.save_query_cache(
                     query_key=generate_query_key(query_type, run_dict),
                     query_type=query_type,
@@ -193,5 +203,3 @@ class TwitterScraper:
     def run_query(self, query: QueryDefinition) -> Path:
         """Run a query definition with caching."""
         return self.run(query.input, query.output_filename(), query_type=query.type)
-
-

@@ -5,7 +5,6 @@ from decimal import Decimal
 from unittest.mock import Mock, patch
 
 import pytest
-
 from mcp_server_aave.aave.config import AaveConfig
 from mcp_server_aave.aave.models import (AssetData, AToken, BorrowInfo, Chain,
                                          PoolData, ReserveData, RiskData,

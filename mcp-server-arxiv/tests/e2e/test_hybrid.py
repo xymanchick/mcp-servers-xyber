@@ -117,4 +117,3 @@ async def test_hybrid_search_by_id_succeeds_with_x402(paid_client) -> None:
     assert paper["arxiv_id"].startswith("1706.03762")
     assert "title" in paper
     assert "authors" in paper
-

@@ -1,8 +1,9 @@
-import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import pytest
+from mcp_server_lurky.lurky.models import (Discussion, SearchResponse,
+                                           SpaceDetails)
 from mcp_server_lurky.lurky.module import LurkyClient
-from mcp_server_lurky.lurky.models import Discussion, SpaceDetails, SearchResponse
 
 # Patch DatabaseManager and get_db_manager globally before any imports that might use it
 _mock_db_manager = MagicMock()
@@ -13,20 +14,27 @@ _mock_db_manager.save_space = Mock(return_value=True)
 _db_manager_class_patcher = None
 _db_manager_func_patcher = None
 
+
 def pytest_configure(config):
     """Configure pytest - patch database manager before any tests run."""
     global _db_manager_class_patcher, _db_manager_func_patcher
-    
+
     # Clear any existing cache
     from mcp_server_lurky.dependencies import get_db
-    if hasattr(get_db, 'cache_clear'):
+
+    if hasattr(get_db, "cache_clear"):
         get_db.cache_clear()
-    
+
     # Patch DatabaseManager class to return mock instance
-    _db_manager_class_patcher = patch('mcp_server_lurky.db.database.DatabaseManager', return_value=_mock_db_manager)
-    _db_manager_func_patcher = patch('mcp_server_lurky.dependencies.get_db', return_value=_mock_db_manager)
+    _db_manager_class_patcher = patch(
+        "mcp_server_lurky.db.database.DatabaseManager", return_value=_mock_db_manager
+    )
+    _db_manager_func_patcher = patch(
+        "mcp_server_lurky.dependencies.get_db", return_value=_mock_db_manager
+    )
     _db_manager_class_patcher.start()
     _db_manager_func_patcher.start()
+
 
 def pytest_unconfigure(config):
     """Cleanup after tests."""
@@ -41,17 +49,14 @@ def pytest_unconfigure(config):
 def mock_lurky_client() -> Mock:
     """Create a mock Lurky client."""
     client = Mock(spec=LurkyClient)
-    client.search_discussions = AsyncMock(return_value=SearchResponse(
-        discussions=[],
-        total=0,
-        page=0,
-        limit=10
-    ))
-    client.get_space_details = AsyncMock(return_value=SpaceDetails(
-        id="test_space_id",
-        title="Test Space",
-        summary="Test summary"
-    ))
+    client.search_discussions = AsyncMock(
+        return_value=SearchResponse(discussions=[], total=0, page=0, limit=10)
+    )
+    client.get_space_details = AsyncMock(
+        return_value=SpaceDetails(
+            id="test_space_id", title="Test Space", summary="Test summary"
+        )
+    )
     client.get_space_discussions = AsyncMock(return_value=[])
     return client
 
@@ -66,7 +71,7 @@ def sample_discussion() -> Discussion:
         summary="Test discussion summary",
         timestamp=1234567890,
         coins=[],
-        categories=["Test"]
+        categories=["Test"],
     )
 
 
@@ -91,19 +96,14 @@ def sample_space_details() -> SpaceDetails:
         started_at=1234567900000,
         ended_at=1234568000000,
         analyzed_at=1234568100000,
-        discussions=[]
+        discussions=[],
     )
 
 
 @pytest.fixture
 def sample_search_response(sample_discussion: Discussion) -> SearchResponse:
     """Sample search response for testing."""
-    return SearchResponse(
-        discussions=[sample_discussion],
-        total=1,
-        page=0,
-        limit=10
-    )
+    return SearchResponse(discussions=[sample_discussion], total=1, page=0, limit=10)
 
 
 @pytest.fixture(autouse=True)
@@ -121,19 +121,19 @@ def set_test_database_url(monkeypatch):
 def reset_config_cache():
     """Reset config cache before each test."""
     from mcp_server_lurky.config import get_app_settings
-    from mcp_server_lurky.x402_config import get_x402_settings
     from mcp_server_lurky.dependencies import get_db
-    
+    from mcp_server_lurky.x402_config import get_x402_settings
+
     # Clear LRU cache if available
-    if hasattr(get_app_settings, 'cache_clear'):
+    if hasattr(get_app_settings, "cache_clear"):
         get_app_settings.cache_clear()
-    if hasattr(get_x402_settings, 'cache_clear'):
+    if hasattr(get_x402_settings, "cache_clear"):
         get_x402_settings.cache_clear()
-    
+
     yield
-    
+
     # Clear after test too
-    if hasattr(get_app_settings, 'cache_clear'):
+    if hasattr(get_app_settings, "cache_clear"):
         get_app_settings.cache_clear()
-    if hasattr(get_x402_settings, 'cache_clear'):
+    if hasattr(get_x402_settings, "cache_clear"):
         get_x402_settings.cache_clear()

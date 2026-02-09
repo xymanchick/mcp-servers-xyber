@@ -52,14 +52,17 @@ class TavilyApiResponse(BaseModel):
         """Validate that the response contains either results or an answer."""
         if not self.results and not self.answer:
             from mcp_server_tavily.tavily.errors import TavilyEmptyResultsError
-            raise TavilyEmptyResultsError("No results were found for this search query.")
+
+            raise TavilyEmptyResultsError(
+                "No results were found for this search query."
+            )
         return self
 
     @classmethod
     def from_raw_response(cls, data: Any) -> TavilyApiResponse:
         """
         Create TavilyApiResponse from raw API response.
-        
+
         Handles various response formats:
         - Dict with 'results' key
         - Dict with 'answer' key
@@ -69,6 +72,7 @@ class TavilyApiResponse(BaseModel):
         if isinstance(data, str):
             if data == "error":
                 from mcp_server_tavily.tavily.errors import TavilyApiError
+
                 raise TavilyApiError("Tavily API returned an error response")
             # If it's a non-error string, treat as answer
             return cls(answer=data, results=None)
@@ -76,7 +80,7 @@ class TavilyApiResponse(BaseModel):
         if isinstance(data, dict):
             results = data.get("results")
             answer = data.get("answer")
-            
+
             processed_results = None
             if results:
                 if isinstance(results, list):
@@ -92,12 +96,13 @@ class TavilyApiResponse(BaseModel):
                             processed_results.append(
                                 TavilyResultItem(title=str(item), content=str(item))
                             )
-            
+
             return cls(results=processed_results, answer=answer)
 
         if isinstance(data, list):
             processed_results = [
-                TavilyResultItem(**item) if isinstance(item, dict)
+                TavilyResultItem(**item)
+                if isinstance(item, dict)
                 else TavilyResultItem(title=str(item), content=str(item))
                 for item in data
             ]
@@ -105,6 +110,7 @@ class TavilyApiResponse(BaseModel):
 
         # Fallback for unexpected types
         from mcp_server_tavily.tavily.errors import TavilyInvalidResponseError
+
         raise TavilyInvalidResponseError(
             f"Unexpected Tavily response type: {type(data)}"
         )
@@ -112,7 +118,7 @@ class TavilyApiResponse(BaseModel):
     def to_search_results(self) -> list[TavilySearchResult]:
         """Convert TavilyApiResponse to list of TavilySearchResult."""
         results = []
-        
+
         # If we have an answer but no results, create a result from the answer
         if self.answer and not self.results:
             results.append(
@@ -131,5 +137,5 @@ class TavilyApiResponse(BaseModel):
                         content=item.content or "",
                     )
                 )
-        
+
         return results

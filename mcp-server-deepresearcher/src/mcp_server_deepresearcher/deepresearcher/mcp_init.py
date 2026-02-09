@@ -3,17 +3,17 @@ import logging
 import sys
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from mcp_server_deepresearcher.deepresearcher.utils import load_mcp_servers_config
 from mcp_server_deepresearcher.deepresearcher.config import Settings
+from mcp_server_deepresearcher.deepresearcher.utils import \
+    load_mcp_servers_config
 
 logger = logging.getLogger(__name__)
-
 
 
 async def initialize_mcp_servers():
     """
     Initialize MCP servers and return tools with their source server information.
-    
+
     Returns:
         tuple: (mcp_tools, tool_to_server_map) where:
             - mcp_tools: List of tool objects
@@ -26,7 +26,7 @@ async def initialize_mcp_servers():
         mcp_twitter_url=settings.search_mcp.MCP_TWITTER_APIFY_URL,
         mcp_youtube_url=settings.search_mcp.MCP_YOUTUBE_APIFY_URL,
         mcp_telegram_parser_url=settings.search_mcp.MCP_TELEGRAM_PARSER_URL,
-        mcp_deepresearch_url=settings.search_mcp.MCP_DEEPRESEARCH_URL
+        mcp_deepresearch_url=settings.search_mcp.MCP_DEEPRESEARCH_URL,
     )
 
     # Try to connect to each MCP server individually
@@ -43,7 +43,7 @@ async def initialize_mcp_servers():
 
     for server_name, server_config in MCP_SERVERS_CONFIG.items():
         try:
-            url = server_config.get('url', 'No URL')
+            url = server_config.get("url", "No URL")
             logger.info(f"[{server_name.upper()}] Connecting to {url}...")
 
             # Create a single-server client for this server
@@ -62,10 +62,14 @@ async def initialize_mcp_servers():
                     tool_to_server_map[tool_name] = server_name
                 mcp_tools.extend(server_tools)
                 successful_servers.append(server_name.upper())
-                logger.info(f"[{server_name.upper()}] ✓ Connected ({len(server_tools)} tools)")
+                logger.info(
+                    f"[{server_name.upper()}] ✓ Connected ({len(server_tools)} tools)"
+                )
             else:
                 successful_servers.append(server_name.upper())
-                logger.warning(f"[{server_name.upper()}] ⚠ Connected but no tools returned")
+                logger.warning(
+                    f"[{server_name.upper()}] ⚠ Connected but no tools returned"
+                )
 
         except asyncio.TimeoutError:
             failed_servers.append(server_name.upper())
@@ -96,9 +100,13 @@ async def initialize_mcp_servers():
     logger.info("MCP CONNECTION SUMMARY")
     logger.info("=" * 80)
     if successful_servers:
-        logger.info(f"✓ Successful MCPs ({len(successful_servers)}): {', '.join(successful_servers)}")
+        logger.info(
+            f"✓ Successful MCPs ({len(successful_servers)}): {', '.join(successful_servers)}"
+        )
     if failed_servers:
-        logger.info(f"✗ Failed MCPs ({len(failed_servers)}): {', '.join(failed_servers)}")
+        logger.info(
+            f"✗ Failed MCPs ({len(failed_servers)}): {', '.join(failed_servers)}"
+        )
     logger.info(f"Total tools available: {len(mcp_tools)}")
     logger.info("=" * 80)
 
@@ -118,4 +126,3 @@ async def initialize_mcp_servers():
         logger.info("")
 
     return mcp_tools, tool_to_server_map
-

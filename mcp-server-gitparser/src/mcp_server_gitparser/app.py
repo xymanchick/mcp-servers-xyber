@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_server_gitparser.api_routers import routers as api_routers
 from mcp_server_gitparser.config import get_app_settings
 from mcp_server_gitparser.hybrid_routers import routers as hybrid_routers
@@ -83,4 +82,3 @@ It exposes the same functionality via:
 
     logger.info("Application setup complete.")
     return app
-

@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_server_aave.aave import AaveClient, AaveError, get_aave_client
 from mcp_server_aave.api_routers import routers as api_routers
 from mcp_server_aave.hybrid_routers import routers as hybrid_routers

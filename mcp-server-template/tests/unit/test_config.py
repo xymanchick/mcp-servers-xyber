@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-
 from mcp_server_weather.config import AppSettings
 from mcp_server_weather.x402_config import PaymentOptionConfig, X402Config
 
@@ -202,10 +201,27 @@ class TestX402ConfigFacilitator:
         from x402.http import FacilitatorConfig
 
         mock_config = FacilitatorConfig(url="https://cdp.facilitator")
-        with patch.dict("sys.modules", {"cdp": type("cdp", (), {"x402": type("x402", (), {"create_facilitator_config": lambda **kw: mock_config})()})}):
+        with patch.dict(
+            "sys.modules",
+            {
+                "cdp": type(
+                    "cdp",
+                    (),
+                    {
+                        "x402": type(
+                            "x402",
+                            (),
+                            {"create_facilitator_config": lambda **kw: mock_config},
+                        )()
+                    },
+                )
+            },
+        ):
             # Re-import to pick up the mock
             import importlib
+
             import mcp_server_weather.x402_config
+
             importlib.reload(mcp_server_weather.x402_config)
 
             config = mcp_server_weather.x402_config.X402Config(
@@ -329,7 +345,9 @@ class TestValidateAgainstRoutes:
 
     def test_validate_correctly_configured(self, tmp_path: Path, caplog):
         """Logs correctly configured endpoints."""
-        yaml_content = {"endpoint_a": [{"chain_id": 1, "token_address": "0x", "token_amount": 100}]}
+        yaml_content = {
+            "endpoint_a": [{"chain_id": 1, "token_address": "0x", "token_amount": 100}]
+        }
         yaml_file = tmp_path / "tool_pricing.yaml"
         yaml_file.write_text(yaml.dump(yaml_content))
 
@@ -343,7 +361,11 @@ class TestValidateAgainstRoutes:
 
     def test_validate_misconfigured_warns(self, tmp_path: Path, caplog):
         """Warns about priced endpoints that don't exist."""
-        yaml_content = {"typo_endpoint": [{"chain_id": 1, "token_address": "0x", "token_amount": 100}]}
+        yaml_content = {
+            "typo_endpoint": [
+                {"chain_id": 1, "token_address": "0x", "token_amount": 100}
+            ]
+        }
         yaml_file = tmp_path / "tool_pricing.yaml"
         yaml_file.write_text(yaml.dump(yaml_content))
 
@@ -430,7 +452,9 @@ class TestX402ConfigurationBehavior:
         with caplog.at_level("WARNING"):
             config.validate_pricing_mode()
 
-        assert "pricing_mode" in caplog.text.lower() or "disabled" in caplog.text.lower()
+        assert (
+            "pricing_mode" in caplog.text.lower() or "disabled" in caplog.text.lower()
+        )
 
     def test_pricing_config_mode_on_works(self, tmp_path: Path, caplog):
         """Case 4: Pricing config exists + pricing_mode='on' → x402 enabled.

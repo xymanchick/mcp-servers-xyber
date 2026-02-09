@@ -15,4 +15,3 @@ __all__ = [
     "ResearchReport",
     "get_db_instance",
 ]
-

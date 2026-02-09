@@ -3,12 +3,9 @@ import uuid
 from collections.abc import Sequence
 from typing import Any
 
-from mcp_server_qdrant.qdrant.config import (
-    PayloadIndexConfig,
-    PayloadIndexType,
-    QdrantAPIError,
-    QdrantConfig,
-)
+from mcp_server_qdrant.qdrant.config import (PayloadIndexConfig,
+                                             PayloadIndexType, QdrantAPIError,
+                                             QdrantConfig)
 from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
 from pydantic import BaseModel
 from qdrant_client import AsyncQdrantClient, models
@@ -380,5 +377,3 @@ class QdrantConnector:
             raise QdrantAPIError(
                 f"Failed to create payload index '{index_config.field_name}' on collection '{collection_name}': {e}"
             ) from e
-
-

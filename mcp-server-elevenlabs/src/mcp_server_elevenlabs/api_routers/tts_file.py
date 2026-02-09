@@ -5,7 +5,6 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
-
 from mcp_server_elevenlabs.config import get_app_settings
 from mcp_server_elevenlabs.elevenlabs.client import generate_voice
 from mcp_server_elevenlabs.schemas import VoiceRequest
@@ -50,4 +49,3 @@ async def generate_voice_file_endpoint(request: VoiceRequest) -> FileResponse:
     except Exception as e:  # noqa: BLE001
         logger.exception("Unexpected error generating audio")
         raise HTTPException(status_code=500, detail="Internal server error") from e
-

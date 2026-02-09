@@ -12,7 +12,6 @@ from typing import Any
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-
 from mcp_twitter.app import create_app
 from mcp_twitter.twitter import build_default_registry
 
@@ -100,14 +99,14 @@ async def mcp_client(monkeypatch, tmp_results_dir: Path) -> AsyncClient:
     from fastapi import FastAPI
     from mcp_twitter.hybrid_routers import routers as hybrid_routers
     from mcp_twitter.mcp_routers import routers as mcp_routers
-    
+
     # Create app without lifespan for testing
     app = FastAPI(
         title="Twitter MCP Server - Test",
         description="Test app without lifespan",
         version="2.0.0",
     )
-    
+
     # Mount routers
     for router in hybrid_routers:
         app.include_router(router, prefix="/hybrid")
@@ -209,4 +208,3 @@ async def test_mcp_search_replies_returns_items(mcp_client: AsyncClient) -> None
     assert isinstance(body, list)
     if body:  # If items returned
         assert body[0]["id"] == "1234567890"
-

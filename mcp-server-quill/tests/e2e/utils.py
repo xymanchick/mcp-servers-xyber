@@ -4,7 +4,6 @@ import asyncio
 from typing import Any
 
 import httpx
-
 from tests.e2e.config import E2ETestConfig
 
 

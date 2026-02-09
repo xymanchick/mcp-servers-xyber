@@ -13,4 +13,3 @@ routers: list[APIRouter] = [
     pricing_router,
     search_router,
 ]
-

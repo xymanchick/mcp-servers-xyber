@@ -81,12 +81,11 @@ class X402Config(BaseSettings):
             # See: https://docs.cdp.coinbase.com/x402/docs/facilitator
             logger.info("CDP API keys found, configuring for mainnet facilitator.")
             try:
-                from cdp.auth.utils.http import GetAuthHeadersOptions, get_auth_headers
-                from cdp.x402.x402 import (
-                    COINBASE_FACILITATOR_BASE_URL,
-                    COINBASE_FACILITATOR_V2_ROUTE,
-                    X402_VERSION,
-                )
+                from cdp.auth.utils.http import (GetAuthHeadersOptions,
+                                                 get_auth_headers)
+                from cdp.x402.x402 import (COINBASE_FACILITATOR_BASE_URL,
+                                           COINBASE_FACILITATOR_V2_ROUTE,
+                                           X402_VERSION)
 
                 api_key_id = self.cdp_api_key_id
                 api_key_secret = self.cdp_api_key_secret
@@ -137,7 +136,9 @@ class X402Config(BaseSettings):
                             supported=supported_headers,
                         )
 
-                facilitator_url = f"{COINBASE_FACILITATOR_BASE_URL}{COINBASE_FACILITATOR_V2_ROUTE}"
+                facilitator_url = (
+                    f"{COINBASE_FACILITATOR_BASE_URL}{COINBASE_FACILITATOR_V2_ROUTE}"
+                )
                 return FacilitatorConfig(
                     url=facilitator_url,
                     auth_provider=CDPAuthProvider(),
@@ -187,7 +188,9 @@ class X402Config(BaseSettings):
         except yaml.YAMLError as e:
             raise ValueError(f"Invalid YAML syntax: {e}") from e
         except (TypeError, AttributeError) as e:
-            raise ValueError(f"Each endpoint must map to a list of payment options: {e}") from e
+            raise ValueError(
+                f"Each endpoint must map to a list of payment options: {e}"
+            ) from e
         except ValueError:
             raise
 

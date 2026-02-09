@@ -1,7 +1,7 @@
 """
 Core business logic for MCP Qdrant server tools.
 
-This module contains the core logic for each tool separated from the MCP decorators 
+This module contains the core logic for each tool separated from the MCP decorators
 to enable easier testing.
 """
 
@@ -11,7 +11,9 @@ from typing import Any
 from fastmcp.exceptions import ToolError
 from mcp_server_qdrant.exceptions import ValidationError
 from mcp_server_qdrant.qdrant import Entry, QdrantConnector
-from mcp_server_qdrant.schemas import QdrantFindRequest, QdrantGetCollectionInfoRequest, QdrantStoreRequest
+from mcp_server_qdrant.schemas import (QdrantFindRequest,
+                                       QdrantGetCollectionInfoRequest,
+                                       QdrantStoreRequest)
 from pydantic import ValidationError as PydanticValidationError
 from qdrant_client.models import CollectionInfo, ScoredPoint
 
@@ -26,10 +28,16 @@ async def qdrant_store_logic(
     try:
         validated_request = QdrantStoreRequest.model_validate(request)
         # Execute core logic
-        entry = Entry(content=validated_request.information, metadata=validated_request.metadata)
-        await qdrant_connector.store(entry, collection_name=validated_request.collection_name)
+        entry = Entry(
+            content=validated_request.information, metadata=validated_request.metadata
+        )
+        await qdrant_connector.store(
+            entry, collection_name=validated_request.collection_name
+        )
 
-        logger.info(f"Successfully stored information in collection {validated_request.collection_name}")
+        logger.info(
+            f"Successfully stored information in collection {validated_request.collection_name}"
+        )
         return f"Remembered: {validated_request.information} in collection {validated_request.collection_name}"
 
     except PydanticValidationError as ve:
@@ -82,8 +90,12 @@ async def qdrant_get_collection_info_logic(
     try:
         validated_request = QdrantGetCollectionInfoRequest.model_validate(request)
 
-        collection_details = await qdrant_connector.get_collection_details(validated_request.collection_name)
-        logger.info(f"Successfully retrieved details for collection {validated_request.collection_name}")
+        collection_details = await qdrant_connector.get_collection_details(
+            validated_request.collection_name
+        )
+        logger.info(
+            f"Successfully retrieved details for collection {validated_request.collection_name}"
+        )
         return collection_details
 
     except PydanticValidationError as ve:
@@ -96,7 +108,9 @@ async def qdrant_get_collection_info_logic(
             f"Error getting info for collection '{collection_name}': {e}", exc_info=True
         )
         # Return a structured error dict for the LLM rather than raising ToolError
-        return {"error": f"Failed to get information for collection '{collection_name}': {str(e)}"}
+        return {
+            "error": f"Failed to get information for collection '{collection_name}': {str(e)}"
+        }
 
 
 async def qdrant_get_collections_logic(

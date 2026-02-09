@@ -9,7 +9,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import (BigInteger, DateTime, ForeignKey, Index, Integer,
+                        String, Text, func)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
@@ -48,7 +49,9 @@ class QueryCacheEntry(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
 
     # Relationship
     items: Mapped[list["QueryCacheItem"]] = relationship(
@@ -73,7 +76,10 @@ class TweetAuthor(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )
 
     # Relationship
@@ -101,9 +107,14 @@ class Tweet(Base):
 
     # Author reference
     author_id: Mapped[str | None] = mapped_column(
-        String(64), ForeignKey("twitter_authors.id", ondelete="SET NULL"), nullable=True, index=True
+        String(64),
+        ForeignKey("twitter_authors.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
-    author: Mapped["TweetAuthor | None"] = relationship("TweetAuthor", back_populates="tweets")
+    author: Mapped["TweetAuthor | None"] = relationship(
+        "TweetAuthor", back_populates="tweets"
+    )
 
     # Engagement metrics
     retweet_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -113,19 +124,25 @@ class Tweet(Base):
     view_count: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     # Timestamps
-    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     scraped_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
 
     # Format and raw data
-    format: Mapped[str] = mapped_column(String(8), nullable=False, default="min")  # 'min' or 'max'
+    format: Mapped[str] = mapped_column(
+        String(8), nullable=False, default="min"
+    )  # 'min' or 'max'
     raw_data: Mapped[dict[str, Any] | None] = mapped_column(
         _json_type(), nullable=True
     )  # Full tweet JSON for max format
 
     # Relationship to query cache items
-    cache_items: Mapped[list["QueryCacheItem"]] = relationship("QueryCacheItem", back_populates="tweet")
+    cache_items: Mapped[list["QueryCacheItem"]] = relationship(
+        "QueryCacheItem", back_populates="tweet"
+    )
 
 
 class QueryCacheItem(Base):
@@ -148,11 +165,15 @@ class QueryCacheItem(Base):
         nullable=False,
         index=True,
     )
-    idx: Mapped[int] = mapped_column(Integer, nullable=False)  # Order within the query result
+    idx: Mapped[int] = mapped_column(
+        Integer, nullable=False
+    )  # Order within the query result
 
     # Relationships
     tweet: Mapped["Tweet"] = relationship("Tweet", back_populates="cache_items")
-    cache_entry: Mapped["QueryCacheEntry"] = relationship("QueryCacheEntry", back_populates="items")
+    cache_entry: Mapped["QueryCacheEntry"] = relationship(
+        "QueryCacheEntry", back_populates="items"
+    )
 
 
 Index(
@@ -161,4 +182,6 @@ Index(
     QueryCacheItem.tweet_id,
     unique=True,
 )
-Index("ix_twitter_query_cache_items_key_idx", QueryCacheItem.query_key, QueryCacheItem.idx)
+Index(
+    "ix_twitter_query_cache_items_key_idx", QueryCacheItem.query_key, QueryCacheItem.idx
+)

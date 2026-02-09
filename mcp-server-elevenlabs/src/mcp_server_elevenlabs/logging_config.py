@@ -41,8 +41,16 @@ def get_logging_config() -> dict:
         "loggers": {
             "uvicorn": {"handlers": ["default"], "level": level, "propagate": False},
             "uvicorn.error": {"level": level},
-            "uvicorn.access": {"handlers": ["access"], "level": level, "propagate": False},
-            "mcp_server_elevenlabs": {"handlers": ["default"], "level": level, "propagate": False},
+            "uvicorn.access": {
+                "handlers": ["access"],
+                "level": level,
+                "propagate": False,
+            },
+            "mcp_server_elevenlabs": {
+                "handlers": ["default"],
+                "level": level,
+                "propagate": False,
+            },
         },
         "root": {"handlers": ["default"], "level": level},
     }

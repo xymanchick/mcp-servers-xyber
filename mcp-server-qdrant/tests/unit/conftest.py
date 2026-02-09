@@ -1,24 +1,18 @@
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Generator
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import Request
 from fastapi.responses import JSONResponse
-
-from mcp_server_qdrant.qdrant.config import (
-    QdrantConfig,
-    PayloadIndexConfig,
-    PayloadIndexType,
-    HnswConfig,
-    CollectionConfig
-)
+from mcp_server_qdrant.qdrant.config import (CollectionConfig, HnswConfig,
+                                             PayloadIndexConfig,
+                                             PayloadIndexType, QdrantConfig)
 from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
 from mcp_server_qdrant.qdrant.module import QdrantConnector
 
 
 class MockEmbeddingProvider(EmbeddingProvider):
-
     def __init__(self, vector_size: int = 384, vector_name: str = "text"):
         self.vector_size = vector_size
         self.vector_name = vector_name
@@ -47,6 +41,7 @@ def disable_all_logging():
 def clear_dependency_container():
     """Clear the DependencyContainer between tests."""
     from mcp_server_qdrant.dependencies import DependencyContainer
+
     DependencyContainer._qdrant_connector = None
     yield
     DependencyContainer._qdrant_connector = None
@@ -54,13 +49,13 @@ def clear_dependency_container():
 
 @pytest.fixture
 def mock_logger():
-    with patch('mcp_server_qdrant.qdrant.module.logger') as mock_log:
+    with patch("mcp_server_qdrant.qdrant.module.logger") as mock_log:
         yield mock_log
 
 
 @pytest.fixture
 def mock_uuid():
-    with patch('uuid.uuid4') as mock_uuid_func:
+    with patch("uuid.uuid4") as mock_uuid_func:
         mock_uuid_func.return_value.hex = "test-uuid-12345"
         yield mock_uuid_func
 
@@ -69,9 +64,9 @@ def mock_uuid():
 def sample_embeddings():
     return {
         "document_embeddings": [[0.1, 0.2, 0.3, 0.4] * 96],  # 384 dimensions
-        "query_embedding": [0.2, 0.3, 0.4, 0.5] * 96,        # 384 dimensions
+        "query_embedding": [0.2, 0.3, 0.4, 0.5] * 96,  # 384 dimensions
         "vector_size": 384,
-        "vector_name": "text"
+        "vector_name": "text",
     }
 
 
@@ -82,20 +77,36 @@ def sample_entries():
     return [
         Entry(
             content="Python is a high-level programming language",
-            metadata={"category": "programming", "user_id": "alice", "difficulty": "beginner"}
+            metadata={
+                "category": "programming",
+                "user_id": "alice",
+                "difficulty": "beginner",
+            },
         ),
         Entry(
             content="Machine learning algorithms for data science",
-            metadata={"category": "data_science", "user_id": "bob", "difficulty": "advanced"}
+            metadata={
+                "category": "data_science",
+                "user_id": "bob",
+                "difficulty": "advanced",
+            },
         ),
         Entry(
             content="Web development with FastAPI framework",
-            metadata={"category": "web_dev", "user_id": "alice", "difficulty": "intermediate"}
+            metadata={
+                "category": "web_dev",
+                "user_id": "alice",
+                "difficulty": "intermediate",
+            },
         ),
         Entry(
             content="Database design and optimization techniques",
-            metadata={"category": "database", "user_id": "charlie", "difficulty": "advanced"}
-        )
+            metadata={
+                "category": "database",
+                "user_id": "charlie",
+                "difficulty": "advanced",
+            },
+        ),
     ]
 
 
@@ -106,7 +117,7 @@ def simple_entries():
     return [
         Entry(content="Hello world"),
         Entry(content="Test document", metadata={"type": "test"}),
-        Entry(content="Sample text", metadata={"category": "sample"})
+        Entry(content="Sample text", metadata={"category": "sample"}),
     ]
 
 
@@ -124,8 +135,8 @@ def complex_entries():
                 "year": 2024,
                 "tags": ["nlp", "deep-learning", "transformers"],
                 "difficulty": "advanced",
-                "language": "en"
-            }
+                "language": "en",
+            },
         ),
         Entry(
             content="Introduction to Python programming for beginners",
@@ -136,9 +147,9 @@ def complex_entries():
                 "year": 2023,
                 "tags": ["python", "basics", "programming"],
                 "difficulty": "beginner",
-                "language": "en"
-            }
-        )
+                "language": "en",
+            },
+        ),
     ]
 
 
@@ -147,22 +158,12 @@ def multilingual_entries():
     from mcp_server_qdrant.qdrant.module import Entry
 
     return [
+        Entry(content="Hello, world!", metadata={"language": "en", "has_emoji": True}),
+        Entry(content="Privet, mir!", metadata={"language": "ru", "has_emoji": True}),
+        Entry(content="Hola, mundo!", metadata={"language": "es", "has_emoji": True}),
         Entry(
-            content="Hello, world!",
-            metadata={"language": "en", "has_emoji": True}
+            content="Konnichiwa, sekai!", metadata={"language": "ja", "has_emoji": True}
         ),
-        Entry(
-            content="Privet, mir!",
-            metadata={"language": "ru", "has_emoji": True}
-        ),
-        Entry(
-            content="Hola, mundo!",
-            metadata={"language": "es", "has_emoji": True}
-        ),
-        Entry(
-            content="Konnichiwa, sekai!",
-            metadata={"language": "ja", "has_emoji": True}
-        )
     ]
 
 
@@ -175,28 +176,28 @@ def sample_search_results():
             score=0.95,
             payload={
                 "document": "Python programming tutorial",
-                "metadata": {"category": "programming", "user_id": "alice"}
+                "metadata": {"category": "programming", "user_id": "alice"},
             },
-            vector=None
+            vector=None,
         ),
         MagicMock(
             id="2",
             score=0.87,
             payload={
                 "document": "Advanced Python concepts",
-                "metadata": {"category": "programming", "user_id": "bob"}
+                "metadata": {"category": "programming", "user_id": "bob"},
             },
-            vector=None
+            vector=None,
         ),
         MagicMock(
             id="3",
             score=0.75,
             payload={
                 "document": "Python web frameworks",
-                "metadata": {"category": "web_dev", "user_id": "alice"}
+                "metadata": {"category": "web_dev", "user_id": "alice"},
             },
-            vector=None
-        )
+            vector=None,
+        ),
     ]
     return mock_results
 
@@ -241,15 +242,18 @@ def performance_test_data():
 
     entries = []
     for i in range(100):
-        entries.append(Entry(
-            content=f"Performance test document {i}. " + "Lorem ipsum dolor sit amet. " * 10,
-            metadata={
-                "doc_id": i,
-                "batch": i // 10,
-                "category": f"category_{i % 5}",
-                "size": "large"
-            }
-        ))
+        entries.append(
+            Entry(
+                content=f"Performance test document {i}. "
+                + "Lorem ipsum dolor sit amet. " * 10,
+                metadata={
+                    "doc_id": i,
+                    "batch": i // 10,
+                    "category": f"category_{i % 5}",
+                    "size": "large",
+                },
+            )
+        )
 
     return entries
 
@@ -262,7 +266,7 @@ def config_with_custom_distance():
         "distance": "Cosine",
         "vector_size": 128,
         "embedding_provider": "openai",
-        "openai_api_key": "test-key"
+        "openai_api_key": "test-key",
     }
 
 
@@ -272,7 +276,7 @@ def config_minimal():
         "qdrant_url": "http://localhost:6333",
         "collection_name": "minimal_test",
         "embedding_provider": "openai",
-        "openai_api_key": "test-key"
+        "openai_api_key": "test-key",
     }
 
 
@@ -284,7 +288,7 @@ def config_with_auth():
         "collection_name": "auth_test",
         "qdrant_api_key": "secret-api-key",
         "embedding_provider": "openai",
-        "openai_api_key": "test-key"
+        "openai_api_key": "test-key",
     }
 
 
@@ -297,14 +301,16 @@ def config_remote_cluster():
         "qdrant_api_key": "cluster-api-key",
         "embedding_provider": "openai",
         "openai_api_key": "test-key",
-        "vector_size": 1536
+        "vector_size": 1536,
     }
 
 
 @pytest.fixture
 def mock_async_qdrant_client():
     """Create a fully mocked AsyncQdrantClient."""
-    with patch('mcp_server_qdrant.qdrant.module.AsyncQdrantClient') as mock_client_class:
+    with patch(
+        "mcp_server_qdrant.qdrant.module.AsyncQdrantClient"
+    ) as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 
@@ -319,7 +325,6 @@ def mock_async_qdrant_client():
         yield mock_client
 
 
-
 @pytest.fixture
 def mock_config():
     config = QdrantConfig()
@@ -328,18 +333,19 @@ def mock_config():
     config.api_key = "test-key"
     config.local_path = None
     config.collection_config = CollectionConfig(
-        hnsw_config=HnswConfig(m=0, ef_construct=200, payload_m=16),  # m=0 for tenant setup
+        hnsw_config=HnswConfig(
+            m=0, ef_construct=200, payload_m=16
+        ),  # m=0 for tenant setup
         payload_indexes=[
             PayloadIndexConfig(
                 field_name="metadata.user_id",
                 index_type=PayloadIndexType.KEYWORD,
-                is_tenant=True
+                is_tenant=True,
             ),
             PayloadIndexConfig(
-                field_name="metadata.category",
-                index_type=PayloadIndexType.KEYWORD
-            )
-        ]
+                field_name="metadata.category", index_type=PayloadIndexType.KEYWORD
+            ),
+        ],
     )
     return config
 
@@ -355,14 +361,12 @@ def mock_config_non_tenant():
         hnsw_config=HnswConfig(m=16, ef_construct=200),  # Normal HNSW config
         payload_indexes=[
             PayloadIndexConfig(
-                field_name="metadata.category",
-                index_type=PayloadIndexType.KEYWORD
+                field_name="metadata.category", index_type=PayloadIndexType.KEYWORD
             ),
             PayloadIndexConfig(
-                field_name="metadata.score",
-                index_type=PayloadIndexType.FLOAT
-            )
-        ]
+                field_name="metadata.score", index_type=PayloadIndexType.FLOAT
+            ),
+        ],
     )
     return config
 
@@ -375,8 +379,7 @@ def mock_config_local():
     config.api_key = None
     config.local_path = "/tmp/qdrant_test"
     config.collection_config = CollectionConfig(
-        hnsw_config=HnswConfig(m=16, ef_construct=100),
-        payload_indexes=[]
+        hnsw_config=HnswConfig(m=16, ef_construct=100), payload_indexes=[]
     )
     return config
 
@@ -398,7 +401,9 @@ def mock_embedding_provider_small():
 
 @pytest.fixture
 def qdrant_connector(mock_config, mock_embedding_provider):
-    with patch('mcp_server_qdrant.qdrant.module.AsyncQdrantClient') as mock_client_class:
+    with patch(
+        "mcp_server_qdrant.qdrant.module.AsyncQdrantClient"
+    ) as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 

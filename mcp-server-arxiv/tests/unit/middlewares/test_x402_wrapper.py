@@ -9,11 +9,11 @@ import pytest_asyncio
 from eth_account import Account
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from x402.clients.base import x402Client
-from x402.types import PaymentPayload, PaymentRequirements, x402PaymentRequiredResponse
-
-from mcp_server_arxiv.x402_config import PaymentOption
 from mcp_server_arxiv.middlewares import X402WrapperMiddleware
+from mcp_server_arxiv.x402_config import PaymentOption
+from x402.clients.base import x402Client
+from x402.types import (PaymentPayload, PaymentRequirements,
+                        x402PaymentRequiredResponse)
 
 
 class DummyFacilitator:
@@ -167,4 +167,3 @@ async def test_payment_header_with_wrong_network_returns_no_matching(
     assert resp.status_code == 402
     payload = resp.json()
     assert payload["error"] == "No matching payment requirements found"
-

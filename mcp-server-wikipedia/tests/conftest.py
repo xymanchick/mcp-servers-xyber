@@ -1,13 +1,12 @@
-import pytest
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
 from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 import wikipediaapi
+from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
+                                            WikipediaAPIError,
+                                            WikipediaServiceError)
 from mcp_server_wikipedia.wikipedia.module import _WikipediaService
-from mcp_server_wikipedia.wikipedia import (
-    ArticleNotFoundError,
-    WikipediaAPIError,
-    WikipediaServiceError,
-)
 
 
 @pytest.fixture
@@ -40,7 +39,7 @@ def mock_wikipedia_page():
     page.links = {
         "Related Article 1": Mock(),
         "Related Article 2": Mock(),
-        "Related Article 3": Mock()
+        "Related Article 3": Mock(),
     }
 
     return page
@@ -49,9 +48,12 @@ def mock_wikipedia_page():
 @pytest.fixture
 def mock_wikipedia_service(mock_config, mock_wikipedia_page):
     """Mock Wikipedia service with mocked dependencies."""
-    with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
-         patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib:
-
+    with (
+        patch(
+            "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+        ) as mock_wiki_api,
+        patch("mcp_server_wikipedia.wikipedia.module.wikipedia") as mock_wiki_lib,
+    ):
         # Mock the wikipediaapi.Wikipedia instance
         mock_wiki_instance = Mock()
         mock_wiki_api.return_value = mock_wiki_instance
@@ -83,6 +85,7 @@ def mock_wikipedia_service_simple():
 
 
 # === Server Testing Helper Functions ===
+
 
 async def _test_search_wikipedia(query: str, context: dict) -> dict:
     """Direct implementation of search_wikipedia logic for testing."""

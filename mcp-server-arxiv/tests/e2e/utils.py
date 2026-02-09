@@ -79,4 +79,3 @@ async def call_mcp_tool(
         base_url=config.base_url, timeout=config.timeout_seconds
     ) as client:
         return await client.post("/mcp/", json=payload, headers=headers)
-

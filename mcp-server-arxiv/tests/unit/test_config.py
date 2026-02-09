@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-
 from mcp_server_arxiv.config import AppSettings
 from mcp_server_arxiv.x402_config import PaymentOption, X402Config
 
@@ -325,7 +324,9 @@ class TestValidateAgainstRoutes:
 
     def test_validate_correctly_configured(self, tmp_path: Path, caplog):
         """Logs correctly configured endpoints."""
-        yaml_content = {"endpoint_a": [{"chain_id": 1, "token_address": "0x", "token_amount": 100}]}
+        yaml_content = {
+            "endpoint_a": [{"chain_id": 1, "token_address": "0x", "token_amount": 100}]
+        }
         yaml_file = tmp_path / "tool_pricing.yaml"
         yaml_file.write_text(yaml.dump(yaml_content))
 
@@ -339,7 +340,11 @@ class TestValidateAgainstRoutes:
 
     def test_validate_misconfigured_warns(self, tmp_path: Path, caplog):
         """Warns about priced endpoints that don't exist."""
-        yaml_content = {"typo_endpoint": [{"chain_id": 1, "token_address": "0x", "token_amount": 100}]}
+        yaml_content = {
+            "typo_endpoint": [
+                {"chain_id": 1, "token_address": "0x", "token_amount": 100}
+            ]
+        }
         yaml_file = tmp_path / "tool_pricing.yaml"
         yaml_file.write_text(yaml.dump(yaml_content))
 

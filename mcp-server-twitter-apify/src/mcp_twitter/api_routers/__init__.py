@@ -15,4 +15,3 @@ routers: list[APIRouter] = [
     admin_router,
     queries_router,
 ]
-

@@ -1,11 +1,9 @@
 """Test cases for HangmanService module."""
 
 import pytest
-from mcp_server_hangman.hangman.module import (
-    GameNotFoundError,
-    HangmanService,
-    InvalidGuessError,
-)
+from mcp_server_hangman.hangman.module import (GameNotFoundError,
+                                               HangmanService,
+                                               InvalidGuessError)
 
 
 class TestHangmanService:

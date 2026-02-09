@@ -1,14 +1,11 @@
-from pydantic import BaseModel, Field, ConfigDict
-
 from mcp_server_together_imgen.together_ai.model_registry import (
-    list_available_models,
-    MODEL_REGISTRY,
-)
+    MODEL_REGISTRY, list_available_models)
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ImageGenerationRequest(BaseModel):
     """Request schema for image generation with dynamic model support.
-    
+
     Example request:
     {
         "prompt": "image of the car",
@@ -18,7 +15,7 @@ class ImageGenerationRequest(BaseModel):
         "steps": 20
     }
     """
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -32,7 +29,7 @@ class ImageGenerationRequest(BaseModel):
                 "lora_scale": 0,
                 "lora_url": None,
                 "negative_prompt": None,
-                "refine_prompt": False
+                "refine_prompt": False,
             }
         }
     )
@@ -40,12 +37,20 @@ class ImageGenerationRequest(BaseModel):
     prompt: str = Field(
         ...,
         description="REQUIRED: The text prompt describing the image you want to generate. This should be your image description, NOT a model name. Examples: 'image of the car', 'a beautiful sunset', 'a futuristic cityscape'",
-        examples=["image of the car", "a beautiful sunset over mountains", "a futuristic cityscape"],
+        examples=[
+            "image of the car",
+            "a beautiful sunset over mountains",
+            "a futuristic cityscape",
+        ],
     )
     model: str | None = Field(
         None,
         description=f"OPTIONAL: The model to use for image generation. Must be a valid model name like 'black-forest-labs/FLUX.2-dev'. If not specified, uses the default model from environment. Available models: {', '.join(list_available_models())}",
-        examples=["black-forest-labs/FLUX.2-dev", "black-forest-labs/FLUX.1-dev", "black-forest-labs/FLUX.2-pro"],
+        examples=[
+            "black-forest-labs/FLUX.2-dev",
+            "black-forest-labs/FLUX.1-dev",
+            "black-forest-labs/FLUX.2-pro",
+        ],
     )
     width: int | None = Field(
         1024,
@@ -100,9 +105,8 @@ class ImageGenerationRequest(BaseModel):
         """Get information about the selected model's capabilities."""
         if self.model:
             try:
-                from mcp_server_together_imgen.together_ai.model_registry import (
-                    get_model_schema,
-                )
+                from mcp_server_together_imgen.together_ai.model_registry import \
+                    get_model_schema
 
                 schema = get_model_schema(self.model)
                 return {

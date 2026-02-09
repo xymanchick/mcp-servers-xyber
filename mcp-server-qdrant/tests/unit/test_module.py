@@ -1,23 +1,18 @@
-import pytest
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch, call
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
+import pytest
+from mcp_server_qdrant.qdrant.config import (CollectionConfig,
+                                             EmbeddingProviderSettings,
+                                             HnswConfig, PayloadIndexConfig,
+                                             PayloadIndexType, QdrantAPIError,
+                                             QdrantConfig)
+from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
+from mcp_server_qdrant.qdrant.module import Entry, QdrantConnector
+from pydantic import ValidationError
 from qdrant_client import models
 from qdrant_client.models import CollectionInfo, QueryResponse
-from pydantic import ValidationError
-
-from mcp_server_qdrant.qdrant.module import QdrantConnector, Entry
-from mcp_server_qdrant.qdrant.config import (
-    QdrantConfig,
-    QdrantAPIError,
-    PayloadIndexConfig,
-    PayloadIndexType,
-    HnswConfig,
-    CollectionConfig,
-    EmbeddingProviderSettings
-)
-from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
 
 
 class TestEntry:
@@ -41,7 +36,9 @@ class TestEntry:
 
 class TestQdrantConnector:
     def test_initialization(self, mock_config, mock_embedding_provider):
-        with patch('mcp_server_qdrant.qdrant.module.AsyncQdrantClient') as mock_client_class:
+        with patch(
+            "mcp_server_qdrant.qdrant.module.AsyncQdrantClient"
+        ) as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value = mock_client
 
@@ -52,7 +49,7 @@ class TestQdrantConnector:
             mock_client_class.assert_called_once_with(
                 location=mock_config.location,
                 api_key=mock_config.api_key,
-                path=mock_config.local_path
+                path=mock_config.local_path,
             )
 
     @pytest.mark.asyncio
@@ -60,7 +57,7 @@ class TestQdrantConnector:
         mock_collections = [
             MagicMock(name="collection1"),
             MagicMock(name="collection2"),
-            MagicMock(name="collection3")
+            MagicMock(name="collection3"),
         ]
         mock_collections[0].name = "collection1"
         mock_collections[1].name = "collection2"
@@ -133,25 +130,27 @@ class TestQdrantConnector:
         qdrant_connector._ensure_collection_exists = AsyncMock()
         qdrant_connector._client.upsert = AsyncMock()
 
-        with patch('uuid.uuid4') as mock_uuid:
+        with patch("uuid.uuid4") as mock_uuid:
             mock_uuid.return_value.hex = "test-uuid"
 
             await qdrant_connector.store(entry, collection_name)
 
-        qdrant_connector._ensure_collection_exists.assert_called_once_with(collection_name)
+        qdrant_connector._ensure_collection_exists.assert_called_once_with(
+            collection_name
+        )
 
         qdrant_connector._client.upsert.assert_called_once()
         call_args = qdrant_connector._client.upsert.call_args
 
-        assert call_args[1]['collection_name'] == collection_name
-        points = call_args[1]['points']
+        assert call_args[1]["collection_name"] == collection_name
+        points = call_args[1]["points"]
         assert len(points) == 1
 
         point = points[0]
         assert point.id == "test-uuid"
         assert point.payload == {
             "document": "Test document",
-            "metadata": {"user_id": "alice"}
+            "metadata": {"user_id": "alice"},
         }
         assert point.vector == {"text": [0.1] * 384}  # From mock embedding
 
@@ -165,7 +164,9 @@ class TestQdrantConnector:
 
         await qdrant_connector.store(entry, collection_name)
 
-        qdrant_connector._ensure_collection_exists.assert_called_once_with(collection_name)
+        qdrant_connector._ensure_collection_exists.assert_called_once_with(
+            collection_name
+        )
         qdrant_connector._client.upsert.assert_called_once()
 
     @pytest.mark.asyncio
@@ -190,7 +191,9 @@ class TestQdrantConnector:
         collection_name = "test_collection"
 
         qdrant_connector._ensure_collection_exists = AsyncMock()
-        qdrant_connector._client.upsert = AsyncMock(side_effect=Exception("Upsert failed"))
+        qdrant_connector._client.upsert = AsyncMock(
+            side_effect=Exception("Upsert failed")
+        )
 
         with pytest.raises(QdrantAPIError) as exc_info:
             await qdrant_connector.store(entry, collection_name)
@@ -211,21 +214,23 @@ class TestQdrantConnector:
                 id="1",
                 score=0.95,
                 payload={"document": "Test doc 1", "metadata": {"user_id": "alice"}},
-                vector=None
+                vector=None,
             ),
             MagicMock(
                 id="2",
                 score=0.85,
                 payload={"document": "Test doc 2", "metadata": {"user_id": "bob"}},
-                vector=None
-            )
+                vector=None,
+            ),
         ]
         qdrant_connector._client.query_points = AsyncMock(return_value=mock_results)
 
         result = await qdrant_connector.search(query, collection_name, limit=10)
 
         assert result == mock_results
-        qdrant_connector._client.collection_exists.assert_called_once_with(collection_name)
+        qdrant_connector._client.collection_exists.assert_called_once_with(
+            collection_name
+        )
         qdrant_connector._client.query_points.assert_called_once_with(
             collection_name=collection_name,
             query=[0.2] * 384,  # From mock embedding
@@ -233,7 +238,7 @@ class TestQdrantConnector:
             limit=10,
             using="text",
             with_payload=True,
-            with_vectors=False
+            with_vectors=False,
         )
 
     @pytest.mark.asyncio
@@ -250,7 +255,7 @@ class TestQdrantConnector:
         await qdrant_connector.search(query, collection_name, filters=filters)
 
         call_args = qdrant_connector._client.query_points.call_args[1]
-        query_filter = call_args['query_filter']
+        query_filter = call_args["query_filter"]
 
         assert query_filter is not None
         assert len(query_filter.must) == 2
@@ -270,7 +275,9 @@ class TestQdrantConnector:
         collection_name = "nonexistent_collection"
 
         qdrant_connector._client.collection_exists = AsyncMock(return_value=False)
-        qdrant_connector.get_collection_names = AsyncMock(return_value=["other_collection"])
+        qdrant_connector.get_collection_names = AsyncMock(
+            return_value=["other_collection"]
+        )
 
         with pytest.raises(QdrantAPIError) as exc_info:
             await qdrant_connector.search(query, collection_name)
@@ -325,13 +332,13 @@ class TestQdrantConnector:
             collection_name=collection_name,
             limit=5,
             with_payload=["document"],
-            with_vectors=True
+            with_vectors=True,
         )
 
         call_args = qdrant_connector._client.query_points.call_args[1]
-        assert call_args['limit'] == 5
-        assert call_args['with_payload'] == ["document"]
-        assert call_args['with_vectors'] is True
+        assert call_args["limit"] == 5
+        assert call_args["with_payload"] == ["document"]
+        assert call_args["with_vectors"] is True
 
     @pytest.mark.asyncio
     async def test_ensure_collection_exists_new_collection(self, qdrant_connector):
@@ -342,8 +349,12 @@ class TestQdrantConnector:
 
         await qdrant_connector._ensure_collection_exists(collection_name)
 
-        qdrant_connector._client.collection_exists.assert_called_once_with(collection_name)
-        qdrant_connector._create_configured_collection.assert_called_once_with(collection_name)
+        qdrant_connector._client.collection_exists.assert_called_once_with(
+            collection_name
+        )
+        qdrant_connector._create_configured_collection.assert_called_once_with(
+            collection_name
+        )
 
     @pytest.mark.asyncio
     async def test_ensure_collection_exists_existing_collection(self, qdrant_connector):
@@ -354,8 +365,12 @@ class TestQdrantConnector:
 
         await qdrant_connector._ensure_collection_exists(collection_name)
 
-        qdrant_connector._client.collection_exists.assert_called_once_with(collection_name)
-        qdrant_connector._ensure_payload_indexes.assert_called_once_with(collection_name)
+        qdrant_connector._client.collection_exists.assert_called_once_with(
+            collection_name
+        )
+        qdrant_connector._ensure_payload_indexes.assert_called_once_with(
+            collection_name
+        )
 
     @pytest.mark.asyncio
     async def test_create_configured_collection_success(self, qdrant_connector):
@@ -368,18 +383,20 @@ class TestQdrantConnector:
 
         call_args = qdrant_connector._client.create_collection.call_args[1]
 
-        assert call_args['collection_name'] == collection_name
-        assert 'text' in call_args['vectors_config']
+        assert call_args["collection_name"] == collection_name
+        assert "text" in call_args["vectors_config"]
 
-        vector_config = call_args['vectors_config']['text']
+        vector_config = call_args["vectors_config"]["text"]
         assert vector_config.size == 384  # From mock embedding provider
         assert vector_config.distance == models.Distance.COSINE
 
-        hnsw_config = call_args['hnsw_config']
+        hnsw_config = call_args["hnsw_config"]
         assert hnsw_config.m == 0  # Updated to match fixture
         assert hnsw_config.ef_construct == 200
 
-        qdrant_connector._ensure_payload_indexes.assert_called_once_with(collection_name)
+        qdrant_connector._ensure_payload_indexes.assert_called_once_with(
+            collection_name
+        )
 
     @pytest.mark.asyncio
     async def test_create_configured_collection_error(self, qdrant_connector):
@@ -404,8 +421,14 @@ class TestQdrantConnector:
         await qdrant_connector._ensure_payload_indexes(collection_name)
 
         expected_calls = [
-            call(collection_name, qdrant_connector._config.collection_config.payload_indexes[0]),
-            call(collection_name, qdrant_connector._config.collection_config.payload_indexes[1])
+            call(
+                collection_name,
+                qdrant_connector._config.collection_config.payload_indexes[0],
+            ),
+            call(
+                collection_name,
+                qdrant_connector._config.collection_config.payload_indexes[1],
+            ),
         ]
         qdrant_connector._create_payload_index.assert_has_calls(expected_calls)
 
@@ -415,7 +438,7 @@ class TestQdrantConnector:
         index_config = PayloadIndexConfig(
             field_name="metadata.tenant_id",
             index_type=PayloadIndexType.KEYWORD,
-            is_tenant=True
+            is_tenant=True,
         )
 
         qdrant_connector._client.create_payload_index = AsyncMock()
@@ -424,11 +447,11 @@ class TestQdrantConnector:
 
         call_args = qdrant_connector._client.create_payload_index.call_args[1]
 
-        assert call_args['collection_name'] == collection_name
-        assert call_args['field_name'] == "metadata.tenant_id"
-        assert isinstance(call_args['field_schema'], models.KeywordIndexParams)
-        assert call_args['field_schema'].is_tenant is True
-        assert call_args['wait'] is True
+        assert call_args["collection_name"] == collection_name
+        assert call_args["field_name"] == "metadata.tenant_id"
+        assert isinstance(call_args["field_schema"], models.KeywordIndexParams)
+        assert call_args["field_schema"].is_tenant is True
+        assert call_args["wait"] is True
 
     @pytest.mark.asyncio
     async def test_create_payload_index_regular_types(self, qdrant_connector):
@@ -447,21 +470,19 @@ class TestQdrantConnector:
 
         for index_type, expected_schema_type in test_cases:
             index_config = PayloadIndexConfig(
-                field_name=f"metadata.{index_type.value}_field",
-                index_type=index_type
+                field_name=f"metadata.{index_type.value}_field", index_type=index_type
             )
 
             await qdrant_connector._create_payload_index(collection_name, index_config)
 
             call_args = qdrant_connector._client.create_payload_index.call_args[1]
-            assert call_args['field_schema'] == expected_schema_type
+            assert call_args["field_schema"] == expected_schema_type
 
     @pytest.mark.asyncio
     async def test_create_payload_index_error(self, qdrant_connector):
         collection_name = "test_collection"
         index_config = PayloadIndexConfig(
-            field_name="metadata.test_field",
-            index_type=PayloadIndexType.KEYWORD
+            field_name="metadata.test_field", index_type=PayloadIndexType.KEYWORD
         )
 
         qdrant_connector._client.create_payload_index = AsyncMock(
@@ -480,15 +501,26 @@ class TestIntegration:
     async def test_full_workflow_store_and_search(self, qdrant_connector):
         collection_name = "integration_test"
 
-        qdrant_connector._client.collection_exists = AsyncMock(side_effect=[False, True, True])
+        qdrant_connector._client.collection_exists = AsyncMock(
+            side_effect=[False, True, True]
+        )
         qdrant_connector._client.create_collection = AsyncMock()
         qdrant_connector._client.create_payload_index = AsyncMock()
         qdrant_connector._client.upsert = AsyncMock()
 
         entries = [
-            Entry(content="Python programming tutorial", metadata={"category": "programming", "user_id": "alice"}),
-            Entry(content="Machine learning basics", metadata={"category": "ml", "user_id": "bob"}),
-            Entry(content="Advanced Python concepts", metadata={"category": "programming", "user_id": "alice"})
+            Entry(
+                content="Python programming tutorial",
+                metadata={"category": "programming", "user_id": "alice"},
+            ),
+            Entry(
+                content="Machine learning basics",
+                metadata={"category": "ml", "user_id": "bob"},
+            ),
+            Entry(
+                content="Advanced Python concepts",
+                metadata={"category": "programming", "user_id": "alice"},
+            ),
         ]
 
         for entry in entries:
@@ -504,20 +536,28 @@ class TestIntegration:
             MagicMock(
                 id="1",
                 score=0.95,
-                payload={"document": "Python programming tutorial", "metadata": {"category": "programming"}},
-                vector=None
+                payload={
+                    "document": "Python programming tutorial",
+                    "metadata": {"category": "programming"},
+                },
+                vector=None,
             )
         ]
-        qdrant_connector._client.query_points = AsyncMock(return_value=mock_search_results)
+        qdrant_connector._client.query_points = AsyncMock(
+            return_value=mock_search_results
+        )
 
         search_results = await qdrant_connector.search(
             "Python programming",
             collection_name,
-            filters={"metadata.category": "programming"}
+            filters={"metadata.category": "programming"},
         )
 
         assert len(search_results.points) == 1
-        assert "Python programming tutorial" in search_results.points[0].payload["document"]
+        assert (
+            "Python programming tutorial"
+            in search_results.points[0].payload["document"]
+        )
 
     @pytest.mark.asyncio
     async def test_error_propagation_chain(self, qdrant_connector):
@@ -607,14 +647,14 @@ class TestEdgeCases:
         await qdrant_connector.store(entry, "test_collection")
 
         call_args = qdrant_connector._client.upsert.call_args[1]
-        stored_content = call_args['points'][0].payload['document']
+        stored_content = call_args["points"][0].payload["document"]
         assert stored_content == long_content
 
     @pytest.mark.asyncio
     async def test_special_characters_in_metadata(self, qdrant_connector):
         special_metadata = {
             "unicode_field": "cafe munchen star",
-            "special_chars": "!@#$%^&*()_+-={}[]|\\:;\"'<>?,./"
+            "special_chars": "!@#$%^&*()_+-={}[]|\\:;\"'<>?,./",
         }
         entry = Entry(content="Test content", metadata=special_metadata)
 
@@ -624,7 +664,7 @@ class TestEdgeCases:
         await qdrant_connector.store(entry, "test_collection")
 
         call_args = qdrant_connector._client.upsert.call_args[1]
-        stored_metadata = call_args['points'][0].payload['metadata']
+        stored_metadata = call_args["points"][0].payload["metadata"]
         assert stored_metadata == special_metadata
 
     @pytest.mark.asyncio
@@ -637,7 +677,7 @@ class TestEdgeCases:
         result = await qdrant_connector.search("test query", "test_collection", limit=0)
 
         call_args = qdrant_connector._client.query_points.call_args[1]
-        assert call_args['limit'] == 0
+        assert call_args["limit"] == 0
         assert len(result.points) == 0
 
     @pytest.mark.asyncio
@@ -650,10 +690,11 @@ class TestEdgeCases:
         await qdrant_connector.search("test query", "test_collection", limit=-1)
 
         call_args = qdrant_connector._client.query_points.call_args[1]
-        assert call_args['limit'] == -1
+        assert call_args["limit"] == -1
 
     def test_entry_with_none_content(self):
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             Entry(content=None)
 
@@ -675,11 +716,13 @@ class TestEdgeCases:
             await qdrant_connector.search("test", collection_name)
 
             call_args = qdrant_connector._client.query_points.call_args[1]
-            assert call_args['collection_name'] == collection_name
+            assert call_args["collection_name"] == collection_name
 
 
 class TestFixtureIntegration:
-    async def test_error_handling_with_mock_client(self, mock_config, mock_embedding_provider):
+    async def test_error_handling_with_mock_client(
+        self, mock_config, mock_embedding_provider
+    ):
         connector = QdrantConnector(mock_config, mock_embedding_provider)
 
         # Test that connection errors are properly propagated
@@ -688,9 +731,20 @@ class TestFixtureIntegration:
             await connector.get_collection_names()
             assert False, "Expected an exception"
         except Exception as e:
-            assert "connection" in str(e).lower() or "api" in str(e).lower() or "failed" in str(e).lower() or "ssl" in str(e).lower()
+            assert (
+                "connection" in str(e).lower()
+                or "api" in str(e).lower()
+                or "failed" in str(e).lower()
+                or "ssl" in str(e).lower()
+            )
 
-    async def test_performance_data_batch_processing(self, mock_async_qdrant_client, performance_test_data, mock_config, mock_embedding_provider):
+    async def test_performance_data_batch_processing(
+        self,
+        mock_async_qdrant_client,
+        performance_test_data,
+        mock_config,
+        mock_embedding_provider,
+    ):
         """Test handling of large datasets."""
         connector = QdrantConnector(mock_config, mock_embedding_provider)
         connector.client = mock_async_qdrant_client
@@ -699,7 +753,9 @@ class TestFixtureIntegration:
         mock_async_qdrant_client.upsert.return_value = MagicMock()
 
         collection_name = "performance_test"
-        for entry in performance_test_data[:5]:  # Test with first 5 entries to keep test fast
+        for entry in performance_test_data[
+            :5
+        ]:  # Test with first 5 entries to keep test fast
             await connector.store(entry, collection_name)
 
         assert mock_async_qdrant_client.upsert.call_count == 5
@@ -709,7 +765,9 @@ class TestFixtureIntegration:
 
         contents = [entry.content for entry in multilingual_entries]
         assert any("Hello" in content for content in contents)
-        assert any("Privet" in content or "world" in content.lower() for content in contents)
+        assert any(
+            "Privet" in content or "world" in content.lower() for content in contents
+        )
 
         languages = [entry.metadata["language"] for entry in multilingual_entries]
         assert "en" in languages

@@ -1,5 +1,4 @@
 import uvicorn
-
 from mcp_server_elevenlabs.config import get_app_settings
 from mcp_server_elevenlabs.logging_config import get_logging_config
 

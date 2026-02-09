@@ -3,7 +3,6 @@ import logging
 import os
 
 import uvicorn
-
 from mcp_server_qdrant.app import create_app
 from mcp_server_qdrant.logging_config import configure_logging, logging_level
 

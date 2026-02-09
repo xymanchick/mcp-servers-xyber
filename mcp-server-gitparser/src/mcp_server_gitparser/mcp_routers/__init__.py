@@ -6,4 +6,3 @@ but this package allows MCP-only tools to be added later without changing the ap
 """
 
 routers = []
-

@@ -1,14 +1,16 @@
 """
 Tests for REST API endpoints.
 """
-import pytest
-from unittest.mock import Mock, AsyncMock, patch
 
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 from mcp_server_youtube.app import create_app
-from mcp_server_youtube.schemas import SearchOnlyResponse, SearchTranscriptsResponse, ExtractTranscriptsResponse
+from mcp_server_youtube.schemas import (ExtractTranscriptsResponse,
+                                        SearchOnlyResponse,
+                                        SearchTranscriptsResponse)
 
 
 class TestHealthEndpoint:
@@ -35,20 +37,24 @@ class TestHealthEndpoint:
 class TestSearchEndpoint:
     """Test cases for search endpoint (search only, no transcripts)."""
 
-    def test_search_endpoint_success(self, app: FastAPI, mock_youtube_client: Mock, sample_videos_list):
+    def test_search_endpoint_success(
+        self, app: FastAPI, mock_youtube_client: Mock, sample_videos_list
+    ):
         """Test successful search request."""
-        from mcp_server_youtube.dependencies import get_youtube_service_search_only
-        
+        from mcp_server_youtube.dependencies import \
+            get_youtube_service_search_only
+
         mock_youtube_client.search_videos = AsyncMock(return_value=sample_videos_list)
-        app.dependency_overrides[get_youtube_service_search_only] = lambda: mock_youtube_client
-        
+        app.dependency_overrides[get_youtube_service_search_only] = (
+            lambda: mock_youtube_client
+        )
+
         client = TestClient(app)
         try:
             response = client.post(
-                "/api/search",
-                json={"query": "python tutorial", "max_results": 2}
+                "/api/search", json={"query": "python tutorial", "max_results": 2}
             )
-            
+
             assert response.status_code == 200
             data = response.json()
             assert data["query"] == "python tutorial"
@@ -58,20 +64,24 @@ class TestSearchEndpoint:
         finally:
             app.dependency_overrides.clear()
 
-    def test_search_endpoint_empty_results(self, app: FastAPI, mock_youtube_client: Mock):
+    def test_search_endpoint_empty_results(
+        self, app: FastAPI, mock_youtube_client: Mock
+    ):
         """Test search endpoint with no results."""
-        from mcp_server_youtube.dependencies import get_youtube_service_search_only
-        
+        from mcp_server_youtube.dependencies import \
+            get_youtube_service_search_only
+
         mock_youtube_client.search_videos = AsyncMock(return_value=[])
-        app.dependency_overrides[get_youtube_service_search_only] = lambda: mock_youtube_client
-        
+        app.dependency_overrides[get_youtube_service_search_only] = (
+            lambda: mock_youtube_client
+        )
+
         client = TestClient(app)
         try:
             response = client.post(
-                "/api/search",
-                json={"query": "nonexistent query", "max_results": 5}
+                "/api/search", json={"query": "nonexistent query", "max_results": 5}
             )
-            
+
             assert response.status_code == 404
             assert "No videos found" in response.json()["detail"]
         finally:
@@ -79,27 +89,26 @@ class TestSearchEndpoint:
 
     def test_search_endpoint_invalid_request(self, client: TestClient):
         """Test search endpoint with invalid request."""
-        response = client.post(
-            "/api/search",
-            json={"invalid": "data"}
-        )
-        
+        response = client.post("/api/search", json={"invalid": "data"})
+
         assert response.status_code == 422  # Validation error
 
-    def test_search_endpoint_default_max_results(self, app: FastAPI, mock_youtube_client: Mock, sample_video_data):
+    def test_search_endpoint_default_max_results(
+        self, app: FastAPI, mock_youtube_client: Mock, sample_video_data
+    ):
         """Test search endpoint with default max_results."""
-        from mcp_server_youtube.dependencies import get_youtube_service_search_only
-        
+        from mcp_server_youtube.dependencies import \
+            get_youtube_service_search_only
+
         mock_youtube_client.search_videos = AsyncMock(return_value=[sample_video_data])
-        app.dependency_overrides[get_youtube_service_search_only] = lambda: mock_youtube_client
-        
+        app.dependency_overrides[get_youtube_service_search_only] = (
+            lambda: mock_youtube_client
+        )
+
         client = TestClient(app)
         try:
-            response = client.post(
-                "/api/search",
-                json={"query": "test"}
-            )
-            
+            response = client.post("/api/search", json={"query": "test"})
+
             assert response.status_code == 200
             # Should use default max_results
             mock_youtube_client.search_videos.assert_called_once()
@@ -117,27 +126,29 @@ class TestSearchTranscriptsEndpoint:
     ):
         """Test successful search and extract transcripts request."""
         from mcp_server_youtube.dependencies import get_youtube_service
-        
+
         # Mock the search_and_get_transcripts method
         videos_with_transcripts = sample_videos_list.copy()
         videos_with_transcripts[0]["transcript"] = "Test transcript 1"
         videos_with_transcripts[0]["transcript_success"] = True
         videos_with_transcripts[1]["transcript"] = "Test transcript 2"
         videos_with_transcripts[1]["transcript_success"] = True
-        
-        mock_youtube_client.search_and_get_transcripts = AsyncMock(return_value=videos_with_transcripts)
+
+        mock_youtube_client.search_and_get_transcripts = AsyncMock(
+            return_value=videos_with_transcripts
+        )
         app.dependency_overrides[get_youtube_service] = lambda: mock_youtube_client
-        
-        with patch('mcp_server_youtube.api_routers.youtube.get_db_manager') as mock_db:
+
+        with patch("mcp_server_youtube.api_routers.youtube.get_db_manager") as mock_db:
             mock_db.return_value.batch_check_transcripts = Mock(return_value={})
-            
+
             client = TestClient(app)
             try:
                 response = client.post(
                     "/api/search-transcripts",
-                    json={"query": "python tutorial", "num_videos": 2}
+                    json={"query": "python tutorial", "num_videos": 2},
                 )
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert data["query"] == "python tutorial"
@@ -146,23 +157,25 @@ class TestSearchTranscriptsEndpoint:
             finally:
                 app.dependency_overrides.clear()
 
-    def test_search_transcripts_endpoint_no_results(self, app: FastAPI, mock_youtube_client: Mock):
+    def test_search_transcripts_endpoint_no_results(
+        self, app: FastAPI, mock_youtube_client: Mock
+    ):
         """Test search-transcripts endpoint with no results."""
         from mcp_server_youtube.dependencies import get_youtube_service
-        
+
         mock_youtube_client.search_and_get_transcripts = AsyncMock(return_value=[])
         app.dependency_overrides[get_youtube_service] = lambda: mock_youtube_client
-        
-        with patch('mcp_server_youtube.api_routers.youtube.get_db_manager') as mock_db:
+
+        with patch("mcp_server_youtube.api_routers.youtube.get_db_manager") as mock_db:
             mock_db.return_value.batch_check_transcripts = Mock(return_value={})
-            
+
             client = TestClient(app)
             try:
                 response = client.post(
                     "/api/search-transcripts",
-                    json={"query": "nonexistent", "num_videos": 5}
+                    json={"query": "nonexistent", "num_videos": 5},
                 )
-                
+
                 assert response.status_code == 404
                 assert "No videos found" in response.json()["detail"]
             finally:
@@ -177,24 +190,26 @@ class TestExtractTranscriptsEndpoint:
     ):
         """Test successful extract transcripts request."""
         from mcp_server_youtube.dependencies import get_youtube_service
-        
+
         videos_with_transcripts = sample_videos_list.copy()
         videos_with_transcripts[0]["transcript"] = "Test transcript 1"
         videos_with_transcripts[0]["transcript_success"] = True
-        
-        mock_youtube_client.extract_transcripts_for_video_ids = AsyncMock(return_value=videos_with_transcripts)
+
+        mock_youtube_client.extract_transcripts_for_video_ids = AsyncMock(
+            return_value=videos_with_transcripts
+        )
         app.dependency_overrides[get_youtube_service] = lambda: mock_youtube_client
-        
-        with patch('mcp_server_youtube.api_routers.youtube.get_db_manager') as mock_db:
+
+        with patch("mcp_server_youtube.api_routers.youtube.get_db_manager") as mock_db:
             mock_db.return_value.batch_check_transcripts = Mock(return_value={})
-            
+
             client = TestClient(app)
             try:
                 response = client.post(
                     "/api/extract-transcripts",
-                    json={"video_ids": ["test_video_id", "test_video_id_2"]}
+                    json={"video_ids": ["test_video_id", "test_video_id_2"]},
                 )
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert len(data["video_ids"]) == 2
@@ -202,23 +217,26 @@ class TestExtractTranscriptsEndpoint:
             finally:
                 app.dependency_overrides.clear()
 
-    def test_extract_transcripts_endpoint_no_results(self, app: FastAPI, mock_youtube_client: Mock):
+    def test_extract_transcripts_endpoint_no_results(
+        self, app: FastAPI, mock_youtube_client: Mock
+    ):
         """Test extract-transcripts endpoint with no results."""
         from mcp_server_youtube.dependencies import get_youtube_service
-        
-        mock_youtube_client.extract_transcripts_for_video_ids = AsyncMock(return_value=[])
+
+        mock_youtube_client.extract_transcripts_for_video_ids = AsyncMock(
+            return_value=[]
+        )
         app.dependency_overrides[get_youtube_service] = lambda: mock_youtube_client
-        
-        with patch('mcp_server_youtube.api_routers.youtube.get_db_manager') as mock_db:
+
+        with patch("mcp_server_youtube.api_routers.youtube.get_db_manager") as mock_db:
             mock_db.return_value.batch_check_transcripts = Mock(return_value={})
-            
+
             client = TestClient(app)
             try:
                 response = client.post(
-                    "/api/extract-transcripts",
-                    json={"video_ids": ["nonexistent_id"]}
+                    "/api/extract-transcripts", json={"video_ids": ["nonexistent_id"]}
                 )
-                
+
                 assert response.status_code == 404
                 assert "No transcripts could be extracted" in response.json()["detail"]
             finally:
@@ -226,11 +244,8 @@ class TestExtractTranscriptsEndpoint:
 
     def test_extract_transcripts_endpoint_invalid_request(self, client: TestClient):
         """Test extract-transcripts endpoint with invalid request."""
-        response = client.post(
-            "/api/extract-transcripts",
-            json={"invalid": "data"}
-        )
-        
+        response = client.post("/api/extract-transcripts", json={"invalid": "data"})
+
         assert response.status_code == 422  # Validation error
 
 
@@ -242,20 +257,20 @@ class TestExtractSingleTranscriptEndpoint:
     ):
         """Test successful single transcript extraction."""
         from mcp_server_youtube.dependencies import get_youtube_service
-        
+
         video_with_transcript = sample_video_data.copy()
         video_with_transcript["transcript"] = "Test transcript"
         video_with_transcript["transcript_success"] = True
-        
-        mock_youtube_client.extract_transcripts_for_video_ids = AsyncMock(return_value=[video_with_transcript])
+
+        mock_youtube_client.extract_transcripts_for_video_ids = AsyncMock(
+            return_value=[video_with_transcript]
+        )
         app.dependency_overrides[get_youtube_service] = lambda: mock_youtube_client
-        
+
         client = TestClient(app)
         try:
-            response = client.get(
-                "/api/extract-transcript?video_id=test_video_id"
-            )
-            
+            response = client.get("/api/extract-transcript?video_id=test_video_id")
+
             assert response.status_code == 200
             data = response.json()
             assert data["video_id"] == "test_video_id"
@@ -266,22 +281,24 @@ class TestExtractSingleTranscriptEndpoint:
     def test_extract_single_transcript_missing_video_id(self, client: TestClient):
         """Test extract-transcript endpoint without video_id parameter."""
         response = client.get("/api/extract-transcript")
-        
+
         assert response.status_code == 422  # Validation error
 
-    def test_extract_single_transcript_not_found(self, app: FastAPI, mock_youtube_client: Mock):
+    def test_extract_single_transcript_not_found(
+        self, app: FastAPI, mock_youtube_client: Mock
+    ):
         """Test extract-transcript endpoint when video not found."""
         from mcp_server_youtube.dependencies import get_youtube_service
-        
-        mock_youtube_client.extract_transcripts_for_video_ids = AsyncMock(return_value=[])
+
+        mock_youtube_client.extract_transcripts_for_video_ids = AsyncMock(
+            return_value=[]
+        )
         app.dependency_overrides[get_youtube_service] = lambda: mock_youtube_client
-        
+
         client = TestClient(app)
         try:
-            response = client.get(
-                "/api/extract-transcript?video_id=nonexistent"
-            )
-            
+            response = client.get("/api/extract-transcript?video_id=nonexistent")
+
             assert response.status_code == 404
         finally:
             app.dependency_overrides.clear()

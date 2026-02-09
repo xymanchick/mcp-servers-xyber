@@ -52,15 +52,19 @@ class DatabaseConfig(BaseSettings):
     DB_PASSWORD: str = "postgres"
     DB_HOST: str = "localhost"
     DB_PORT_RAW: str = "5432"
-    
+
     # Cache TTL defaults (in seconds)
     cache_ttl_search: int = 3600  # 1 hour
     cache_ttl_details: int = 86400  # 24 hours
-    
+
     @computed_field
     @property
     def DB_PORT(self) -> str:
-        return self.DB_PORT_RAW.split(":")[0] if ":" in self.DB_PORT_RAW else self.DB_PORT_RAW
+        return (
+            self.DB_PORT_RAW.split(":")[0]
+            if ":" in self.DB_PORT_RAW
+            else self.DB_PORT_RAW
+        )
 
     @computed_field
     @property

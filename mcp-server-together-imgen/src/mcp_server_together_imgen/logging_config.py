@@ -3,9 +3,9 @@ from logging.config import dictConfig
 from typing import Literal
 
 """Configures basic logging for the application."""
-logging_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = (
-    os.getenv("LOGGING_LEVEL", "INFO").upper()
-)
+logging_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = os.getenv(
+    "LOGGING_LEVEL", "INFO"
+).upper()
 
 LOGGING_CONFIG = {
     "version": 1,

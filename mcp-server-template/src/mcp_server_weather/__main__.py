@@ -8,7 +8,6 @@ import argparse
 import logging
 
 import uvicorn
-
 from mcp_server_weather.config import get_app_settings
 from mcp_server_weather.logging_config import get_logging_config
 

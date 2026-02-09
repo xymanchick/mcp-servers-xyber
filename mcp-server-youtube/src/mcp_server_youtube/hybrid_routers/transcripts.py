@@ -7,15 +7,11 @@ import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-
-from mcp_server_youtube.dependencies import get_youtube_service, get_db_manager
-from mcp_server_youtube.schemas import (
-    ExtractTranscriptsRequest,
-    ExtractTranscriptsResponse,
-    SearchVideosRequest,
-    SearchTranscriptsResponse,
-    VideoResponse,
-)
+from mcp_server_youtube.dependencies import get_db_manager, get_youtube_service
+from mcp_server_youtube.schemas import (ExtractTranscriptsRequest,
+                                        ExtractTranscriptsResponse,
+                                        SearchTranscriptsResponse,
+                                        SearchVideosRequest, VideoResponse)
 from mcp_server_youtube.youtube import YouTubeVideoSearchAndTranscript
 from mcp_server_youtube.youtube.methods import DatabaseManager
 
@@ -32,16 +28,16 @@ async def _process_video_transcript(
 ) -> dict:
     """
     Process transcript for a single video (cached or fetch from API).
-    
+
     This function is designed to be called in parallel for multiple videos.
     """
     video_id = video.video_id or video.id or video.display_id
     if not video_id:
         return None
-    
+
     transcript_result = None
     cached_video = None
-    
+
     # Check cache first
     if cached_transcripts.get(video_id, False):
         logger.info(f"💾 Loading transcript from cache for video {video_id}")
@@ -57,7 +53,9 @@ async def _process_video_transcript(
             }
     elif existing_videos.get(video_id, False):
         # Video exists in DB but transcript failed - load from cache to avoid retrying
-        logger.info(f"💾 Loading failed transcript attempt from cache for video {video_id} - skipping retry")
+        logger.info(
+            f"💾 Loading failed transcript attempt from cache for video {video_id} - skipping retry"
+        )
         cached_video = await asyncio.to_thread(db_manager.get_video, video_id)
         if cached_video:
             transcript_result = {
@@ -68,7 +66,7 @@ async def _process_video_transcript(
                 "language": cached_video.language,
                 "error": cached_video.error,
             }
-    
+
     # Fetch from API if not cached
     if transcript_result is None:
         logger.info(f"🌐 Fetching transcript from API for video {video_id}")
@@ -76,12 +74,14 @@ async def _process_video_transcript(
         transcript_result = {
             "success": transcript_api_result.success,
             "transcript": transcript_api_result.transcript,
-            "transcript_length": len(transcript_api_result.transcript) if transcript_api_result.transcript else 0,
+            "transcript_length": len(transcript_api_result.transcript)
+            if transcript_api_result.transcript
+            else 0,
             "is_generated": transcript_api_result.is_generated,
             "language": transcript_api_result.language,
             "error": transcript_api_result.error,
         }
-        
+
         # Save to cache
         if transcript_result["success"]:
             video_data = {
@@ -90,7 +90,10 @@ async def _process_video_transcript(
                 "channel": video.channel or video.uploader or "Unknown",
                 "channel_id": video.channel_id,
                 "channel_url": video.channel_url,
-                "video_url": video.url or video.link or video.webpage_url or f"https://www.youtube.com/watch?v={video_id}",
+                "video_url": video.url
+                or video.link
+                or video.webpage_url
+                or f"https://www.youtube.com/watch?v={video_id}",
                 "duration": video.duration,
                 "views": video.views or video.view_count,
                 "likes": video.likes or video.like_count,
@@ -106,14 +109,17 @@ async def _process_video_transcript(
                 "language": transcript_result["language"],
             }
             await asyncio.to_thread(db_manager.save_video, video_data)
-    
+
     # Combine video and transcript data
     combined = {
         "title": video.title or "Unknown",
         "channel": video.channel or video.uploader or "Unknown",
         "channel_id": video.channel_id,
         "channel_url": video.channel_url,
-        "video_url": video.url or video.link or video.webpage_url or f"https://www.youtube.com/watch?v={video_id}",
+        "video_url": video.url
+        or video.link
+        or video.webpage_url
+        or f"https://www.youtube.com/watch?v={video_id}",
         "video_id": video_id,
         "duration": video.duration,
         "views": video.views or video.view_count,
@@ -141,12 +147,12 @@ async def _process_video_id_transcript(
 ) -> dict:
     """
     Process transcript for a single video ID (cached or fetch from API).
-    
+
     This function is designed to be called in parallel for multiple video IDs.
     """
     transcript_result = None
     cached_video = None
-    
+
     if cached_transcripts.get(video_id, False):
         logger.info(f"💾 Loading transcript from cache for video {video_id}")
         cached_video = await asyncio.to_thread(db_manager.get_video, video_id)
@@ -161,7 +167,9 @@ async def _process_video_id_transcript(
             }
     elif existing_videos.get(video_id, False):
         # Video exists in DB but transcript failed - load from cache to avoid retrying
-        logger.info(f"💾 Loading failed transcript attempt from cache for video {video_id} - skipping retry")
+        logger.info(
+            f"💾 Loading failed transcript attempt from cache for video {video_id} - skipping retry"
+        )
         cached_video = await asyncio.to_thread(db_manager.get_video, video_id)
         if cached_video:
             transcript_result = {
@@ -172,19 +180,21 @@ async def _process_video_id_transcript(
                 "language": cached_video.language,
                 "error": cached_video.error,
             }
-    
+
     if transcript_result is None:
         logger.info(f"🌐 Fetching transcript from API for video {video_id}")
         transcript_api_result = await service.get_transcript_safe(video_id)
         transcript_result = {
             "success": transcript_api_result.success,
             "transcript": transcript_api_result.transcript,
-            "transcript_length": len(transcript_api_result.transcript) if transcript_api_result.transcript else 0,
+            "transcript_length": len(transcript_api_result.transcript)
+            if transcript_api_result.transcript
+            else 0,
             "is_generated": transcript_api_result.is_generated,
             "language": transcript_api_result.language,
             "error": transcript_api_result.error,
         }
-        
+
         # Save to cache (both successful and failed attempts to avoid retrying)
         video_data = {
             "video_id": video_id,
@@ -192,7 +202,9 @@ async def _process_video_id_transcript(
             "channel": cached_video.channel if cached_video else "Unknown",
             "channel_id": cached_video.channel_id if cached_video else None,
             "channel_url": cached_video.channel_url if cached_video else None,
-            "video_url": cached_video.video_url if cached_video else f"https://www.youtube.com/watch?v={video_id}",
+            "video_url": cached_video.video_url
+            if cached_video
+            else f"https://www.youtube.com/watch?v={video_id}",
             "duration": cached_video.duration if cached_video else None,
             "views": cached_video.views if cached_video else None,
             "likes": cached_video.likes if cached_video else None,
@@ -201,8 +213,12 @@ async def _process_video_id_transcript(
             "description": cached_video.description or "" if cached_video else "",
             "thumbnail": cached_video.thumbnail if cached_video else None,
             "transcript_success": transcript_result["success"],
-            "transcript": transcript_result["transcript"] if transcript_result["success"] else None,
-            "transcript_length": transcript_result["transcript_length"] if transcript_result["success"] else 0,
+            "transcript": transcript_result["transcript"]
+            if transcript_result["success"]
+            else None,
+            "transcript_length": transcript_result["transcript_length"]
+            if transcript_result["success"]
+            else 0,
             "error": transcript_result["error"],
             "is_auto_generated": transcript_result["is_generated"],
             "language": transcript_result["language"],
@@ -212,17 +228,21 @@ async def _process_video_id_transcript(
             if transcript_result["success"]:
                 logger.info(f"💾 Saved transcript to cache for video {video_id}")
             else:
-                logger.info(f"💾 Cached failed transcript attempt for video {video_id} (error: {transcript_result.get('error')}) - will not retry")
+                logger.info(
+                    f"💾 Cached failed transcript attempt for video {video_id} (error: {transcript_result.get('error')}) - will not retry"
+                )
         # Reload cached_video after saving
         cached_video = await asyncio.to_thread(db_manager.get_video, video_id)
-    
+
     # Use cached_video if available, otherwise use defaults
     combined = {
         "title": cached_video.title if cached_video else "Unknown",
         "channel": cached_video.channel if cached_video else "Unknown",
         "channel_id": cached_video.channel_id if cached_video else None,
         "channel_url": cached_video.channel_url if cached_video else None,
-        "video_url": cached_video.video_url if cached_video else f"https://www.youtube.com/watch?v={video_id}",
+        "video_url": cached_video.video_url
+        if cached_video
+        else f"https://www.youtube.com/watch?v={video_id}",
         "video_id": video_id,
         "duration": cached_video.duration if cached_video else None,
         "views": cached_video.views if cached_video else None,
@@ -287,30 +307,46 @@ async def search_and_extract_transcripts(
                 raise HTTPException(status_code=401, detail=error_msg)
             else:
                 raise HTTPException(status_code=500, detail=error_msg)
-        
+
         if not videos:
             raise HTTPException(status_code=404, detail="No videos found")
 
-        video_ids = [v.video_id or v.id or v.display_id for v in videos if v.video_id or v.id or v.display_id]
-        cached_transcripts = await asyncio.to_thread(db_manager.batch_check_transcripts, video_ids)
-        existing_videos = await asyncio.to_thread(db_manager.batch_check_video_exists, video_ids)
+        video_ids = [
+            v.video_id or v.id or v.display_id
+            for v in videos
+            if v.video_id or v.id or v.display_id
+        ]
+        cached_transcripts = await asyncio.to_thread(
+            db_manager.batch_check_transcripts, video_ids
+        )
+        existing_videos = await asyncio.to_thread(
+            db_manager.batch_check_video_exists, video_ids
+        )
 
         # Process all videos in parallel
-        logger.info(f"🚀 Processing {len(videos)} videos in parallel for transcript extraction")
+        logger.info(
+            f"🚀 Processing {len(videos)} videos in parallel for transcript extraction"
+        )
         tasks = [
-            _process_video_transcript(video, service, db_manager, cached_transcripts, existing_videos)
+            _process_video_transcript(
+                video, service, db_manager, cached_transcripts, existing_videos
+            )
             for video in videos
             if video.video_id or video.id or video.display_id
         ]
         raw_results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # Log any exceptions that occurred
         exceptions = [r for r in raw_results if isinstance(r, Exception)]
         if exceptions:
-            logger.warning(f"⚠️ {len(exceptions)} exceptions occurred during parallel processing: {exceptions}")
-        
+            logger.warning(
+                f"⚠️ {len(exceptions)} exceptions occurred during parallel processing: {exceptions}"
+            )
+
         # Filter out None results and exceptions
-        results = [r for r in raw_results if r is not None and not isinstance(r, Exception)]
+        results = [
+            r for r in raw_results if r is not None and not isinstance(r, Exception)
+        ]
 
         if not results:
             raise HTTPException(status_code=404, detail="No videos found")
@@ -356,29 +392,43 @@ async def extract_transcripts(
     try:
         logger.info(f"MCP: Extract transcripts for {len(request.video_ids)} video IDs")
 
-        cached_transcripts = await asyncio.to_thread(db_manager.batch_check_transcripts, request.video_ids)
-        existing_videos = await asyncio.to_thread(db_manager.batch_check_video_exists, request.video_ids)
+        cached_transcripts = await asyncio.to_thread(
+            db_manager.batch_check_transcripts, request.video_ids
+        )
+        existing_videos = await asyncio.to_thread(
+            db_manager.batch_check_video_exists, request.video_ids
+        )
 
         # Process all video IDs in parallel
-        logger.info(f"🚀 Processing {len(request.video_ids)} video IDs in parallel for transcript extraction")
+        logger.info(
+            f"🚀 Processing {len(request.video_ids)} video IDs in parallel for transcript extraction"
+        )
         tasks = [
-            _process_video_id_transcript(video_id, service, db_manager, cached_transcripts, existing_videos)
+            _process_video_id_transcript(
+                video_id, service, db_manager, cached_transcripts, existing_videos
+            )
             for video_id in request.video_ids
         ]
         raw_results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # Log any exceptions that occurred
         exceptions = [r for r in raw_results if isinstance(r, Exception)]
         if exceptions:
-            logger.warning(f"⚠️ {len(exceptions)} exceptions occurred during parallel processing: {exceptions}")
-        
+            logger.warning(
+                f"⚠️ {len(exceptions)} exceptions occurred during parallel processing: {exceptions}"
+            )
+
         # Filter out exceptions
         results = [r for r in raw_results if not isinstance(r, Exception)]
 
         if not results:
-            raise HTTPException(status_code=404, detail="No transcripts could be extracted")
+            raise HTTPException(
+                status_code=404, detail="No transcripts could be extracted"
+            )
 
-        cached_transcripts_after = await asyncio.to_thread(db_manager.batch_check_transcripts, request.video_ids)
+        cached_transcripts_after = await asyncio.to_thread(
+            db_manager.batch_check_transcripts, request.video_ids
+        )
         cached_count_after = sum(cached_transcripts_after.values())
 
         video_responses = [VideoResponse.from_video(video) for video in results]
@@ -394,4 +444,3 @@ async def extract_transcripts(
     except Exception as e:
         logger.error(f"Error in extract-transcripts endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-

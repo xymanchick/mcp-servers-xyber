@@ -22,7 +22,9 @@ class QueryRegistry:
     def types(self) -> list[QueryType]:
         return list(self._by_type.keys())
 
-    def list_queries(self, query_type: QueryType | None = None) -> list[QueryDefinition]:
+    def list_queries(
+        self, query_type: QueryType | None = None
+    ) -> list[QueryDefinition]:
         if query_type:
             return list(self._by_type.get(query_type, []))
         out: list[QueryDefinition] = []
@@ -35,5 +37,3 @@ class QueryRegistry:
 
     def by_type(self, query_type: QueryType) -> list[QueryDefinition]:
         return list(self._by_type.get(query_type, []))
-
-

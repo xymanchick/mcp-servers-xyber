@@ -28,4 +28,3 @@ async def get_server_health():
         "status": "healthy",
         "service": "mcp_youtube_api",
     }
-

@@ -1,12 +1,12 @@
 import logging
+
 from fastapi import APIRouter, Request
 from fastmcp.exceptions import ToolError
-from pydantic import ValidationError
-
+from mcp_server_twitter.errors import TwitterMCPError, TwitterValidationError
 from mcp_server_twitter.logging_config import get_logger
 from mcp_server_twitter.metrics import async_timed
 from mcp_server_twitter.schemas import CreateTweetRequest
-from mcp_server_twitter.errors import TwitterMCPError, TwitterValidationError
+from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -30,16 +30,20 @@ async def create_tweet(
         has_image=bool(create_request.image_content_str),
         has_poll=bool(create_request.poll_options),
         is_reply=bool(create_request.in_reply_to_tweet_id),
-        is_quote=bool(create_request.quote_tweet_id)
+        is_quote=bool(create_request.quote_tweet_id),
     )
 
     operation_logger.info(
         "Tweet creation requested",
         extra={
-            'text_preview': create_request.text[:50] + "..." if len(create_request.text) > 50 else create_request.text,
-            'poll_options_count': len(create_request.poll_options) if create_request.poll_options else 0,
-            'poll_duration': create_request.poll_duration
-        }
+            "text_preview": create_request.text[:50] + "..."
+            if len(create_request.text) > 50
+            else create_request.text,
+            "poll_options_count": len(create_request.poll_options)
+            if create_request.poll_options
+            else 0,
+            "poll_duration": create_request.poll_duration,
+        },
     )
 
     client = request.app.state.twitter_client
@@ -56,7 +60,7 @@ async def create_tweet(
                     "Image content too large (max 5MB)",
                     field_name="image_content_str",
                     field_value=f"{image_size} bytes",
-                    context={"max_size_bytes": 5_000_000}
+                    context={"max_size_bytes": 5_000_000},
                 )
 
         operation_logger.debug("Calling Twitter API to create tweet")
@@ -77,22 +81,26 @@ async def create_tweet(
 
         tweet_id = str(result)
         operation_logger.info(
-            "Tweet created successfully",
-            extra={'tweet_id': tweet_id}
+            "Tweet created successfully", extra={"tweet_id": tweet_id}
         )
 
         return f"Tweet created successfully with ID: {tweet_id}"
 
     except TwitterMCPError as e:
-        operation_logger.warning(f"A known Twitter MCP error occurred: {e.message}", extra={'error_code': e.error_code})
+        operation_logger.warning(
+            f"A known Twitter MCP error occurred: {e.message}",
+            extra={"error_code": e.error_code},
+        )
         raise ToolError(str(e)) from e
     except ValidationError as e:
-        operation_logger.warning("Input validation failed", extra={'errors': e.errors()})
+        operation_logger.warning(
+            "Input validation failed", extra={"errors": e.errors()}
+        )
         raise ToolError(f"Invalid input: {e}") from e
     except Exception as e:
         operation_logger.error(
             "An unexpected error occurred during tweet creation",
-            extra={'error_type': type(e).__name__},
-            exc_info=True
+            extra={"error_type": type(e).__name__},
+            exc_info=True,
         )
         raise ToolError(f"An unexpected error occurred: {e}") from e

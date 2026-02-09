@@ -8,6 +8,7 @@ Run with: uv run python -m pytest tests/test_mcp_tools.py
 
 To run standalone: uv run python tests/test_mcp_tools.py
 """
+
 import asyncio
 import json
 import os
@@ -115,6 +116,7 @@ async def list_mcp_tools(base_url: str, session_id: str) -> httpx.Response:
 
 # --- Pytest Fixtures ---
 
+
 @pytest.fixture
 def base_url() -> str:
     """Base URL for the MCP server."""
@@ -133,6 +135,7 @@ async def mcp_session(base_url: str) -> str:
 
 
 # --- Pytest Tests ---
+
 
 @pytest.mark.asyncio
 @pytest.mark.integration
@@ -165,15 +168,15 @@ async def test_list_mcp_tools(base_url: str, mcp_session: str):
     try:
         response = await list_mcp_tools(base_url, mcp_session)
         response.raise_for_status()
-        
+
         tools_data = parse_sse_response(response.text)
         assert "result" in tools_data
         assert "tools" in tools_data["result"]
-        
+
         tools = tools_data["result"]["tools"]
         assert isinstance(tools, list)
         assert len(tools) > 0
-        
+
         # Verify tool structure
         for tool in tools:
             assert "name" in tool
@@ -194,13 +197,15 @@ async def test_mcp_search_youtube_videos(base_url: str, mcp_session: str):
             arguments={"query": "python tutorial", "max_results": 3},
         )
         response.raise_for_status()
-        
+
         result = parse_sse_response(response.text)
         assert "result" in result
-        
+
         # Check for errors
         if isinstance(result["result"], dict) and result["result"].get("isError"):
-            error_text = result["result"].get("content", [{}])[0].get("text", "Unknown error")
+            error_text = (
+                result["result"].get("content", [{}])[0].get("text", "Unknown error")
+            )
             pytest.fail(f"MCP tool returned error: {error_text}")
     except httpx.ConnectError:
         pytest.skip("MCP server not running - start server to run E2E tests")
@@ -213,7 +218,7 @@ async def test_extract_transcripts(base_url: str, mcp_session: str):
     # Skip if no APIFY_TOKEN is set
     if not os.getenv("APIFY_TOKEN"):
         pytest.skip("APIFY_TOKEN not set, skipping transcript extraction test")
-    
+
     try:
         response = await call_mcp_tool(
             base_url,
@@ -221,10 +226,12 @@ async def test_extract_transcripts(base_url: str, mcp_session: str):
             name="extract_transcripts",
             arguments={"video_ids": ["dQw4w9WgXcQ"]},
         )
-        
+
         # Accept both 200 and error responses (since transcript extraction can fail)
-        assert response.status_code in [200, 500], f"Unexpected status code: {response.status_code}"
-        
+        assert response.status_code in [200, 500], (
+            f"Unexpected status code: {response.status_code}"
+        )
+
         result = parse_sse_response(response.text)
         assert "result" in result
     except httpx.ConnectError:
@@ -233,14 +240,15 @@ async def test_extract_transcripts(base_url: str, mcp_session: str):
 
 # --- Standalone Execution (for manual testing) ---
 
+
 async def main():
     """Main test function for standalone execution."""
     base_url = os.getenv("MCP_SERVER_URL", "http://localhost:8002")
-    
+
     print("=" * 60)
     print("MCP Tools Testing (Standalone)")
     print("=" * 60)
-    
+
     # Step 1: Negotiate session
     print("\n1. Negotiating MCP session...")
     try:
@@ -249,7 +257,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to negotiate session: {e}")
         return
-    
+
     # Step 2: Initialize session
     print("\n2. Initializing MCP session...")
     try:
@@ -257,7 +265,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to initialize session: {e}")
         return
-    
+
     # Step 3: List tools
     print("\n3. Listing available tools...")
     try:
@@ -279,7 +287,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to list tools: {e}")
         print(f"  Response: {response.text[:500] if 'response' in locals() else 'N/A'}")
-    
+
     # Step 4: Test mcp_search_youtube_videos tool
     print("\n4. Testing mcp_search_youtube_videos tool...")
     try:
@@ -295,7 +303,11 @@ async def main():
         # Check for errors in result
         if "result" in result and isinstance(result["result"], dict):
             if result["result"].get("isError"):
-                error_text = result["result"].get("content", [{}])[0].get("text", "Unknown error")
+                error_text = (
+                    result["result"]
+                    .get("content", [{}])[0]
+                    .get("text", "Unknown error")
+                )
                 print(f"  Error: {error_text}")
             else:
                 print(f"  Success: {json.dumps(result, indent=2)[:500]}...")
@@ -304,7 +316,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to call mcp_search_youtube_videos: {e}")
         print(f"  Response: {response.text[:500] if 'response' in locals() else 'N/A'}")
-    
+
     # Step 5: Test extract_transcripts tool (requires APIFY_TOKEN)
     print("\n5. Testing extract_transcripts tool...")
     try:
@@ -320,7 +332,11 @@ async def main():
             # Check for errors in result
             if "result" in result and isinstance(result["result"], dict):
                 if result["result"].get("isError"):
-                    error_text = result["result"].get("content", [{}])[0].get("text", "Unknown error")
+                    error_text = (
+                        result["result"]
+                        .get("content", [{}])[0]
+                        .get("text", "Unknown error")
+                    )
                     print(f"  Error: {error_text[:200]}...")
                 else:
                     print(f"✓ Extract transcripts successful")
@@ -333,7 +349,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to call extract_transcripts: {e}")
         print(f"  Response: {response.text[:500] if 'response' in locals() else 'N/A'}")
-    
+
     print("\n" + "=" * 60)
     print("Testing complete!")
     print("=" * 60)
@@ -341,4 +357,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

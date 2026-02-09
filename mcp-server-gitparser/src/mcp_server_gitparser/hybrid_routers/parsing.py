@@ -6,11 +6,14 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException
-
 from mcp_server_gitparser.config import get_app_settings
-from mcp_server_gitparser.gitparser.gitbook import clean_gitbook_url, convert_gitbook_to_markdown
-from mcp_server_gitparser.gitparser.github import clean_github_url, convert_repo_to_markdown
-from mcp_server_gitparser.schemas import ConvertGitbookRequest, ConvertGithubRequest, ConvertResponse
+from mcp_server_gitparser.gitparser.gitbook import (
+    clean_gitbook_url, convert_gitbook_to_markdown)
+from mcp_server_gitparser.gitparser.github import (clean_github_url,
+                                                   convert_repo_to_markdown)
+from mcp_server_gitparser.schemas import (ConvertGitbookRequest,
+                                          ConvertGithubRequest,
+                                          ConvertResponse)
 
 router = APIRouter(tags=["Parsing"])
 
@@ -121,4 +124,3 @@ async def parse_github_endpoint(request: ConvertGithubRequest) -> ConvertRespons
         raise HTTPException(status_code=502, detail=str(e)) from e
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e)) from e
-

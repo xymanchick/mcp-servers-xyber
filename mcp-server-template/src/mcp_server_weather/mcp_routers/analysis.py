@@ -7,7 +7,6 @@ Main responsibility: Define an example paid MCP-only router that performs a deta
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-
 from mcp_server_weather.dependencies import get_weather_client
 from mcp_server_weather.weather import WeatherClient
 

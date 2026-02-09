@@ -3,15 +3,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_server_stability.api_routers import routers as api_routers
 from mcp_server_stability.hybrid_routers import routers as hybrid_routers
 from mcp_server_stability.mcp_routers import routers as mcp_routers
-from mcp_server_stability.stable_diffusion import (
-    StabilityService,
-    StableDiffusionClientError,
-    get_stability_service,
-)
+from mcp_server_stability.stable_diffusion import (StabilityService,
+                                                   StableDiffusionClientError,
+                                                   get_stability_service)
 from mcp_server_stability.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)

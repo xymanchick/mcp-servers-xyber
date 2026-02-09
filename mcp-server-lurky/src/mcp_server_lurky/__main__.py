@@ -6,7 +6,7 @@ from mcp_server_lurky.logging_config import get_logging_config
 def main():
     """Entry point for the MCP Lurky server."""
     settings = get_app_settings()
-    
+
     uvicorn.run(
         "mcp_server_lurky.app:create_app",
         host=settings.host,

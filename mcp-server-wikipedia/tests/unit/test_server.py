@@ -1,34 +1,20 @@
-import pytest
-from unittest.mock import Mock, AsyncMock, patch
 from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
-from fastmcp import FastMCP, Context
-from fastmcp.exceptions import ToolError
-
-from mcp_server_wikipedia.server import (
-    mcp_server,
-    app_lifespan,
-    _get_service,
-)
-
-from mcp_server_wikipedia.wikipedia import (
-    ArticleNotFoundError,
-    WikipediaAPIError,
-    WikipediaServiceError,
-)
-
+import pytest
 # Import helper functions from conftest
-from conftest import (
-    _test_search_wikipedia,
-    _test_get_article,
-    _test_get_summary,
-    _test_get_sections,
-    _test_get_links,
-    _test_get_related_topics,
-)
-
+from conftest import (_test_get_article, _test_get_links,
+                      _test_get_related_topics, _test_get_sections,
+                      _test_get_summary, _test_search_wikipedia)
+from fastmcp import Context, FastMCP
+from fastmcp.exceptions import ToolError
+from mcp_server_wikipedia.server import _get_service, app_lifespan, mcp_server
+from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
+                                            WikipediaAPIError,
+                                            WikipediaServiceError)
 
 # === Test Classes ===
+
 
 class TestAppLifespan:
     """Test application lifespan management."""
@@ -38,7 +24,10 @@ class TestAppLifespan:
         """Test successful app lifespan initialization."""
         mock_service = AsyncMock()
 
-        with patch('mcp_server_wikipedia.server.get_wikipedia_service', return_value=mock_service):
+        with patch(
+            "mcp_server_wikipedia.server.get_wikipedia_service",
+            return_value=mock_service,
+        ):
             async with app_lifespan(None) as context:
                 assert "wiki_service" in context
                 assert context["wiki_service"] == mock_service
@@ -46,7 +35,10 @@ class TestAppLifespan:
     @pytest.mark.asyncio
     async def test_app_lifespan_initialization_failure(self):
         """Test app lifespan initialization failure."""
-        with patch('mcp_server_wikipedia.server.get_wikipedia_service', side_effect=WikipediaServiceError("Service init failed")):
+        with patch(
+            "mcp_server_wikipedia.server.get_wikipedia_service",
+            side_effect=WikipediaServiceError("Service init failed"),
+        ):
             with pytest.raises(WikipediaServiceError, match="Service init failed"):
                 async with app_lifespan(None) as context:
                     pass
@@ -74,6 +66,7 @@ class TestHelperFunctions:
 
 
 # --- Search Wikipedia Tests ---
+
 
 class TestSearchWikipedia:
     """Test search wikipedia functionality."""
@@ -119,6 +112,7 @@ class TestSearchWikipedia:
 
 # --- Get Article Tests ---
 
+
 class TestGetArticle:
     """Test get article functionality."""
 
@@ -140,7 +134,9 @@ class TestGetArticle:
     async def test_get_article_not_found(self):
         """Test article retrieval when article is not found."""
         mock_service = AsyncMock()
-        mock_service.get_article.side_effect = ArticleNotFoundError("Article not found: Nonexistent")
+        mock_service.get_article.side_effect = ArticleNotFoundError(
+            "Article not found: Nonexistent"
+        )
 
         context = {"wikipedia_service": mock_service}
         result = await _test_get_article("Nonexistent", context)
@@ -152,7 +148,9 @@ class TestGetArticle:
     async def test_get_article_api_error(self):
         """Test article retrieval with Wikipedia API error."""
         mock_service = AsyncMock()
-        mock_service.get_article.side_effect = WikipediaAPIError("API connection failed")
+        mock_service.get_article.side_effect = WikipediaAPIError(
+            "API connection failed"
+        )
 
         context = {"wikipedia_service": mock_service}
         result = await _test_get_article("Test Article", context)
@@ -162,6 +160,7 @@ class TestGetArticle:
 
 
 # --- Get Summary Tests ---
+
 
 class TestGetSummary:
     """Test get summary functionality."""
@@ -184,7 +183,9 @@ class TestGetSummary:
     async def test_get_summary_article_not_found(self):
         """Test summary retrieval when article is not found."""
         mock_service = AsyncMock()
-        mock_service.get_summary.side_effect = ArticleNotFoundError("Article not found: Missing")
+        mock_service.get_summary.side_effect = ArticleNotFoundError(
+            "Article not found: Missing"
+        )
 
         context = {"wikipedia_service": mock_service}
         result = await _test_get_summary("Missing", context)
@@ -207,13 +208,20 @@ class TestGetSummary:
 
 # --- Get Sections Tests ---
 
+
 class TestGetSections:
     """Test get sections functionality."""
 
     @pytest.mark.asyncio
     async def test_get_sections_successful(self):
         """Test successful sections retrieval."""
-        expected_sections = ["Introduction", "History", "Geography", "Culture", "References"]
+        expected_sections = [
+            "Introduction",
+            "History",
+            "Geography",
+            "Culture",
+            "References",
+        ]
         mock_service = AsyncMock()
         mock_service.get_sections.return_value = expected_sections
 
@@ -228,7 +236,9 @@ class TestGetSections:
     async def test_get_sections_article_not_found(self):
         """Test sections retrieval when article is not found."""
         mock_service = AsyncMock()
-        mock_service.get_sections.side_effect = ArticleNotFoundError("Article not found: Missing")
+        mock_service.get_sections.side_effect = ArticleNotFoundError(
+            "Article not found: Missing"
+        )
 
         context = {"wikipedia_service": mock_service}
         result = await _test_get_sections("Missing", context)
@@ -251,13 +261,19 @@ class TestGetSections:
 
 # --- Get Links Tests ---
 
+
 class TestGetLinks:
     """Test get links functionality."""
 
     @pytest.mark.asyncio
     async def test_get_links_successful(self):
         """Test successful links retrieval."""
-        expected_links = ["Related Article 1", "Related Article 2", "External Source", "Reference Link"]
+        expected_links = [
+            "Related Article 1",
+            "Related Article 2",
+            "External Source",
+            "Reference Link",
+        ]
         mock_service = AsyncMock()
         mock_service.get_links.return_value = expected_links
 
@@ -272,7 +288,9 @@ class TestGetLinks:
     async def test_get_links_article_not_found(self):
         """Test links retrieval when article is not found."""
         mock_service = AsyncMock()
-        mock_service.get_links.side_effect = ArticleNotFoundError("Article not found: Unknown")
+        mock_service.get_links.side_effect = ArticleNotFoundError(
+            "Article not found: Unknown"
+        )
 
         context = {"wikipedia_service": mock_service}
         result = await _test_get_links("Unknown", 10, context)
@@ -294,6 +312,7 @@ class TestGetLinks:
 
 
 # --- Get Related Topics Tests ---
+
 
 class TestGetRelatedTopics:
     """Test get related topics functionality."""
@@ -342,7 +361,9 @@ class TestGetRelatedTopics:
     async def test_get_related_topics_article_not_found(self):
         """Test related topics when article is not found."""
         mock_service = AsyncMock()
-        mock_service.get_related_topics.side_effect = ArticleNotFoundError("Article not found")
+        mock_service.get_related_topics.side_effect = ArticleNotFoundError(
+            "Article not found"
+        )
 
         context = {"wikipedia_service": mock_service}
         result = await _test_get_related_topics("Nonexistent Article", 5, context)

@@ -1,14 +1,13 @@
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-import wikipediaapi
+from unittest.mock import MagicMock, Mock, patch
 
-from mcp_server_wikipedia.wikipedia.module import _WikipediaService, get_wikipedia_service
+import pytest
+import wikipediaapi
 from mcp_server_wikipedia.wikipedia.config import WikipediaConfig
-from mcp_server_wikipedia.wikipedia.models import (
-    ArticleNotFoundError,
-    WikipediaAPIError,
-    WikipediaConfigError,
-)
+from mcp_server_wikipedia.wikipedia.models import (ArticleNotFoundError,
+                                                   WikipediaAPIError,
+                                                   WikipediaConfigError)
+from mcp_server_wikipedia.wikipedia.module import (_WikipediaService,
+                                                   get_wikipedia_service)
 
 
 class TestWikipediaServiceInitialization:
@@ -16,9 +15,12 @@ class TestWikipediaServiceInitialization:
 
     def test_successful_initialization(self, mock_config):
         """Test successful initialization of Wikipedia service."""
-        with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
-             patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib:
-
+        with (
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+            ) as mock_wiki_api,
+            patch("mcp_server_wikipedia.wikipedia.module.wikipedia") as mock_wiki_lib,
+        ):
             mock_wiki_instance = Mock()
             mock_wiki_api.return_value = mock_wiki_instance
 
@@ -40,7 +42,9 @@ class TestWikipediaServiceInitialization:
 
     def test_initialization_failure(self, mock_config):
         """Test handling of initialization failure."""
-        with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api:
+        with patch(
+            "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+        ) as mock_wiki_api:
             mock_wiki_api.side_effect = Exception("API initialization failed")
 
             with pytest.raises(WikipediaConfigError) as exc_info:
@@ -56,9 +60,12 @@ class TestWikipediaServiceSearch:
     @pytest.mark.asyncio
     async def test_successful_search(self, mock_config):
         """Test successful search with results."""
-        with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
-             patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib:
-
+        with (
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+            ) as mock_wiki_api,
+            patch("mcp_server_wikipedia.wikipedia.module.wikipedia") as mock_wiki_lib,
+        ):
             mock_wiki_instance = Mock()
             mock_wiki_api.return_value = mock_wiki_instance
 
@@ -70,15 +77,20 @@ class TestWikipediaServiceSearch:
             service = _WikipediaService(mock_config)
             result = await service.search("python programming", limit=3)
 
-            mock_wiki_lib.search.assert_called_once_with("python programming", results=3)
+            mock_wiki_lib.search.assert_called_once_with(
+                "python programming", results=3
+            )
             assert result == search_results
 
     @pytest.mark.asyncio
     async def test_search_with_default_limit(self, mock_config):
         """Test search with default limit parameter."""
-        with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
-             patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib:
-
+        with (
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+            ) as mock_wiki_api,
+            patch("mcp_server_wikipedia.wikipedia.module.wikipedia") as mock_wiki_lib,
+        ):
             mock_wiki_instance = Mock()
             mock_wiki_api.return_value = mock_wiki_instance
 
@@ -94,9 +106,12 @@ class TestWikipediaServiceSearch:
     @pytest.mark.asyncio
     async def test_search_empty_query(self, mock_config):
         """Test search with empty query raises ValueError."""
-        with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
-             patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib:
-
+        with (
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+            ) as mock_wiki_api,
+            patch("mcp_server_wikipedia.wikipedia.module.wikipedia") as mock_wiki_lib,
+        ):
             mock_wiki_instance = Mock()
             mock_wiki_api.return_value = mock_wiki_instance
             mock_wiki_lib.set_lang = Mock()
@@ -112,9 +127,12 @@ class TestWikipediaServiceSearch:
     @pytest.mark.asyncio
     async def test_search_api_error(self, mock_config):
         """Test search API error handling."""
-        with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
-             patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib:
-
+        with (
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+            ) as mock_wiki_api,
+            patch("mcp_server_wikipedia.wikipedia.module.wikipedia") as mock_wiki_lib,
+        ):
             mock_wiki_instance = Mock()
             mock_wiki_api.return_value = mock_wiki_instance
 
@@ -162,7 +180,9 @@ class TestWikipediaServiceGetArticle:
     """Test get_article functionality."""
 
     @pytest.mark.asyncio
-    async def test_get_article_success(self, mock_wikipedia_service, mock_wikipedia_page):
+    async def test_get_article_success(
+        self, mock_wikipedia_service, mock_wikipedia_page
+    ):
         """Test successful article retrieval."""
         service, mock_wiki_instance, _ = mock_wikipedia_service
         mock_wiki_instance.page.return_value = mock_wikipedia_page
@@ -181,7 +201,9 @@ class TestWikipediaServiceGetArticle:
         assert result == expected
 
     @pytest.mark.asyncio
-    async def test_get_article_not_found(self, mock_wikipedia_service, nonexistent_page_mock):
+    async def test_get_article_not_found(
+        self, mock_wikipedia_service, nonexistent_page_mock
+    ):
         """Test article retrieval for non-existent article."""
         service, mock_wiki_instance, _ = mock_wikipedia_service
         mock_wiki_instance.page.return_value = nonexistent_page_mock
@@ -194,7 +216,9 @@ class TestWikipediaServiceGetSummary:
     """Test get_summary functionality."""
 
     @pytest.mark.asyncio
-    async def test_get_summary_success(self, mock_wikipedia_service, mock_wikipedia_page):
+    async def test_get_summary_success(
+        self, mock_wikipedia_service, mock_wikipedia_page
+    ):
         """Test successful summary retrieval."""
         service, mock_wiki_instance, _ = mock_wikipedia_service
         mock_wiki_instance.page.return_value = mock_wikipedia_page
@@ -204,7 +228,9 @@ class TestWikipediaServiceGetSummary:
         assert result == "This is a test article summary."
 
     @pytest.mark.asyncio
-    async def test_get_summary_not_found(self, mock_wikipedia_service, nonexistent_page_mock):
+    async def test_get_summary_not_found(
+        self, mock_wikipedia_service, nonexistent_page_mock
+    ):
         """Test summary retrieval for non-existent article."""
         service, mock_wiki_instance, _ = mock_wikipedia_service
         mock_wiki_instance.page.return_value = nonexistent_page_mock
@@ -217,7 +243,9 @@ class TestWikipediaServiceGetSections:
     """Test get_sections functionality."""
 
     @pytest.mark.asyncio
-    async def test_get_sections_success(self, mock_wikipedia_service, mock_wikipedia_page):
+    async def test_get_sections_success(
+        self, mock_wikipedia_service, mock_wikipedia_page
+    ):
         """Test successful sections retrieval."""
         service, mock_wiki_instance, _ = mock_wikipedia_service
         mock_wiki_instance.page.return_value = mock_wikipedia_page
@@ -241,7 +269,9 @@ class TestWikipediaServiceGetSections:
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_get_sections_not_found(self, mock_wikipedia_service, nonexistent_page_mock):
+    async def test_get_sections_not_found(
+        self, mock_wikipedia_service, nonexistent_page_mock
+    ):
         """Test sections retrieval for non-existent article."""
         service, mock_wiki_instance, _ = mock_wikipedia_service
         mock_wiki_instance.page.return_value = nonexistent_page_mock
@@ -279,7 +309,9 @@ class TestWikipediaServiceGetLinks:
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_get_links_not_found(self, mock_wikipedia_service, nonexistent_page_mock):
+    async def test_get_links_not_found(
+        self, mock_wikipedia_service, nonexistent_page_mock
+    ):
         """Test links retrieval for non-existent article."""
         service, mock_wiki_instance, _ = mock_wikipedia_service
         mock_wiki_instance.page.return_value = nonexistent_page_mock
@@ -292,7 +324,9 @@ class TestWikipediaServiceGetRelatedTopics:
     """Test get_related_topics functionality."""
 
     @pytest.mark.asyncio
-    async def test_get_related_topics_success(self, mock_wikipedia_service, mock_wikipedia_page):
+    async def test_get_related_topics_success(
+        self, mock_wikipedia_service, mock_wikipedia_page
+    ):
         """Test successful related topics retrieval."""
         service, mock_wiki_instance, _ = mock_wikipedia_service
         mock_wiki_instance.page.return_value = mock_wikipedia_page
@@ -319,7 +353,9 @@ class TestWikipediaServiceGetRelatedTopics:
         assert len(result) == 20
 
     @pytest.mark.asyncio
-    async def test_get_related_topics_not_found(self, mock_wikipedia_service, nonexistent_page_mock):
+    async def test_get_related_topics_not_found(
+        self, mock_wikipedia_service, nonexistent_page_mock
+    ):
         """Test related topics retrieval for non-existent article."""
         service, mock_wiki_instance, _ = mock_wikipedia_service
         mock_wiki_instance.page.return_value = nonexistent_page_mock
@@ -333,10 +369,15 @@ class TestGetWikipediaService:
 
     def test_get_wikipedia_service_singleton(self):
         """Test that get_wikipedia_service returns the same instance (singleton)."""
-        with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
-             patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib, \
-             patch('mcp_server_wikipedia.wikipedia.module.WikipediaConfig') as mock_config_class:
-
+        with (
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+            ) as mock_wiki_api,
+            patch("mcp_server_wikipedia.wikipedia.module.wikipedia") as mock_wiki_lib,
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.WikipediaConfig"
+            ) as mock_config_class,
+        ):
             mock_config = Mock()
             mock_config_class.return_value = mock_config
             mock_wiki_instance = Mock()
@@ -357,10 +398,15 @@ class TestGetWikipediaService:
 
     def test_get_wikipedia_service_configuration(self):
         """Test that get_wikipedia_service properly configures the service."""
-        with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
-             patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib, \
-             patch('mcp_server_wikipedia.wikipedia.module.WikipediaConfig') as mock_config_class:
-
+        with (
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+            ) as mock_wiki_api,
+            patch("mcp_server_wikipedia.wikipedia.module.wikipedia") as mock_wiki_lib,
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.WikipediaConfig"
+            ) as mock_config_class,
+        ):
             mock_config = Mock()
             mock_config.user_agent = "Test-Agent"
             mock_config.language = "en"
@@ -380,10 +426,15 @@ class TestGetWikipediaService:
 
     def test_get_wikipedia_service_cache_clear(self):
         """Test that cache can be cleared and service is recreated."""
-        with patch('mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia') as mock_wiki_api, \
-             patch('mcp_server_wikipedia.wikipedia.module.wikipedia') as mock_wiki_lib, \
-             patch('mcp_server_wikipedia.wikipedia.module.WikipediaConfig') as mock_config_class:
-
+        with (
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.wikipediaapi.Wikipedia"
+            ) as mock_wiki_api,
+            patch("mcp_server_wikipedia.wikipedia.module.wikipedia") as mock_wiki_lib,
+            patch(
+                "mcp_server_wikipedia.wikipedia.module.WikipediaConfig"
+            ) as mock_config_class,
+        ):
             mock_config = Mock()
             mock_config_class.return_value = mock_config
             mock_wiki_instance = Mock()

@@ -1,7 +1,8 @@
 import logging
 
 from mcp_server_tavily.tavily import _TavilyService
-from mcp_server_tavily.tavily import get_tavily_service as create_tavily_service
+from mcp_server_tavily.tavily import \
+    get_tavily_service as create_tavily_service
 
 logger = logging.getLogger(__name__)
 

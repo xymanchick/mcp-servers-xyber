@@ -1,16 +1,18 @@
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
 from fastapi import Request
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
-
 from mcp_server_telegram.telegram import TelegramServiceError
 
 
-async def post_to_telegram_impl(ctx: Context, message: str, mock_get_telegram_service=None) -> str:
+async def post_to_telegram_impl(
+    ctx: Context, message: str, mock_get_telegram_service=None
+) -> str:
     from mcp_server_telegram.mcp_routers.post_to_telegram import logger
     from mcp_server_telegram.telegram import get_telegram_service
-    
+
     request: Request = ctx.request_context.request
 
     token = request.headers.get("X-Telegram-Token")
@@ -64,18 +66,21 @@ class TestPostToTelegram:
     @pytest.mark.asyncio
     async def test_post_to_telegram_success(self, mock_context, mock_telegram_service):
         mock_context.request_context.request.headers = {
-            "X-Telegram-Token": "valid_token", 
-            "X-Telegram-Channel": "@test_channel"
+            "X-Telegram-Token": "valid_token",
+            "X-Telegram-Channel": "@test_channel",
         }
         mock_telegram_service.send_message.return_value = True
         message = "Test message"
-        
+
         def mock_get_service(token, channel):
             return mock_telegram_service
-        
+
         result = await post_to_telegram_impl(mock_context, message, mock_get_service)
-        
-        assert result == "Message successfully posted to the Telegram channel '@test_channel'"
+
+        assert (
+            result
+            == "Message successfully posted to the Telegram channel '@test_channel'"
+        )
         mock_telegram_service.send_message.assert_called_once_with(message)
 
     @pytest.mark.asyncio
@@ -84,8 +89,11 @@ class TestPostToTelegram:
             "X-Telegram-Channel": "@test_channel"
         }
         message = "Test message"
-        
-        with pytest.raises(ToolError, match="Your request is missing the required 'X-Telegram-Token' HTTP header"):
+
+        with pytest.raises(
+            ToolError,
+            match="Your request is missing the required 'X-Telegram-Token' HTTP header",
+        ):
             await post_to_telegram_impl(mock_context, message)
 
     @pytest.mark.asyncio
@@ -94,81 +102,108 @@ class TestPostToTelegram:
             "X-Telegram-Token": "valid_token"
         }
         message = "Test message"
-        
-        with pytest.raises(ToolError, match="Your request is missing the required 'X-Telegram-Channel' HTTP header"):
+
+        with pytest.raises(
+            ToolError,
+            match="Your request is missing the required 'X-Telegram-Channel' HTTP header",
+        ):
             await post_to_telegram_impl(mock_context, message)
 
     @pytest.mark.asyncio
     async def test_post_to_telegram_missing_both_headers(self, mock_context):
         mock_context.request_context.request.headers = {}
         message = "Test message"
-        
-        with pytest.raises(ToolError, match="Your request is missing the required 'X-Telegram-Token' HTTP header"):
+
+        with pytest.raises(
+            ToolError,
+            match="Your request is missing the required 'X-Telegram-Token' HTTP header",
+        ):
             await post_to_telegram_impl(mock_context, message)
 
     @pytest.mark.asyncio
-    async def test_post_to_telegram_service_returns_false(self, mock_context, mock_telegram_service):
+    async def test_post_to_telegram_service_returns_false(
+        self, mock_context, mock_telegram_service
+    ):
         mock_context.request_context.request.headers = {
             "X-Telegram-Token": "valid_token",
-            "X-Telegram-Channel": "@test_channel"
+            "X-Telegram-Channel": "@test_channel",
         }
         mock_telegram_service.send_message.return_value = False
         message = "Test message"
-        
+
         def mock_get_service(token, channel):
             return mock_telegram_service
-        
-        with pytest.raises(ToolError, match="The Telegram service failed to post the message"):
+
+        with pytest.raises(
+            ToolError, match="The Telegram service failed to post the message"
+        ):
             await post_to_telegram_impl(mock_context, message, mock_get_service)
 
     @pytest.mark.asyncio
-    async def test_post_to_telegram_service_error(self, mock_context, mock_telegram_service):
+    async def test_post_to_telegram_service_error(
+        self, mock_context, mock_telegram_service
+    ):
         mock_context.request_context.request.headers = {
             "X-Telegram-Token": "valid_token",
-            "X-Telegram-Channel": "@test_channel"
+            "X-Telegram-Channel": "@test_channel",
         }
         service_error = TelegramServiceError("Service unavailable")
         mock_telegram_service.send_message.side_effect = service_error
         message = "Test message"
-        
+
         def mock_get_service(token, channel):
             return mock_telegram_service
-        
-        with pytest.raises(ToolError, match="Telegram service error: Service unavailable"):
+
+        with pytest.raises(
+            ToolError, match="Telegram service error: Service unavailable"
+        ):
             await post_to_telegram_impl(mock_context, message, mock_get_service)
 
     @pytest.mark.asyncio
-    async def test_post_to_telegram_unexpected_error(self, mock_context, mock_telegram_service):
+    async def test_post_to_telegram_unexpected_error(
+        self, mock_context, mock_telegram_service
+    ):
         mock_context.request_context.request.headers = {
             "X-Telegram-Token": "valid_token",
-            "X-Telegram-Channel": "@test_channel"
+            "X-Telegram-Channel": "@test_channel",
         }
         unexpected_error = Exception("Unexpected error")
         mock_telegram_service.send_message.side_effect = unexpected_error
         message = "Test message"
-        
+
         def mock_get_service(token, channel):
             return mock_telegram_service
-        
-        with pytest.raises(ToolError, match="An unexpected error occurred during message posting"):
+
+        with pytest.raises(
+            ToolError, match="An unexpected error occurred during message posting"
+        ):
             await post_to_telegram_impl(mock_context, message, mock_get_service)
 
     @pytest.mark.asyncio
-    async def test_post_to_telegram_with_logging(self, mock_context, mock_telegram_service):
+    async def test_post_to_telegram_with_logging(
+        self, mock_context, mock_telegram_service
+    ):
         mock_context.request_context.request.headers = {
             "X-Telegram-Token": "valid_token",
-            "X-Telegram-Channel": "@test_channel"
+            "X-Telegram-Channel": "@test_channel",
         }
         mock_telegram_service.send_message.return_value = True
         message = "Test message"
-        
+
         def mock_get_service(token, channel):
             return mock_telegram_service
-        
-        with patch('mcp_server_telegram.mcp_routers.post_to_telegram.logger') as mock_logger:
-            result = await post_to_telegram_impl(mock_context, message, mock_get_service)
-            
-            assert result == "Message successfully posted to the Telegram channel '@test_channel'"
+
+        with patch(
+            "mcp_server_telegram.mcp_routers.post_to_telegram.logger"
+        ) as mock_logger:
+            result = await post_to_telegram_impl(
+                mock_context, message, mock_get_service
+            )
+
+            assert (
+                result
+                == "Message successfully posted to the Telegram channel '@test_channel'"
+            )
             mock_logger.info.assert_any_call(
                 "Received request to post to channel '@test_channel' with a provided token."
             )
@@ -180,22 +215,28 @@ class TestPostToTelegram:
     async def test_post_to_telegram_empty_token_header(self, mock_context):
         mock_context.request_context.request.headers = {
             "X-Telegram-Token": "",
-            "X-Telegram-Channel": "@test_channel"
+            "X-Telegram-Channel": "@test_channel",
         }
         message = "Test message"
-        
-        with pytest.raises(ToolError, match="Your request is missing the required 'X-Telegram-Token' HTTP header"):
+
+        with pytest.raises(
+            ToolError,
+            match="Your request is missing the required 'X-Telegram-Token' HTTP header",
+        ):
             await post_to_telegram_impl(mock_context, message)
 
     @pytest.mark.asyncio
     async def test_post_to_telegram_empty_channel_header(self, mock_context):
         mock_context.request_context.request.headers = {
             "X-Telegram-Token": "valid_token",
-            "X-Telegram-Channel": ""
+            "X-Telegram-Channel": "",
         }
         message = "Test message"
-        
-        with pytest.raises(ToolError, match="Your request is missing the required 'X-Telegram-Channel' HTTP header"):
+
+        with pytest.raises(
+            ToolError,
+            match="Your request is missing the required 'X-Telegram-Channel' HTTP header",
+        ):
             await post_to_telegram_impl(mock_context, message)
 
 
@@ -204,45 +245,58 @@ class TestPostToTelegramEdgeCases:
     async def test_post_to_telegram_none_headers(self, mock_context):
         mock_context.request_context.request.headers = {
             "X-Telegram-Token": None,
-            "X-Telegram-Channel": None
+            "X-Telegram-Channel": None,
         }
         message = "Test message"
-        
-        with pytest.raises(ToolError, match="Your request is missing the required 'X-Telegram-Token' HTTP header"):
+
+        with pytest.raises(
+            ToolError,
+            match="Your request is missing the required 'X-Telegram-Token' HTTP header",
+        ):
             await post_to_telegram_impl(mock_context, message)
 
     @pytest.mark.asyncio
-    async def test_post_to_telegram_long_message(self, mock_context, mock_telegram_service):
+    async def test_post_to_telegram_long_message(
+        self, mock_context, mock_telegram_service
+    ):
         mock_context.request_context.request.headers = {
             "X-Telegram-Token": "valid_token",
-            "X-Telegram-Channel": "@test_channel"
+            "X-Telegram-Channel": "@test_channel",
         }
         mock_telegram_service.send_message.return_value = True
-        
+
         message = "A" * 5000
-        
+
         def mock_get_service(token, channel):
             return mock_telegram_service
-        
+
         result = await post_to_telegram_impl(mock_context, message, mock_get_service)
-        
-        assert result == "Message successfully posted to the Telegram channel '@test_channel'"
+
+        assert (
+            result
+            == "Message successfully posted to the Telegram channel '@test_channel'"
+        )
         mock_telegram_service.send_message.assert_called_once_with(message)
 
     @pytest.mark.asyncio
-    async def test_post_to_telegram_special_characters_in_channel(self, mock_context, mock_telegram_service):
+    async def test_post_to_telegram_special_characters_in_channel(
+        self, mock_context, mock_telegram_service
+    ):
         special_channel = "@test_channel_123-test"
         mock_context.request_context.request.headers = {
             "X-Telegram-Token": "valid_token",
-            "X-Telegram-Channel": special_channel
+            "X-Telegram-Channel": special_channel,
         }
         mock_telegram_service.send_message.return_value = True
         message = "Test message"
-        
+
         def mock_get_service(token, channel):
             return mock_telegram_service
-        
+
         result = await post_to_telegram_impl(mock_context, message, mock_get_service)
-        
-        assert result == f"Message successfully posted to the Telegram channel '{special_channel}'"
+
+        assert (
+            result
+            == f"Message successfully posted to the Telegram channel '{special_channel}'"
+        )
         mock_telegram_service.send_message.assert_called_once_with(message)

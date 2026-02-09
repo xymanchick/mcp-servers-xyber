@@ -36,4 +36,3 @@ def test_api_generate_voice_file_download(monkeypatch):
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("audio/mpeg")
     assert resp.content == payload
-

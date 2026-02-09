@@ -3,13 +3,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_server_quill.api_routers import routers as api_routers
 from mcp_server_quill.dependencies import DependencyContainer
-from mcp_server_quill.x402_config import get_x402_settings
 from mcp_server_quill.hybrid_routers import routers as hybrid_routers
 from mcp_server_quill.mcp_routers import routers as mcp_only_routers
 from mcp_server_quill.middlewares.x402_wrapper import X402WrapperMiddleware
+from mcp_server_quill.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +38,11 @@ def create_app() -> FastAPI:
     # --- MCP Server Generation ---
     # Create a FastAPI app containing only MCP-exposed endpoints
     mcp_source_app = FastAPI(title="MCP Source")
-    
+
     # Add hybrid routers (REST + MCP)
     for router in hybrid_routers:
         mcp_source_app.include_router(router)
-        
+
     # Add MCP-only routers (MCP only)
     for router in mcp_only_routers:
         mcp_source_app.include_router(router)

@@ -8,16 +8,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from mcp_twitter.config import AppSettings, DatabaseConfig
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
-
-import logging
-from mcp_twitter.config import AppSettings, DatabaseConfig
 
 logger = logging.getLogger(__name__)
 from mcp_twitter.twitter import OutputFormat, QueryType
@@ -92,7 +91,9 @@ class Database:
         # Retry connection with exponential backoff
         for attempt in range(max_retries):
             try:
-                log.info(f"Attempting to connect to database (attempt {attempt + 1}/{max_retries})...")
+                log.info(
+                    f"Attempting to connect to database (attempt {attempt + 1}/{max_retries})..."
+                )
 
                 # Create database engine with connection pooling
                 self.engine = create_engine(
@@ -139,7 +140,9 @@ class Database:
                     log.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
-                    log.error(f"Failed to connect to database after {max_retries} attempts: {e}")
+                    log.error(
+                        f"Failed to connect to database after {max_retries} attempts: {e}"
+                    )
                     raise
             except Exception as e:
                 if attempt < max_retries - 1:
@@ -151,7 +154,9 @@ class Database:
                     log.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
-                    log.error(f"Failed to connect to database after {max_retries} attempts: {e}")
+                    log.error(
+                        f"Failed to connect to database after {max_retries} attempts: {e}"
+                    )
                     raise
 
     def get_cache_ttl(self, query_type: QueryType, sort: str | None = None) -> int:
@@ -169,7 +174,11 @@ class Database:
         db_config = settings.database
 
         if query_type == "topic":
-            return db_config.cache_ttl_topic_top if sort == "Top" else db_config.cache_ttl_topic_latest
+            return (
+                db_config.cache_ttl_topic_top
+                if sort == "Top"
+                else db_config.cache_ttl_topic_latest
+            )
         elif query_type == "profile":
             return db_config.cache_ttl_profile
         elif query_type == "replies":
@@ -194,7 +203,11 @@ class Database:
             return None
 
         with self.Session() as session:
-            entry = session.query(QueryCacheEntry).filter(QueryCacheEntry.query_key == query_key).first()
+            entry = (
+                session.query(QueryCacheEntry)
+                .filter(QueryCacheEntry.query_key == query_key)
+                .first()
+            )
             if not entry:
                 return None
 
@@ -226,7 +239,9 @@ class Database:
                 # Load tweet explicitly (in case of lazy loading issues)
                 tweet = session.query(Tweet).filter(Tweet.id == item.tweet_id).first()
                 if not tweet:
-                    log.warning(f"Tweet {item.tweet_id} not found for cache item {item.id}")
+                    log.warning(
+                        f"Tweet {item.tweet_id} not found for cache item {item.id}"
+                    )
                     continue
                 if output_format == "min":
                     # Return minimized format
@@ -240,7 +255,9 @@ class Database:
                         "likeCount": tweet.like_count,
                         "quoteCount": tweet.quote_count,
                         "viewCount": tweet.view_count,
-                        "createdAt": tweet.created_at.isoformat() if tweet.created_at else None,
+                        "createdAt": tweet.created_at.isoformat()
+                        if tweet.created_at
+                        else None,
                     }
                     tweet_dict = {k: v for k, v in tweet_dict.items() if v is not None}
 
@@ -252,7 +269,9 @@ class Database:
                             "name": tweet.author.name,
                             "url": tweet.author.url,
                         }
-                        author_dict = {k: v for k, v in author_dict.items() if v is not None}
+                        author_dict = {
+                            k: v for k, v in author_dict.items() if v is not None
+                        }
                         tweet_dict["author"] = author_dict
                 else:
                     # Return max format (raw_data if available, otherwise reconstruct)
@@ -270,7 +289,9 @@ class Database:
                             "likeCount": tweet.like_count,
                             "quoteCount": tweet.quote_count,
                             "viewCount": tweet.view_count,
-                            "createdAt": tweet.created_at.isoformat() if tweet.created_at else None,
+                            "createdAt": tweet.created_at.isoformat()
+                            if tweet.created_at
+                            else None,
                         }
                         if tweet.author:
                             tweet_dict["author"] = {
@@ -282,7 +303,9 @@ class Database:
 
                 tweets.append(tweet_dict)
 
-            log.info(f"Cache hit for query_key={query_key[:16]}... ({len(tweets)} items)")
+            log.info(
+                f"Cache hit for query_key={query_key[:16]}... ({len(tweets)} items)"
+            )
             return tweets
 
     def save_query_cache(
@@ -314,7 +337,11 @@ class Database:
 
         with self.Session() as session:
             # Create or update cache entry
-            entry = session.query(QueryCacheEntry).filter(QueryCacheEntry.query_key == query_key).first()
+            entry = (
+                session.query(QueryCacheEntry)
+                .filter(QueryCacheEntry.query_key == query_key)
+                .first()
+            )
             if entry:
                 # Update existing entry
                 entry.item_count = len(items)
@@ -322,7 +349,9 @@ class Database:
                 if dataset_id:
                     entry.dataset_id = dataset_id
                 # Delete old cache items
-                session.query(QueryCacheItem).filter(QueryCacheItem.query_key == query_key).delete()
+                session.query(QueryCacheItem).filter(
+                    QueryCacheItem.query_key == query_key
+                ).delete()
             else:
                 # Create new entry
                 entry = QueryCacheEntry(
@@ -349,14 +378,17 @@ class Database:
                     author_id = author_data.get("id")
                     if author_id:
                         author = (
-                            session.query(TweetAuthor).filter(TweetAuthor.id == author_id).first()
+                            session.query(TweetAuthor)
+                            .filter(TweetAuthor.id == author_id)
+                            .first()
                         )
                         if not author:
                             author = TweetAuthor(
                                 id=author_id,
                                 username=author_data.get("userName") or "",
                                 name=author_data.get("name"),
-                                url=author_data.get("url") or author_data.get("twitterUrl"),
+                                url=author_data.get("url")
+                                or author_data.get("twitterUrl"),
                             )
                             session.add(author)
                         else:
@@ -365,7 +397,9 @@ class Database:
                                 author.username = author_data["userName"]
                             if author_data.get("name"):
                                 author.name = author_data["name"]
-                            url = author_data.get("url") or author_data.get("twitterUrl")
+                            url = author_data.get("url") or author_data.get(
+                                "twitterUrl"
+                            )
                             if url:
                                 author.url = url
 
@@ -434,7 +468,7 @@ class Database:
                 return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
             except ValueError:
                 pass
-        
+
         # Try Twitter format: "Thu Dec 25 13:49:02 +0000 2025"
         if "+0000" in date_str or "-0000" in date_str or "+00:00" in date_str:
             parts = date_str.split()
@@ -451,8 +485,10 @@ class Database:
                     dt = datetime.strptime(date_part, "%b %d %Y %H:%M:%S")
                     return dt.replace(tzinfo=timezone.utc)
                 except (ValueError, IndexError) as parse_error:
-                    log.warning(f"Failed to parse Twitter date format '{date_str}': {parse_error}")
+                    log.warning(
+                        f"Failed to parse Twitter date format '{date_str}': {parse_error}"
+                    )
                     return None
-        
+
         log.warning(f"Unrecognized date format: '{date_str}'")
         return None

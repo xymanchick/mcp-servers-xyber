@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from mcp_twitter.twitter.models import QueryDefinition, SortOrder, TwitterScraperInput
+from mcp_twitter.twitter.models import (QueryDefinition, SortOrder,
+                                        TwitterScraperInput)
 from mcp_twitter.twitter.registry import QueryRegistry
 
 
@@ -170,5 +171,3 @@ def create_replies_query(
         ),
         output=f"replies_{_safe_slug(conversation_id)}_{ts}.json",
     )
-
-

@@ -2,12 +2,14 @@
 BaseModels for capturing external YouTube API responses.
 """
 
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
-from typing import Optional, List
 
 
 class YouTubeSearchResult(BaseModel):
     """BaseModel for YouTube search result from Apify YouTube Search actor."""
+
     id: Optional[str] = None
     video_id: Optional[str] = None
     display_id: Optional[str] = None
@@ -58,6 +60,7 @@ class YouTubeSearchResult(BaseModel):
 
 class ApifyTranscriptResult(BaseModel):
     """BaseModel for Apify transcript API response."""
+
     success: bool
     video_id: str
     transcript: Optional[str] = None
@@ -66,13 +69,15 @@ class ApifyTranscriptResult(BaseModel):
     error: Optional[str] = None
 
     @classmethod
-    def from_apify_response(cls, video_id: str, dataset_items: list[dict]) -> "ApifyTranscriptResult":
+    def from_apify_response(
+        cls, video_id: str, dataset_items: list[dict]
+    ) -> "ApifyTranscriptResult":
         """Create ApifyTranscriptResult from Apify dataset items."""
         if not dataset_items:
             return cls(
                 success=False,
                 video_id=video_id,
-                error="No transcript data returned from Apify"
+                error="No transcript data returned from Apify",
             )
 
         result = dataset_items[0]
@@ -92,7 +97,7 @@ class ApifyTranscriptResult(BaseModel):
             return cls(
                 success=False,
                 video_id=video_id,
-                error="No transcript segments found in Apify response"
+                error="No transcript segments found in Apify response",
             )
 
         text_parts = []
@@ -110,7 +115,7 @@ class ApifyTranscriptResult(BaseModel):
             return cls(
                 success=False,
                 video_id=video_id,
-                error="Could not extract text from transcript segments"
+                error="Could not extract text from transcript segments",
             )
 
         return cls(
@@ -135,4 +140,3 @@ class ApifyTranscriptResult(BaseModel):
         if not isinstance(key, str):
             return False
         return key in self.model_dump()
-

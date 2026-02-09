@@ -1,48 +1,47 @@
 import logging
 from functools import lru_cache
 from typing import Any
-from langchain_tavily import TavilySearch
 
+from langchain_tavily import TavilySearch
 from mcp_server_tavily.tavily.config import TavilyConfig
-from mcp_server_tavily.tavily.errors import (
-    TavilyApiError,
-    TavilyConfigError,
-    TavilyEmptyQueryError,
-    TavilyEmptyResultsError,
-    TavilyInvalidResponseError,
-    TavilyServiceError,
-)
-from mcp_server_tavily.tavily.models import TavilyApiResponse, TavilySearchResult
-from tenacity import (
-    RetryCallState,
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
+from mcp_server_tavily.tavily.errors import (TavilyApiError, TavilyConfigError,
+                                             TavilyEmptyQueryError,
+                                             TavilyEmptyResultsError,
+                                             TavilyInvalidResponseError,
+                                             TavilyServiceError)
+from mcp_server_tavily.tavily.models import (TavilyApiResponse,
+                                             TavilySearchResult)
+from tenacity import (RetryCallState, retry, retry_if_exception_type,
+                      stop_after_attempt, wait_exponential)
 
 logger = logging.getLogger(__name__)
 
 
-def final_failure_callback(retry_state:RetryCallState):
+def final_failure_callback(retry_state: RetryCallState):
     exception: BaseException | None = None
     result = None
     if retry_state.outcome:
         exception = retry_state.outcome.exception()
         if not exception:
             result = retry_state.outcome.result()
-    logger.error(f"Failed to retry after #{retry_state.attempt_number} attempts.  Cause: {str(type(exception).__name__) + '<-' + str(exception) if exception else ("function returned "+str(result))}.")
+    logger.error(
+        f"Failed to retry after #{retry_state.attempt_number} attempts.  Cause: {str(type(exception).__name__) + '<-' + str(exception) if exception else ('function returned ' + str(result))}."
+    )
     if exception:
         raise exception
 
-def retry_callback(retry_state:RetryCallState):
-    exception: BaseException | None  = None
+
+def retry_callback(retry_state: RetryCallState):
+    exception: BaseException | None = None
     result = None
     if retry_state.outcome:
-        exception= retry_state.outcome.exception()
+        exception = retry_state.outcome.exception()
         if not exception:
             result = retry_state.outcome.result()
-    logger.warning(f"Retry #{retry_state.attempt_number}. Cause: {str(type(exception).__name__) + '<-' + str(exception) if exception else ("function returned "+str(result))}. Time until next retry: {retry_state.upcoming_sleep}.")
+    logger.warning(
+        f"Retry #{retry_state.attempt_number}. Cause: {str(type(exception).__name__) + '<-' + str(exception) if exception else ('function returned ' + str(result))}. Time until next retry: {retry_state.upcoming_sleep}."
+    )
+
 
 @retry(
     stop=stop_after_attempt(5),
@@ -56,6 +55,7 @@ async def _ainvoke_with_retry(tool: TavilySearch, query: str) -> dict[str, Any]:
         return await tool.ainvoke(query)
     except Exception as e:
         raise TavilyApiError(f"Search failed<-{type(e).__name__}<-{e}") from e
+
 
 class _TavilyService:
     """Encapsulates Tavily client logic and configuration."""
@@ -166,7 +166,9 @@ class _TavilyService:
 
         if not search_results:
             logger.warning("Tavily response could not be converted to search results.")
-            raise TavilyEmptyResultsError("No results were found for this search query.")
+            raise TavilyEmptyResultsError(
+                "No results were found for this search query."
+            )
 
         logger.info(
             f"Tavily search successful, processed {len(search_results)} results."

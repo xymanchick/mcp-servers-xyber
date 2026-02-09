@@ -17,7 +17,9 @@ def test_output_filename_uses_explicit_output_and_adds_json_extension() -> None:
     assert q.output_filename() == "my_file.json"
 
 
-def test_output_filename_autogenerates_safe_filename_with_timestamp(monkeypatch) -> None:
+def test_output_filename_autogenerates_safe_filename_with_timestamp(
+    monkeypatch,
+) -> None:
     class FakeDatetime:
         @classmethod
         def now(cls):  # noqa: ANN001
@@ -37,5 +39,3 @@ def test_output_filename_autogenerates_safe_filename_with_timestamp(monkeypatch)
     out = q.output_filename()
     assert out == "twitter_results_hello_world_again_20250101_010203.json"
     assert re.match(r"^twitter_results_.*\.json$", out)
-
-

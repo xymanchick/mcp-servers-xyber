@@ -1,8 +1,9 @@
 import logging
 import sys
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from mcp_server_deepresearcher.deepresearcher.utils import initialize_llm, initialize_llm_from_config
+from mcp_server_deepresearcher.deepresearcher.utils import (
+    initialize_llm, initialize_llm_from_config)
 
 logger = logging.getLogger(__name__)
 

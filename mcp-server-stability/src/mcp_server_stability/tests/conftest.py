@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 
 @pytest.fixture
@@ -7,7 +8,7 @@ def sample_api_key():
     return "sk-test-api-key-12345"
 
 
-@pytest.fixture  
+@pytest.fixture
 def sample_url():
     return "https://api.stability.ai/v2beta/stable-image/generate/core"
 
@@ -22,11 +23,7 @@ def mock_stability_config(sample_api_key, sample_url):
 
 @pytest.fixture
 def sample_generation_params():
-    return {
-        "prompt": "A beautiful landscape",
-        "width": 512,
-        "height": 512
-    }
+    return {"prompt": "A beautiful landscape", "width": 512, "height": 512}
 
 
 @pytest.fixture

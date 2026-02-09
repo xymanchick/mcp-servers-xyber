@@ -1,17 +1,17 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
-
-from mcp_server_twitter.twitter.module import AsyncTwitterClient, is_retryable_tweepy_error, get_twitter_client
-from tweepy.errors import TweepyException
 import requests
-import asyncio
+from mcp_server_twitter.twitter.module import (AsyncTwitterClient,
+                                               get_twitter_client,
+                                               is_retryable_tweepy_error)
 from tenacity import retry, stop_after_attempt
-
-
+from tweepy.errors import TweepyException
 
 # --- Retry Logic Tests (slower, but necessary) ---
+
 
 @pytest.mark.asyncio
 async def test_create_tweet_retries_on_aiohttp_client_error(
@@ -81,6 +81,7 @@ async def test_create_tweet_fails_after_max_retries(mock_config, mocker):
 
 # --- Fast Functional Tests (bypassing retry logic) ---
 
+
 @pytest.mark.asyncio
 async def test_create_tweet_success_basic(mock_config, mocker):
     """Test basic tweet creation without retry delays."""
@@ -91,7 +92,9 @@ async def test_create_tweet_success_basic(mock_config, mocker):
     mocker.patch.object(twitter_client, "client", mock_async_client)
 
     # Act - call the wrapped method directly to bypass retry
-    tweet_id = await twitter_client.create_tweet.__wrapped__(twitter_client, text="Hello world")
+    tweet_id = await twitter_client.create_tweet.__wrapped__(
+        twitter_client, text="Hello world"
+    )
 
     # Assert
     assert tweet_id == "12345"
@@ -174,7 +177,9 @@ async def test_retweet_success_fast(mock_config, mocker):
     mocker.patch.object(twitter_client, "client", mock_async_client)
 
     # Act - call wrapped method directly
-    result = await twitter_client.retweet_tweet.__wrapped__(twitter_client, tweet_id="123")
+    result = await twitter_client.retweet_tweet.__wrapped__(
+        twitter_client, tweet_id="123"
+    )
 
     # Assert
     assert result == "Successfully retweet post 123"
@@ -182,7 +187,9 @@ async def test_retweet_success_fast(mock_config, mocker):
 
 
 @pytest.mark.asyncio
-async def test_create_tweet_success_with_media(mock_config, sample_base64_image, mocker):
+async def test_create_tweet_success_with_media(
+    mock_config, sample_base64_image, mocker
+):
     """Test creating a tweet with an image successfully."""
     # Arrange
     twitter_client = AsyncTwitterClient(config=mock_config)
@@ -197,7 +204,9 @@ async def test_create_tweet_success_with_media(mock_config, sample_base64_image,
 
     # Act - call wrapped method directly for speed
     tweet_id = await twitter_client.create_tweet.__wrapped__(
-        twitter_client, text="A tweet with an image", image_content_str=sample_base64_image
+        twitter_client,
+        text="A tweet with an image",
+        image_content_str=sample_base64_image,
     )
 
     # Assert
@@ -222,10 +231,10 @@ async def test_create_tweet_success_with_poll(mock_config, sample_tweet_data, mo
 
     # Act - call wrapped method directly for speed
     tweet_id = await twitter_client.create_tweet.__wrapped__(
-        twitter_client, 
-        text="A poll", 
+        twitter_client,
+        text="A poll",
         poll_options=sample_tweet_data["poll_options"][:2],  # Use first 2 options
-        poll_duration=sample_tweet_data["poll_duration"]
+        poll_duration=sample_tweet_data["poll_duration"],
     )
 
     # Assert
@@ -308,7 +317,9 @@ async def test_get_user_tweets_401_error_logs_details(mock_config, mocker, caplo
 
 
 @pytest.mark.asyncio
-async def test_search_hashtag_success_and_adds_hash(mock_config, sample_tweet_data, mocker):
+async def test_search_hashtag_success_and_adds_hash(
+    mock_config, sample_tweet_data, mocker
+):
     """Test a successful hashtag search and that '#' is added if missing."""
     # Arrange
     twitter_client = AsyncTwitterClient(config=mock_config)
@@ -372,6 +383,7 @@ async def test_get_trends_handles_api_error(mock_config, mocker):
 
 # --- Tests for is_retryable_tweepy_error function ---
 
+
 def test_is_retryable_tweepy_error_non_tweepy_exception():
     """Test that non-TweepyException returns False."""
     # Arrange & Act & Assert
@@ -383,7 +395,7 @@ def test_is_retryable_tweepy_error_no_response():
     """Test TweepyException without response returns False."""
     # Arrange
     exception = TweepyException("Error without response")
-    
+
     # Act & Assert
     assert not is_retryable_tweepy_error(exception)
 
@@ -395,7 +407,7 @@ def test_is_retryable_tweepy_error_4xx_status():
     mock_response.status_code = 400
     exception = TweepyException("Bad Request")
     exception.response = mock_response
-    
+
     # Act & Assert
     assert not is_retryable_tweepy_error(exception)
 
@@ -407,12 +419,13 @@ def test_is_retryable_tweepy_error_5xx_status():
     mock_response.status_code = 503
     exception = TweepyException("Service Unavailable")
     exception.response = mock_response
-    
+
     # Act & Assert
     assert is_retryable_tweepy_error(exception)
 
 
 # --- Tests for follow_user method ---
+
 
 @pytest.mark.asyncio
 async def test_follow_user_success(mock_config, mocker):
@@ -422,10 +435,10 @@ async def test_follow_user_success(mock_config, mocker):
     mock_async_client = AsyncMock()
     mock_async_client.follow_user.return_value = AsyncMock()
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act
     result = await twitter_client.follow_user("test_user_id")
-    
+
     # Assert
     assert result == "Successfully followed user: test_user_id"
     mock_async_client.follow_user.assert_awaited_once_with(user_id="test_user_id")
@@ -440,15 +453,16 @@ async def test_follow_user_failure(mock_config, mocker, caplog):
     mock_async_client = AsyncMock()
     mock_async_client.follow_user.side_effect = Exception("Follow failed")
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act & Assert
     with pytest.raises(Exception, match="Follow failed"):
         await twitter_client.follow_user("test_user_id")
-    
+
     assert "Failed to follow user test_user_id" in caplog.text
 
 
 # --- Tests for get_user_tweets method ---
+
 
 @pytest.mark.asyncio
 async def test_get_user_tweets_success(mock_config, mock_user_tweets_response, mocker):
@@ -458,41 +472,40 @@ async def test_get_user_tweets_success(mock_config, mock_user_tweets_response, m
     mock_async_client = AsyncMock()
     mock_async_client.get_users_tweets.return_value = mock_user_tweets_response
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act
     result = await twitter_client.get_user_tweets("test_user", max_results=5)
-    
+
     # Assert
     assert result == mock_user_tweets_response
     mock_async_client.get_users_tweets.assert_awaited_once_with(
-        id="test_user",
-        max_results=5,
-        tweet_fields=["id", "text", "created_at"]
+        id="test_user", max_results=5, tweet_fields=["id", "text", "created_at"]
     )
 
 
 @pytest.mark.asyncio
-async def test_get_user_tweets_default_max_results(mock_config, mock_user_tweets_response, mocker):
+async def test_get_user_tweets_default_max_results(
+    mock_config, mock_user_tweets_response, mocker
+):
     """Test get_user_tweets with default max_results."""
     # Arrange
     twitter_client = AsyncTwitterClient(config=mock_config)
     mock_async_client = AsyncMock()
     mock_async_client.get_users_tweets.return_value = mock_user_tweets_response
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act
     result = await twitter_client.get_user_tweets("test_user")
-    
+
     # Assert
     assert result == mock_user_tweets_response
     mock_async_client.get_users_tweets.assert_awaited_once_with(
-        id="test_user",
-        max_results=10,
-        tweet_fields=["id", "text", "created_at"]
+        id="test_user", max_results=10, tweet_fields=["id", "text", "created_at"]
     )
 
 
 # --- Tests for search_hashtag edge cases ---
+
 
 @pytest.mark.asyncio
 async def test_search_hashtag_no_results(mock_config, mocker):
@@ -502,10 +515,10 @@ async def test_search_hashtag_no_results(mock_config, mocker):
     mock_async_client = AsyncMock()
     mock_async_client.search_recent_tweets.return_value = MagicMock(data=None)
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act
     result = await twitter_client.search_hashtag("nonexistent")
-    
+
     # Assert
     assert result == []
 
@@ -518,10 +531,10 @@ async def test_search_hashtag_empty_response(mock_config, mocker):
     mock_async_client = AsyncMock()
     mock_async_client.search_recent_tweets.return_value = None
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act
     result = await twitter_client.search_hashtag("empty")
-    
+
     # Assert
     assert result == []
 
@@ -534,14 +547,14 @@ async def test_search_hashtag_max_results_clamping(mock_config, mocker):
     mock_async_client = AsyncMock()
     mock_async_client.search_recent_tweets.return_value = MagicMock(data=[])
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act
     await twitter_client.search_hashtag("test", max_results=5)  # Below minimum
     call_args_low = mock_async_client.search_recent_tweets.call_args
-    
+
     await twitter_client.search_hashtag("test", max_results=150)  # Above maximum
     call_args_high = mock_async_client.search_recent_tweets.call_args
-    
+
     # Assert
     assert call_args_low.kwargs["max_results"] == 10
     assert call_args_high.kwargs["max_results"] == 100
@@ -556,15 +569,16 @@ async def test_search_hashtag_failure(mock_config, mocker, caplog):
     mock_async_client = AsyncMock()
     mock_async_client.search_recent_tweets.side_effect = Exception("Search failed")
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act & Assert
     with pytest.raises(Exception, match="Search failed"):
         await twitter_client.search_hashtag("test")
-    
+
     assert "Error searching hashtag #test" in caplog.text
 
 
 # --- Tests for initialize method ---
+
 
 @pytest.mark.asyncio
 async def test_initialize_success(mock_config, mocker, caplog):
@@ -576,10 +590,10 @@ async def test_initialize_success(mock_config, mocker, caplog):
     mock_user = MagicMock(data={"username": "test_user"})
     mock_async_client.get_me.return_value = mock_user
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act
     result = await twitter_client.initialize()
-    
+
     # Assert
     assert result == twitter_client
     assert "Successfully authenticated as: test_user" in caplog.text
@@ -594,15 +608,16 @@ async def test_initialize_failure(mock_config, mocker, caplog):
     mock_async_client = AsyncMock()
     mock_async_client.get_me.side_effect = Exception("Auth failed")
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act & Assert
     with pytest.raises(Exception, match="Auth failed"):
         await twitter_client.initialize()
-    
+
     assert "Failed to authenticate: Auth failed" in caplog.text
 
 
 # --- Tests for create_tweet edge cases ---
+
 
 @pytest.mark.asyncio
 async def test_create_tweet_text_truncation(mock_config, mocker):
@@ -612,12 +627,12 @@ async def test_create_tweet_text_truncation(mock_config, mocker):
     mock_async_client = AsyncMock()
     mock_async_client.create_tweet.return_value = MagicMock(data={"id": "123"})
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     long_text = "A" * 350  # Longer than 280 chars
-    
+
     # Act
     await twitter_client.create_tweet(text=long_text)
-    
+
     # Assert
     call_args = mock_async_client.create_tweet.call_args
     assert len(call_args.kwargs["text"]) == 280
@@ -633,10 +648,10 @@ async def test_create_tweet_media_disabled(mock_config, mocker):
     mock_async_client = AsyncMock()
     mock_async_client.create_tweet.return_value = MagicMock(data={"id": "123"})
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act
     await twitter_client.create_tweet(text="Test", image_content_str="base64image")
-    
+
     # Assert
     call_args = mock_async_client.create_tweet.call_args
     assert call_args.kwargs["media_ids"] is None
@@ -650,14 +665,12 @@ async def test_create_tweet_with_reply_and_quote(mock_config, mocker):
     mock_async_client = AsyncMock()
     mock_async_client.create_tweet.return_value = MagicMock(data={"id": "123"})
     mocker.patch.object(twitter_client, "client", mock_async_client)
-    
+
     # Act
     await twitter_client.create_tweet(
-        text="Test reply",
-        in_reply_to_tweet_id="reply123",
-        quote_tweet_id="quote456"
+        text="Test reply", in_reply_to_tweet_id="reply123", quote_tweet_id="quote456"
     )
-    
+
     # Assert
     call_args = mock_async_client.create_tweet.call_args
     assert call_args.kwargs["in_reply_to_tweet_id"] == "reply123"
@@ -666,16 +679,17 @@ async def test_create_tweet_with_reply_and_quote(mock_config, mocker):
 
 # --- Tests for get_trends edge cases ---
 
+
 @pytest.mark.asyncio
 async def test_get_trends_unknown_country(mock_config, caplog):
     """Test get_trends with unknown country."""
     # Arrange
     caplog.set_level(logging.ERROR)
     twitter_client = AsyncTwitterClient(config=mock_config)
-    
+
     # Act
     result = await twitter_client.get_trends(["UnknownCountry"])
-    
+
     # Assert
     assert result == {}
     assert "woeid for UnknownCountry not found" in caplog.text
@@ -687,7 +701,7 @@ async def test_get_trends_no_bearer_token(mock_config):
     # Arrange
     mock_config.BEARER_TOKEN = None
     twitter_client = AsyncTwitterClient(config=mock_config)
-    
+
     # Act & Assert
     with pytest.raises(ValueError, match="Bearer token not configured"):
         await twitter_client.get_trends(["Egypt"])
@@ -700,13 +714,13 @@ async def test_get_trends_network_exception(mock_config):
     twitter_client = AsyncTwitterClient(config=mock_config)
     egypt_woeid = 23424802
     url = f"https://api.twitter.com/2/trends/by/woeid/{egypt_woeid}?max_trends=50"
-    
+
     with aioresponses() as m:
         m.get(url, exception=aiohttp.ClientError("Network error"))
-        
+
         # Act
         result = await twitter_client.get_trends(["Egypt"])
-        
+
         # Assert
         assert "Error retrieving trends" in result["Egypt"][0]
         assert "Network error" in result["Egypt"][0]
@@ -719,19 +733,22 @@ async def test_get_trends_multiple_countries(mock_config, sample_tweet_data):
     twitter_client = AsyncTwitterClient(config=mock_config)
     egypt_woeid = 23424802
     france_woeid = 23424819
-    
+
     egypt_url = f"https://api.twitter.com/2/trends/by/woeid/{egypt_woeid}?max_trends=20"
-    france_url = f"https://api.twitter.com/2/trends/by/woeid/{france_woeid}?max_trends=20"
-    
+    france_url = (
+        f"https://api.twitter.com/2/trends/by/woeid/{france_woeid}?max_trends=20"
+    )
+
     with aioresponses() as m:
         m.get(egypt_url, payload={"data": [{"trend_name": "#Cairo"}]})
         m.get(france_url, payload={"data": [{"trend_name": "#Paris"}]})
-        
+
         # Act - use sample countries from fixture
         result = await twitter_client.get_trends(
-            sample_tweet_data["countries"][:2], max_trends=20  # Use Egypt, France
+            sample_tweet_data["countries"][:2],
+            max_trends=20,  # Use Egypt, France
         )
-        
+
         # Assert
         assert result["Egypt"] == ["#Cairo"]
         assert result["France"] == ["#Paris"]
@@ -739,14 +756,16 @@ async def test_get_trends_multiple_countries(mock_config, sample_tweet_data):
 
 # --- Tests for get_twitter_client singleton ---
 
+
 @pytest.mark.asyncio
 async def test_get_twitter_client_singleton():
     """Test that get_twitter_client returns the same instance."""
     # Reset the global client
     import mcp_server_twitter.twitter.module as module
+
     module._twitter_client = None
-    
-    with patch('mcp_server_twitter.twitter.config.TwitterConfig') as mock_config_class:
+
+    with patch("mcp_server_twitter.twitter.config.TwitterConfig") as mock_config_class:
         mock_config = MagicMock()
         mock_config.API_KEY = "test_key"
         mock_config.API_SECRET_KEY = "test_secret"
@@ -754,25 +773,28 @@ async def test_get_twitter_client_singleton():
         mock_config.ACCESS_TOKEN_SECRET = "test_token_secret"
         mock_config.BEARER_TOKEN = "test_bearer"
         mock_config_class.return_value = mock_config
-        
-        with patch.object(AsyncTwitterClient, 'initialize') as mock_init:
+
+        with patch.object(AsyncTwitterClient, "initialize") as mock_init:
             # We need to create a real client but mock the initialize method
-            with patch('tweepy.asynchronous.AsyncClient'), \
-                 patch('tweepy.API'), \
-                 patch('tweepy.OAuth1UserHandler'):
+            with (
+                patch("tweepy.asynchronous.AsyncClient"),
+                patch("tweepy.API"),
+                patch("tweepy.OAuth1UserHandler"),
+            ):
                 mock_client = AsyncTwitterClient(mock_config)
                 mock_init.return_value = mock_client
-                
+
                 # Act
                 client1 = await get_twitter_client()
                 client2 = await get_twitter_client()
-                
+
                 # Assert
                 assert client1 is client2
                 mock_init.assert_called_once()
 
 
 # --- Tests for _upload_media method ---
+
 
 @pytest.mark.asyncio
 async def test_upload_media_success(mock_config, mocker):
@@ -782,16 +804,16 @@ async def test_upload_media_success(mock_config, mocker):
     mock_media = MagicMock(media_id="media123")
     mock_run_sync = mocker.patch("anyio.to_thread.run_sync", new_callable=AsyncMock)
     mock_run_sync.return_value = mock_media
-    
+
     # Act
     result = await twitter_client._upload_media("base64string")
-    
+
     # Assert
     assert result.media_id == "media123"
     mock_run_sync.assert_awaited_once()
 
 
-@pytest.mark.asyncio 
+@pytest.mark.asyncio
 async def test_upload_media_retries_on_tweepy_5xx(mock_config, mocker):
     """Test that media upload retries on TweepyException with 5xx status."""
     # Arrange
@@ -800,14 +822,14 @@ async def test_upload_media_retries_on_tweepy_5xx(mock_config, mocker):
     mock_response.status_code = 502
     tweepy_exception = TweepyException("Bad Gateway")
     tweepy_exception.response = mock_response
-    
+
     mock_media = MagicMock(media_id="media123")
     mock_run_sync = mocker.patch("anyio.to_thread.run_sync", new_callable=AsyncMock)
     mock_run_sync.side_effect = [tweepy_exception, mock_media]
-    
+
     # Act
     result = await twitter_client._upload_media("base64string")
-    
+
     # Assert
     assert result.media_id == "media123"
     assert mock_run_sync.call_count == 2

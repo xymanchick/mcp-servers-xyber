@@ -24,4 +24,3 @@ def test_app_mounts_expected_routes():
 
     # MCP is mounted as a sub-app
     assert any(isinstance(r, Mount) and r.path == "/mcp" for r in app.routes)
-

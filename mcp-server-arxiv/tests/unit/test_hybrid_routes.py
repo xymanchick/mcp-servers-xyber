@@ -4,7 +4,6 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-
 from mcp_server_arxiv.dependencies import get_arxiv_client
 from mcp_server_arxiv.hybrid_routers.search import arxiv_search
 from mcp_server_arxiv.hybrid_routers.search import router as search_router
@@ -180,12 +179,12 @@ async def test_arxiv_search_by_id_returns_single_result() -> None:
     """Test searching by arxiv_id returns a single paper result."""
     request = SearchRequest(arxiv_id="1706.03762", max_text_length=1000)
     client = StubArxivClient()
-    
+
     result = await arxiv_search(
         search=request,
         arxiv_client=client,
     )
-    
+
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], ArxivPaperResponse)
@@ -213,4 +212,3 @@ async def test_arxiv_search_both_query_and_id_returns_422() -> None:
             json={"query": "test", "arxiv_id": "1706.03762"},
         )
         assert response.status_code == 422
-

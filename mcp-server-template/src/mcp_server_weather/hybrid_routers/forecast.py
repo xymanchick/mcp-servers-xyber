@@ -16,7 +16,6 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-
 from mcp_server_weather.dependencies import get_weather_client
 from mcp_server_weather.schemas import ForecastDayResponse, ForecastResponse
 from mcp_server_weather.weather import WeatherClient

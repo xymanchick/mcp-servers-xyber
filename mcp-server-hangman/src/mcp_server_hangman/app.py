@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_server_hangman.api_routers import routers as api_routers
 from mcp_server_hangman.dependencies import DependencyContainer
 from mcp_server_hangman.hybrid_routers import routers as hybrid_routers
@@ -29,7 +28,6 @@ async def app_lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-
     mcp_source_app = FastAPI(title="MCP Source")
     for router in hybrid_routers:
         mcp_source_app.include_router(router)

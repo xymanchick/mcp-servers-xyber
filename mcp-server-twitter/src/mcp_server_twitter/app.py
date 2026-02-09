@@ -12,17 +12,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_server_twitter.api_routers import routers as api_routers
 from mcp_server_twitter.hybrid_routers import routers as hybrid_routers
-from mcp_server_twitter.mcp_routers import routers as mcp_routers
-from mcp_server_twitter.x402_config import get_x402_settings
-from mcp_server_twitter.twitter import AsyncTwitterClient, get_twitter_client
 from mcp_server_twitter.logging_config import get_logger
-from mcp_server_twitter.metrics import (
-    get_metrics_collector,
-    get_health_checker,
-)
+from mcp_server_twitter.mcp_routers import routers as mcp_routers
+from mcp_server_twitter.metrics import (get_health_checker,
+                                        get_metrics_collector)
+from mcp_server_twitter.twitter import AsyncTwitterClient, get_twitter_client
+from mcp_server_twitter.x402_config import get_x402_settings
 
 logger = get_logger(__name__)
 
@@ -43,7 +40,7 @@ async def periodic_metrics_logging(interval_seconds: int):
             health_status = health_checker.get_health_status()
             logger.info(
                 f"Health check: {health_status['status']}",
-                extra={'health_status': health_status}
+                extra={"health_status": health_status},
             )
 
         except asyncio.CancelledError:
@@ -52,8 +49,8 @@ async def periodic_metrics_logging(interval_seconds: int):
         except Exception as e:
             logger.error(
                 "Error in periodic metrics logging",
-                extra={'error_type': type(e).__name__},
-                exc_info=True
+                extra={"error_type": type(e).__name__},
+                exc_info=True,
             )
 
 
@@ -72,7 +69,9 @@ async def app_lifespan(app: FastAPI):
     # Start metrics logging task if enabled
     metrics_task = None
     if os.getenv("ENABLE_METRICS", "true").lower() in ("true", "1", "yes"):
-        metrics_interval = int(os.getenv("METRICS_LOG_INTERVAL", "300"))  # 5 minutes default
+        metrics_interval = int(
+            os.getenv("METRICS_LOG_INTERVAL", "300")
+        )  # 5 minutes default
         metrics_task = asyncio.create_task(periodic_metrics_logging(metrics_interval))
         logger.info(f"Metrics logging enabled with {metrics_interval}s interval")
 
@@ -88,9 +87,9 @@ async def app_lifespan(app: FastAPI):
         logger.info(
             "Server startup completed",
             extra={
-                'startup_health': health_status,
-                'client_type': type(twitter_client).__name__
-            }
+                "startup_health": health_status,
+                "client_type": type(twitter_client).__name__,
+            },
         )
 
         logger.info("Lifespan: Services initialized successfully.")
@@ -100,10 +99,10 @@ async def app_lifespan(app: FastAPI):
         logger.error(
             "FATAL: Server startup failed",
             extra={
-                'error_type': type(init_err).__name__,
-                'error_message': str(init_err)
+                "error_type": type(init_err).__name__,
+                "error_message": str(init_err),
             },
-            exc_info=True
+            exc_info=True,
         )
         raise init_err
 
@@ -199,6 +198,7 @@ def create_app() -> FastAPI:
     # --- Middleware Configuration ---
     if x402_settings.pricing_mode == "on":
         from mcp_server_twitter.middlewares import X402WrapperMiddleware
+
         app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
         logger.info("x402 payment middleware enabled.")
     else:

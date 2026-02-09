@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
 from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class ImageGenerationRequest(BaseModel):
@@ -28,25 +29,28 @@ class ImageGenerationRequest(BaseModel):
         description="Seed for reproducible generation. Set to 0 for a random seed.",
     )
 
-    style_preset: Literal[
-        "3d-model",
-        "analog-film",
-        "anime",
-        "cinematic",
-        "comic-book",
-        "digital-art",
-        "enhance",
-        "fantasy-art",
-        "isometric",
-        "line-art",
-        "low-poly",
-        "modeling-compound",
-        "neon-punk",
-        "origami",
-        "photographic",
-        "pixel-art",
-        "tile-texture",
-    ] | None = Field(
+    style_preset: (
+        Literal[
+            "3d-model",
+            "analog-film",
+            "anime",
+            "cinematic",
+            "comic-book",
+            "digital-art",
+            "enhance",
+            "fantasy-art",
+            "isometric",
+            "line-art",
+            "low-poly",
+            "modeling-compound",
+            "neon-punk",
+            "origami",
+            "photographic",
+            "pixel-art",
+            "tile-texture",
+        ]
+        | None
+    ) = Field(
         default=None,
         description="Predefined style preset to guide the image generation. E.g., 'photographic', 'anime'.",
     )

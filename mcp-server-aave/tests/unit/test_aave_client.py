@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import aiohttp
 import pytest
 from aioresponses import aioresponses
-
 from mcp_server_aave.aave.config import (AaveApiError, AaveClientError,
                                          AaveConfigError, get_aave_config)
 from mcp_server_aave.aave.models import (AssetData, PoolData, ReserveData,

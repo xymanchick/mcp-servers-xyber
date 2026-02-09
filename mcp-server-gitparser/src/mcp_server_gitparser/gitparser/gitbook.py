@@ -35,11 +35,15 @@ def get_base_url(url: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}{parsed.path.rstrip('/')}"
 
 
-async def fetch_llms_full(session: aiohttp.ClientSession, base_url: str) -> Optional[str]:
+async def fetch_llms_full(
+    session: aiohttp.ClientSession, base_url: str
+) -> Optional[str]:
     llm_url = f"{base_url}/llms-full.txt"
     logger.info("Checking for native LLM support at: %s", llm_url)
     try:
-        async with session.get(llm_url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+        async with session.get(
+            llm_url, timeout=aiohttp.ClientTimeout(total=10)
+        ) as response:
             if response.status == 200:
                 logger.info("Found native /llms-full.txt!")
                 return await response.text()
@@ -73,7 +77,9 @@ def extract_title(html: str) -> str:
 
 async def fetch_page(session: aiohttp.ClientSession, url: str) -> Optional[str]:
     try:
-        async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+        async with session.get(
+            url, timeout=aiohttp.ClientTimeout(total=10)
+        ) as response:
             if response.status == 200:
                 return await response.text()
     except Exception as e:  # noqa: BLE001
@@ -97,7 +103,11 @@ async def crawl_gitbook(
     seen = {base_url}
 
     pages_data: List[Dict[str, str]] = [
-        {"url": base_url, "title": extract_title(html), "content": extract_content(html)}
+        {
+            "url": base_url,
+            "title": extract_title(html),
+            "content": extract_content(html),
+        }
     ]
 
     urls_to_fetch: List[str] = []
@@ -110,7 +120,9 @@ async def crawl_gitbook(
                 seen.add(clean_url)
                 urls_to_fetch.append(clean_url)
 
-    results = await asyncio.gather(*(fetch_page(session, url) for url in urls_to_fetch), return_exceptions=True)
+    results = await asyncio.gather(
+        *(fetch_page(session, url) for url in urls_to_fetch), return_exceptions=True
+    )
 
     for url, html_content in zip(urls_to_fetch, results, strict=False):
         if isinstance(html_content, Exception):
@@ -121,7 +133,9 @@ async def crawl_gitbook(
         content = extract_content(html_content)
         if not content:
             continue
-        pages_data.append({"url": url, "title": extract_title(html_content), "content": content})
+        pages_data.append(
+            {"url": url, "title": extract_title(html_content), "content": content}
+        )
 
     if return_json:
         return pages_data
@@ -150,4 +164,3 @@ async def convert_gitbook_to_markdown(gitbook_url: str) -> str:
             return crawled_content
 
     raise RuntimeError(f"Failed to fetch content from {gitbook_url}")
-

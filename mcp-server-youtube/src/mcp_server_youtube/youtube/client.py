@@ -6,14 +6,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from functools import lru_cache
 from datetime import datetime
+from functools import lru_cache
 
 from apify_client import ApifyClient
 from apify_client.errors import ApifyApiError
-
 from mcp_server_youtube.config import get_app_settings
-from mcp_server_youtube.youtube.api_models import YouTubeSearchResult, ApifyTranscriptResult
+from mcp_server_youtube.youtube.api_models import (ApifyTranscriptResult,
+                                                   YouTubeSearchResult)
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class YouTubeVideoSearchAndTranscript:
         """
         settings = get_app_settings()
         self.delay = delay_between_requests or settings.youtube.delay_between_requests
-        
+
         # Rely on Pydantic BaseSettings - no hidden logic
         if apify_api_token is not None:
             self.apify_api_token = apify_api_token
@@ -76,7 +76,11 @@ class YouTubeVideoSearchAndTranscript:
     def _video_id_from(self, video) -> str | None:
         if isinstance(video, dict):
             return video.get("video_id") or video.get("id") or video.get("display_id")
-        return getattr(video, "video_id", None) or getattr(video, "id", None) or getattr(video, "display_id", None)
+        return (
+            getattr(video, "video_id", None)
+            or getattr(video, "id", None)
+            or getattr(video, "display_id", None)
+        )
 
     def _video_field(self, video, field: str, default=None):
         if isinstance(video, dict):
@@ -121,7 +125,9 @@ class YouTubeVideoSearchAndTranscript:
             max_results = settings.youtube.max_results
 
         if not self.apify_client:
-            logger.error("❌ Apify client not initialized. APIFY_TOKEN is required for search.")
+            logger.error(
+                "❌ Apify client not initialized. APIFY_TOKEN is required for search."
+            )
             return []
 
         actor_id = "qoA27OkGHoMSJGBtf"
@@ -146,10 +152,12 @@ class YouTubeVideoSearchAndTranscript:
             def run_apify_search():
                 logger.info(f"🚀 Calling Apify Actor: {actor_id}")
                 run = self.apify_client.actor(actor_id).call(run_input=run_input)
-                
+
                 # Fetch Actor results from the run's dataset
                 items = []
-                for item in self.apify_client.dataset(run["defaultDatasetId"]).iterate_items():
+                for item in self.apify_client.dataset(
+                    run["defaultDatasetId"]
+                ).iterate_items():
                     items.append(item)
                 return items
 
@@ -173,15 +181,26 @@ class YouTubeVideoSearchAndTranscript:
                     continue
 
                 # Extract video URL
-                video_url = item.get("url") or item.get("videoUrl") or f"https://www.youtube.com/watch?v={video_id}"
+                video_url = (
+                    item.get("url")
+                    or item.get("videoUrl")
+                    or f"https://www.youtube.com/watch?v={video_id}"
+                )
 
                 # Normalize upload_date format if present
-                upload_date = item.get("uploadDate") or item.get("upload_date") or item.get("publishedAt") or item.get("published_at")
+                upload_date = (
+                    item.get("uploadDate")
+                    or item.get("upload_date")
+                    or item.get("publishedAt")
+                    or item.get("published_at")
+                )
                 if upload_date and isinstance(upload_date, str):
                     # Try to parse various date formats
                     try:
                         if "T" in upload_date:
-                            upload_date_obj = datetime.fromisoformat(upload_date.replace("Z", "+00:00"))
+                            upload_date_obj = datetime.fromisoformat(
+                                upload_date.replace("Z", "+00:00")
+                            )
                             upload_date = upload_date_obj.strftime("%Y-%m-%d")
                         elif len(upload_date) == 8 and upload_date.isdigit():
                             upload_date_obj = datetime.strptime(upload_date, "%Y%m%d")
@@ -195,25 +214,44 @@ class YouTubeVideoSearchAndTranscript:
                     "video_id": video_id,
                     "display_id": video_id,
                     "title": item.get("title", "Unknown"),
-                    "channel": item.get("channelName") or item.get("channel") or item.get("channel_name") or "Unknown",
+                    "channel": item.get("channelName")
+                    or item.get("channel")
+                    or item.get("channel_name")
+                    or "Unknown",
                     "channel_id": item.get("channelId") or item.get("channel_id"),
                     "channel_url": item.get("channelUrl") or item.get("channel_url"),
-                    "uploader": item.get("channelName") or item.get("channel") or item.get("channel_name"),
+                    "uploader": item.get("channelName")
+                    or item.get("channel")
+                    or item.get("channel_name"),
                     "uploader_id": item.get("channelId") or item.get("channel_id"),
                     "webpage_url": video_url,
                     "url": video_url,
                     "link": video_url,
                     "link_suffix": f"/watch?v={video_id}",
                     "duration": item.get("duration") or item.get("durationSeconds"),
-                    "view_count": item.get("viewCount") or item.get("views") or item.get("view_count"),
-                    "views": item.get("viewCount") or item.get("views") or item.get("view_count"),
-                    "like_count": item.get("likeCount") or item.get("likes") or item.get("like_count"),
-                    "likes": item.get("likeCount") or item.get("likes") or item.get("like_count"),
-                    "comment_count": item.get("commentCount") or item.get("comments") or item.get("comment_count"),
-                    "comments": item.get("commentCount") or item.get("comments") or item.get("comment_count"),
+                    "view_count": item.get("viewCount")
+                    or item.get("views")
+                    or item.get("view_count"),
+                    "views": item.get("viewCount")
+                    or item.get("views")
+                    or item.get("view_count"),
+                    "like_count": item.get("likeCount")
+                    or item.get("likes")
+                    or item.get("like_count"),
+                    "likes": item.get("likeCount")
+                    or item.get("likes")
+                    or item.get("like_count"),
+                    "comment_count": item.get("commentCount")
+                    or item.get("comments")
+                    or item.get("comment_count"),
+                    "comments": item.get("commentCount")
+                    or item.get("comments")
+                    or item.get("comment_count"),
                     "upload_date": upload_date,
                     "description": item.get("description", ""),
-                    "thumbnail": item.get("thumbnailUrl") or item.get("thumbnail") or item.get("thumbnail_url"),
+                    "thumbnail": item.get("thumbnailUrl")
+                    or item.get("thumbnail")
+                    or item.get("thumbnail_url"),
                 }
 
                 result = YouTubeSearchResult.from_dict(entry)
@@ -221,24 +259,45 @@ class YouTubeVideoSearchAndTranscript:
 
             # Sort by likes (descending)
             results.sort(key=lambda x: (x.likes or 0), reverse=True)
-            logger.info(f"✅ Search completed: {len(results)} videos found (sorted by likes)")
+            logger.info(
+                f"✅ Search completed: {len(results)} videos found (sorted by likes)"
+            )
             if results:
-                logger.debug(f"Top result: {results[0].title or 'Unknown'} - {results[0].likes or 0} likes")
+                logger.debug(
+                    f"Top result: {results[0].title or 'Unknown'} - {results[0].likes or 0} likes"
+                )
             return results
         except ApifyApiError as e:
             error_msg = str(e)
             actor_id = "qoA27OkGHoMSJGBtf"
-            logger.error(f"❌ Apify API error from Actor {actor_id} (maged120/youtube-search): {error_msg}")
-            
-            if "Monthly usage hard limit exceeded" in error_msg or "usage limit" in error_msg.lower():
-                logger.error(f"🚫 Actor {actor_id} blocked: Monthly usage limit exceeded. Please upgrade your Apify plan or wait for the limit to reset.")
-                raise RuntimeError(f"Apify Actor {actor_id} (maged120/youtube-search) monthly usage limit exceeded. Please upgrade your Apify plan or wait for the limit to reset.")
-            elif "authentication" in error_msg.lower() or "token" in error_msg.lower() or "unauthorized" in error_msg.lower():
+            logger.error(
+                f"❌ Apify API error from Actor {actor_id} (maged120/youtube-search): {error_msg}"
+            )
+
+            if (
+                "Monthly usage hard limit exceeded" in error_msg
+                or "usage limit" in error_msg.lower()
+            ):
+                logger.error(
+                    f"🚫 Actor {actor_id} blocked: Monthly usage limit exceeded. Please upgrade your Apify plan or wait for the limit to reset."
+                )
+                raise RuntimeError(
+                    f"Apify Actor {actor_id} (maged120/youtube-search) monthly usage limit exceeded. Please upgrade your Apify plan or wait for the limit to reset."
+                )
+            elif (
+                "authentication" in error_msg.lower()
+                or "token" in error_msg.lower()
+                or "unauthorized" in error_msg.lower()
+            ):
                 logger.error(f"🔐 Actor {actor_id} authentication error: {error_msg}")
-                raise RuntimeError(f"Apify Actor {actor_id} (maged120/youtube-search) authentication failed: {error_msg}. Please check your APIFY_TOKEN.")
+                raise RuntimeError(
+                    f"Apify Actor {actor_id} (maged120/youtube-search) authentication failed: {error_msg}. Please check your APIFY_TOKEN."
+                )
             else:
                 logger.error(f"❌ Actor {actor_id} error: {error_msg}", exc_info=True)
-                raise RuntimeError(f"Apify Actor {actor_id} (maged120/youtube-search) error: {error_msg}")
+                raise RuntimeError(
+                    f"Apify Actor {actor_id} (maged120/youtube-search) error: {error_msg}"
+                )
         except Exception as e:
             logger.error(f"❌ Search error: {e}", exc_info=True)
             raise RuntimeError(f"Search failed: {str(e)}")
@@ -266,29 +325,41 @@ class YouTubeVideoSearchAndTranscript:
 
                 def get_dataset_items():
                     items = []
-                    for item in self.apify_client.dataset(run["defaultDatasetId"]).iterate_items():
+                    for item in self.apify_client.dataset(
+                        run["defaultDatasetId"]
+                    ).iterate_items():
                         items.append(item)
                     return items
 
                 dataset_items = await asyncio.to_thread(get_dataset_items)
 
-                result = ApifyTranscriptResult.from_apify_response(video_id, dataset_items)
+                result = ApifyTranscriptResult.from_apify_response(
+                    video_id, dataset_items
+                )
                 if result.success:
                     result.language = language
                     return result
                 else:
                     # Retry on failure
                     if attempt < max_retries:
-                        wait_time = self.delay * (2 ** attempt)
+                        wait_time = self.delay * (2**attempt)
                         await asyncio.sleep(wait_time)
                         continue
                     else:
                         # Normalize error message
                         error_msg = result.error or "Unknown error"
-                        if "No transcript" in error_msg or "not available" in error_msg.lower():
+                        if (
+                            "No transcript" in error_msg
+                            or "not available" in error_msg.lower()
+                        ):
                             error_msg = "No subtitles available for this video"
-                        elif "API token" in error_msg or "authentication" in error_msg.lower():
-                            error_msg = "Apify API authentication failed. Check your API token."
+                        elif (
+                            "API token" in error_msg
+                            or "authentication" in error_msg.lower()
+                        ):
+                            error_msg = (
+                                "Apify API authentication failed. Check your API token."
+                            )
                         elif len(error_msg) > 200:
                             error_msg = error_msg[:200] + "..."
                         return ApifyTranscriptResult(
@@ -300,10 +371,18 @@ class YouTubeVideoSearchAndTranscript:
             except Exception as e:
                 if attempt == max_retries:
                     error_msg = str(e)
-                    if "No transcript" in error_msg or "not available" in error_msg.lower():
+                    if (
+                        "No transcript" in error_msg
+                        or "not available" in error_msg.lower()
+                    ):
                         error_msg = "No subtitles available for this video"
-                    elif "API token" in error_msg or "authentication" in error_msg.lower():
-                        error_msg = "Apify API authentication failed. Check your API token."
+                    elif (
+                        "API token" in error_msg
+                        or "authentication" in error_msg.lower()
+                    ):
+                        error_msg = (
+                            "Apify API authentication failed. Check your API token."
+                        )
                     elif len(error_msg) > 200:
                         error_msg = error_msg[:200] + "..."
 
@@ -312,13 +391,11 @@ class YouTubeVideoSearchAndTranscript:
                         video_id=video_id,
                         error=error_msg,
                     )
-                wait_time = self.delay * (2 ** attempt)
+                wait_time = self.delay * (2**attempt)
                 await asyncio.sleep(wait_time)
 
         return ApifyTranscriptResult(
-            success=False,
-            video_id=video_id,
-            error="Unknown error"
+            success=False, video_id=video_id, error="Unknown error"
         )
 
     async def search_and_get_transcripts(
@@ -345,7 +422,7 @@ class YouTubeVideoSearchAndTranscript:
         if not videos:
             logger.warning("❌ No videos found")
             return []
-        
+
         logger.info(f"📊 Found {len(videos)} videos (sorted by likes)")
 
         results = []
@@ -357,8 +434,10 @@ class YouTubeVideoSearchAndTranscript:
 
             logger.info(f"🌐 Fetching transcript from API for video {video_id}")
             transcript_result = await self.get_transcript_safe(video_id)
-            
-            transcript_text = self._transcript_field(transcript_result, "transcript", "") or ""
+
+            transcript_text = (
+                self._transcript_field(transcript_result, "transcript", "") or ""
+            )
             transcript_length = len(transcript_text) if transcript_text else 0
 
             video_url = (
@@ -368,7 +447,11 @@ class YouTubeVideoSearchAndTranscript:
                 or f"https://www.youtube.com/watch?v={video_id}"
             )
 
-            channel = self._video_field(video, "channel") or self._video_field(video, "uploader") or "Unknown"
+            channel = (
+                self._video_field(video, "channel")
+                or self._video_field(video, "uploader")
+                or "Unknown"
+            )
 
             combined = {
                 "title": self._video_field(video, "title") or "Unknown",
@@ -384,11 +467,15 @@ class YouTubeVideoSearchAndTranscript:
                 "upload_date": self._video_field(video, "upload_date"),
                 "description": self._video_field(video, "description") or "",
                 "thumbnail": self._video_field(video, "thumbnail"),
-                "transcript_success": bool(self._transcript_field(transcript_result, "success", False)),
+                "transcript_success": bool(
+                    self._transcript_field(transcript_result, "success", False)
+                ),
                 "transcript": transcript_text,
                 "transcript_length": transcript_length,
                 "error": self._transcript_field(transcript_result, "error"),
-                "is_auto_generated": self._transcript_field(transcript_result, "is_generated"),
+                "is_auto_generated": self._transcript_field(
+                    transcript_result, "is_generated"
+                ),
                 "language": self._transcript_field(transcript_result, "language"),
             }
             results.append(combined)
@@ -398,7 +485,9 @@ class YouTubeVideoSearchAndTranscript:
 
         return results
 
-    async def extract_transcripts_for_video_ids(self, video_ids: list[str]) -> list[dict]:
+    async def extract_transcripts_for_video_ids(
+        self, video_ids: list[str]
+    ) -> list[dict]:
         """
         Extract transcripts for a given list of video IDs.
         Pure API call - no caching logic.
@@ -418,11 +507,13 @@ class YouTubeVideoSearchAndTranscript:
         results = []
         for i, video_id in enumerate(video_ids, 1):
             logger.info(f"\n[{i}/{len(video_ids)}] Processing video ID: {video_id}")
-            
+
             logger.info(f"🌐 Fetching transcript from API for video {video_id}")
             transcript_result = await self.get_transcript_safe(video_id)
-            
-            transcript_text = self._transcript_field(transcript_result, "transcript", "") or ""
+
+            transcript_text = (
+                self._transcript_field(transcript_result, "transcript", "") or ""
+            )
             transcript_length = len(transcript_text) if transcript_text else 0
 
             combined = {
@@ -439,11 +530,15 @@ class YouTubeVideoSearchAndTranscript:
                 "upload_date": None,
                 "description": "",
                 "thumbnail": None,
-                "transcript_success": bool(self._transcript_field(transcript_result, "success", False)),
+                "transcript_success": bool(
+                    self._transcript_field(transcript_result, "success", False)
+                ),
                 "transcript": transcript_text,
                 "transcript_length": transcript_length,
                 "error": self._transcript_field(transcript_result, "error"),
-                "is_auto_generated": self._transcript_field(transcript_result, "is_generated"),
+                "is_auto_generated": self._transcript_field(
+                    transcript_result, "is_generated"
+                ),
                 "language": self._transcript_field(transcript_result, "language"),
             }
 
@@ -459,7 +554,7 @@ class YouTubeVideoSearchAndTranscript:
 def get_db_manager():
     # Delegate to the shared DB manager which can fall back to a no-op manager
     # if Postgres is unavailable.
-    from mcp_server_youtube.youtube.methods import get_db_manager as _get_db_manager
+    from mcp_server_youtube.youtube.methods import \
+        get_db_manager as _get_db_manager
 
     return _get_db_manager()
-

@@ -4,7 +4,6 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-
 from mcp_server_arxiv.api_routers import health
 
 
@@ -25,4 +24,3 @@ async def test_health_endpoint_returns_ok(api_client: AsyncClient) -> None:
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["service"] == "mcp-server-arxiv"
-

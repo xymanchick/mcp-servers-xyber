@@ -61,7 +61,9 @@ async def test_qdrant_full_workflow(
 
         collections = response.json()
         assert isinstance(collections, list), "Expected list of collections"
-        assert collection_name in collections, f"Collection {collection_name} not found in {collections}"
+        assert collection_name in collections, (
+            f"Collection {collection_name} not found in {collections}"
+        )
         list_success = True
 
     if not list_success:
@@ -77,7 +79,9 @@ async def test_qdrant_full_workflow(
         print(f"\n[Info] Status: {response.status_code}")
         print(f"[Info] Response: {response.text[:500]}")
 
-        assert response.status_code == 200, f"Get collection info failed: {response.text}"
+        assert response.status_code == 200, (
+            f"Get collection info failed: {response.text}"
+        )
 
         info = response.json()
         assert isinstance(info, dict), "Expected collection info dict"
@@ -109,9 +113,13 @@ async def test_qdrant_full_workflow(
             assert len(results) > 0, "Expected at least one result"
             # Check that first result contains our stored document
             first_result = results[0]
-            assert "payload" in first_result, f"Missing payload in result: {first_result.keys()}"
+            assert "payload" in first_result, (
+                f"Missing payload in result: {first_result.keys()}"
+            )
             payload = first_result["payload"]
-            assert "document" in payload, f"Missing document in payload: {payload.keys()}"
+            assert "document" in payload, (
+                f"Missing document in payload: {payload.keys()}"
+            )
             print(f"\n[Find] Found document: {payload['document'][:200]}...")
         else:
             # String message means no results found
@@ -157,8 +165,8 @@ async def test_store_with_metadata_filters(
                     "metadata": item["metadata"],
                 },
             )
-            print(f"\n[Store {i+1}] Status: {response.status_code}")
-            assert response.status_code == 200, f"Store {i+1} failed: {response.text}"
+            print(f"\n[Store {i + 1}] Status: {response.status_code}")
+            assert response.status_code == 200, f"Store {i + 1} failed: {response.text}"
         store_success = True
 
     if not store_success:
@@ -187,7 +195,9 @@ async def test_store_with_metadata_filters(
                 if "payload" in result and "metadata" in result["payload"]:
                     metadata = result["payload"]["metadata"]
                     if metadata:
-                        assert metadata.get("category") == "programming", f"Filter failed: {metadata}"
+                        assert metadata.get("category") == "programming", (
+                            f"Filter failed: {metadata}"
+                        )
 
 
 @pytest.mark.e2e
@@ -221,7 +231,10 @@ async def test_find_nonexistent_collection(
         # Error returned as response body
         result = response.json()
         if isinstance(result, dict) and "error" in result:
-            assert "not found" in result["error"].lower() or "does not exist" in result["error"].lower()
+            assert (
+                "not found" in result["error"].lower()
+                or "does not exist" in result["error"].lower()
+            )
     else:
         # Any other 4xx status is also acceptable
         assert response.status_code in (400, 404, 500)
@@ -271,7 +284,9 @@ async def test_store_validation_missing_information(
     print(f"[Store validation] Response: {response.text[:500]}")
 
     # Pydantic validation should return 422
-    assert response.status_code == 422, f"Expected 422 for missing field, got {response.status_code}"
+    assert response.status_code == 422, (
+        f"Expected 422 for missing field, got {response.status_code}"
+    )
 
 
 @pytest.mark.e2e
@@ -294,7 +309,9 @@ async def test_find_validation_missing_query(
     print(f"[Find validation] Response: {response.text[:500]}")
 
     # Pydantic validation should return 422
-    assert response.status_code == 422, f"Expected 422 for missing field, got {response.status_code}"
+    assert response.status_code == 422, (
+        f"Expected 422 for missing field, got {response.status_code}"
+    )
 
 
 @pytest.mark.e2e

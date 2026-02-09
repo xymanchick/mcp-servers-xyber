@@ -3,12 +3,12 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
+
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
-
 from mcp_server_elevenlabs.config import get_app_settings
 from mcp_server_elevenlabs.elevenlabs.client import generate_voice
-from mcp_server_elevenlabs.schemas import VoiceRequest, GenerateVoiceResponse
+from mcp_server_elevenlabs.schemas import GenerateVoiceResponse, VoiceRequest
 
 router = APIRouter(tags=["TTS"])
 logger = logging.getLogger(__name__)
@@ -26,7 +26,9 @@ logger = logging.getLogger(__name__)
         "- Optionally embeds `audio_base64` when `return_audio_base64=true`"
     ),
 )
-async def generate_voice_endpoint(request: VoiceRequest, http_request: Request) -> GenerateVoiceResponse:
+async def generate_voice_endpoint(
+    request: VoiceRequest, http_request: Request
+) -> GenerateVoiceResponse:
     """Generate voice audio and return a JSON payload (MCP-friendly)."""
     try:
         settings = get_app_settings()
@@ -97,15 +99,13 @@ async def download_audio(filename: str):
     if not candidate.is_relative_to(base):
         raise HTTPException(status_code=400, detail="Invalid filename")
     file_path = candidate
-    
+
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail=f"Audio file '{filename}' not found")
-    
+        raise HTTPException(
+            status_code=404, detail=f"Audio file '{filename}' not found"
+        )
+
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail=f"'{filename}' is not a valid file")
-    
-    return FileResponse(
-        path=str(file_path),
-        media_type="audio/mpeg",
-        filename=filename
-    )
+
+    return FileResponse(path=str(file_path), media_type="audio/mpeg", filename=filename)

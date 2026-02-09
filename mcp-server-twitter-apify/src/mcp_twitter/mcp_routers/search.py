@@ -13,20 +13,12 @@ from typing import Any
 
 import anyio
 from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import BaseModel, Field, ConfigDict
-
-from mcp_twitter.twitter import (
-    OutputFormat,
-    QueryDefinition,
-    QueryRegistry,
-    QueryType,
-    SortOrder,
-    TwitterScraper,
-    create_profile_query,
-    create_replies_query,
-    create_topic_query,
-)
+from mcp_twitter.twitter import (OutputFormat, QueryDefinition, QueryRegistry,
+                                 QueryType, SortOrder, TwitterScraper,
+                                 create_profile_query, create_replies_query,
+                                 create_topic_query)
 from mcp_twitter.twitter import scraper as scraper_mod
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -42,7 +34,9 @@ def _get_scraper(request: Request) -> TwitterScraper:
     return scraper
 
 
-def _run_query_and_read(temp_scraper: TwitterScraper, query: QueryDefinition) -> list[dict[str, Any]]:
+def _run_query_and_read(
+    temp_scraper: TwitterScraper, query: QueryDefinition
+) -> list[dict[str, Any]]:
     """Run query and return items directly from scraper (which uses DB cache)."""
     temp_scraper.run_query(query)
     items = temp_scraper.get_last_items()
@@ -69,7 +63,9 @@ class TopicSearchRequest(BaseModel):
         }
     )
 
-    topic: str = Field(..., description="Search keyword/topic", examples=["quantum computing"])
+    topic: str = Field(
+        ..., description="Search keyword/topic", examples=["quantum computing"]
+    )
     max_items: int = Field(20, ge=1, le=1000, description="Maximum items to fetch")
     sort: SortOrder = Field("Latest", description="Sort order: Latest or Top")
     only_verified: bool = Field(False, description="Only verified users")
@@ -126,8 +122,12 @@ class ProfileBatchSearchRequest(BaseModel):
         }
     )
 
-    usernames: list[str] = Field(..., min_length=1, description="List of Twitter usernames (without @)")
-    max_items: int = Field(100, ge=1, le=1000, description="Maximum items to fetch per username")
+    usernames: list[str] = Field(
+        ..., min_length=1, description="List of Twitter usernames (without @)"
+    )
+    max_items: int = Field(
+        100, ge=1, le=1000, description="Maximum items to fetch per username"
+    )
     since: date | None = Field(None, description="Start date (YYYY-MM-DD)")
     until: date | None = Field(None, description="End date (YYYY-MM-DD)")
     lang: str = Field("en", description="Tweet language code")
@@ -155,8 +155,12 @@ class ProfileLatestBatchRequest(BaseModel):
         }
     )
 
-    usernames: list[str] = Field(..., min_length=1, description="List of Twitter usernames (without @)")
-    max_items: int = Field(10, ge=1, le=1000, description="Maximum items to fetch per username")
+    usernames: list[str] = Field(
+        ..., min_length=1, description="List of Twitter usernames (without @)"
+    )
+    max_items: int = Field(
+        10, ge=1, le=1000, description="Maximum items to fetch per username"
+    )
     lang: str = Field("en", description="Tweet language code")
     output_format: OutputFormat = Field("min", description="Output format: min or max")
     continue_on_error: bool = Field(
@@ -253,7 +257,9 @@ async def search_topic(
         )
 
         items = _run_query_and_read(temp_scraper, query)
-        logger.info("MCP topic search done topic=%r items=%d", request.topic, len(items))
+        logger.info(
+            "MCP topic search done topic=%r items=%d", request.topic, len(items)
+        )
         return items
     except Exception as e:
         logger.exception("MCP topic search failed topic=%r error=%s", request.topic, e)
@@ -313,10 +319,14 @@ async def search_profile(
         )
 
         items = _run_query_and_read(temp_scraper, query)
-        logger.info("MCP profile search done user=%r items=%d", request.username, len(items))
+        logger.info(
+            "MCP profile search done user=%r items=%d", request.username, len(items)
+        )
         return items
     except Exception as e:
-        logger.exception("MCP profile search failed user=%r error=%s", request.username, e)
+        logger.exception(
+            "MCP profile search failed user=%r error=%s", request.username, e
+        )
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
@@ -371,10 +381,14 @@ async def search_profile_latest(
         )
 
         items = _run_query_and_read(temp_scraper, query)
-        logger.info("MCP profile latest done user=%r items=%d", request.username, len(items))
+        logger.info(
+            "MCP profile latest done user=%r items=%d", request.username, len(items)
+        )
         return items
     except Exception as e:
-        logger.exception("MCP profile latest failed user=%r error=%s", request.username, e)
+        logger.exception(
+            "MCP profile latest failed user=%r error=%s", request.username, e
+        )
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
@@ -427,10 +441,18 @@ async def search_replies(
         )
 
         items = _run_query_and_read(temp_scraper, query)
-        logger.info("MCP replies search done conversation_id=%r items=%d", request.conversation_id, len(items))
+        logger.info(
+            "MCP replies search done conversation_id=%r items=%d",
+            request.conversation_id,
+            len(items),
+        )
         return items
     except Exception as e:
-        logger.exception("MCP replies search failed conversation_id=%r error=%s", request.conversation_id, e)
+        logger.exception(
+            "MCP replies search failed conversation_id=%r error=%s",
+            request.conversation_id,
+            e,
+        )
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
@@ -469,7 +491,10 @@ async def search_profile_batch(
                 continue
             usernames.append(p.lstrip("@").strip())
     if not usernames:
-        raise HTTPException(status_code=422, detail="usernames must contain at least one non-empty username")
+        raise HTTPException(
+            status_code=422,
+            detail="usernames must contain at least one non-empty username",
+        )
 
     temp_scraper = scraper_mod.TwitterScraper(
         apify_token=scraper.apify_token,
@@ -499,15 +524,21 @@ async def search_profile_batch(
                 lang=request.lang,
             )
             items = _run_query_and_read(temp_scraper, query)
-            results.append(ProfileBatchResult(username=username, items=items, error=None))
+            results.append(
+                ProfileBatchResult(username=username, items=items, error=None)
+            )
         except Exception as e:
-            logger.exception("MCP profile batch item failed user=%r error=%s", username, e)
+            logger.exception(
+                "MCP profile batch item failed user=%r error=%s", username, e
+            )
             if not request.continue_on_error:
                 raise HTTPException(
                     status_code=500,
                     detail=f"Batch search failed for username={username!r}: {str(e)}",
                 )
-            results.append(ProfileBatchResult(username=username, items=[], error=str(e)))
+            results.append(
+                ProfileBatchResult(username=username, items=[], error=str(e))
+            )
 
     return results
 
@@ -547,7 +578,10 @@ async def search_profile_latest_batch(
                 continue
             usernames.append(p.lstrip("@").strip())
     if not usernames:
-        raise HTTPException(status_code=422, detail="usernames must contain at least one non-empty username")
+        raise HTTPException(
+            status_code=422,
+            detail="usernames must contain at least one non-empty username",
+        )
 
     temp_scraper = scraper_mod.TwitterScraper(
         apify_token=scraper.apify_token,
@@ -575,15 +609,21 @@ async def search_profile_latest_batch(
                 lang=request.lang,
             )
             items = _run_query_and_read(temp_scraper, query)
-            results.append(ProfileBatchResult(username=username, items=items, error=None))
+            results.append(
+                ProfileBatchResult(username=username, items=items, error=None)
+            )
         except Exception as e:
-            logger.exception("MCP profile latest batch item failed user=%r error=%s", username, e)
+            logger.exception(
+                "MCP profile latest batch item failed user=%r error=%s", username, e
+            )
             if not request.continue_on_error:
                 raise HTTPException(
                     status_code=500,
                     detail=f"Batch latest search failed for username={username!r}: {str(e)}",
                 )
-            results.append(ProfileBatchResult(username=username, items=[], error=str(e)))
+            results.append(
+                ProfileBatchResult(username=username, items=[], error=str(e))
+            )
 
     return results
 
@@ -619,7 +659,13 @@ async def run_query(
         raise HTTPException(status_code=404, detail=f"Query '{query_id}' not found")
 
     try:
-        logger.info("MCP preset run start id=%s type=%s name=%r timeout=%ss", query.id, query.type, query.name, timeout_seconds)
+        logger.info(
+            "MCP preset run start id=%s type=%s name=%r timeout=%ss",
+            query.id,
+            query.type,
+            query.name,
+            timeout_seconds,
+        )
         items = await anyio.to_thread.run_sync(_run_query_and_read, scraper, query)
         logger.info("MCP preset run done id=%s items=%d", query.id, len(items))
         return items
@@ -686,7 +732,4 @@ async def list_queries(
     registry = _get_registry(http_request)
 
     queries = registry.list_queries(query_type=query_type)
-    return [
-        QueryInfo(id=q.id, type=q.type, name=q.name) for q in queries
-    ]
-
+    return [QueryInfo(id=q.id, type=q.type, name=q.name) for q in queries]

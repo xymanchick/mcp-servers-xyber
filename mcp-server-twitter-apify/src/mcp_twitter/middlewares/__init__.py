@@ -7,4 +7,3 @@ Main responsibility: Re-export selected middleware classes to provide a simple i
 from mcp_twitter.middlewares.x402_wrapper import X402WrapperMiddleware
 
 __all__ = ["X402WrapperMiddleware"]
-

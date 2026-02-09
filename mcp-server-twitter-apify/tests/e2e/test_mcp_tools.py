@@ -8,6 +8,7 @@ Run with: uv run python -m pytest tests/test_mcp_tools.py
 
 To run standalone: uv run python tests/test_mcp_tools.py
 """
+
 import asyncio
 import json
 import os
@@ -137,6 +138,7 @@ async def list_mcp_tools(base_url: str, session_id: str) -> httpx.Response:
 
 # --- Pytest Fixtures ---
 
+
 @pytest.fixture
 def base_url() -> str:
     """Base URL for the MCP server."""
@@ -155,6 +157,7 @@ async def mcp_session(base_url: str) -> str:
 
 
 # --- Pytest Tests ---
+
 
 @pytest.mark.asyncio
 @pytest.mark.integration
@@ -187,15 +190,15 @@ async def test_list_mcp_tools(base_url: str, mcp_session: str):
     try:
         response = await list_mcp_tools(base_url, mcp_session)
         response.raise_for_status()
-        
+
         tools_data = parse_sse_response(response.text)
         assert "result" in tools_data
         assert "tools" in tools_data["result"]
-        
+
         tools = tools_data["result"]["tools"]
         assert isinstance(tools, list)
         assert len(tools) > 0
-        
+
         # Verify tool structure
         for tool in tools:
             assert "name" in tool
@@ -224,7 +227,9 @@ async def test_list_mcp_tools(base_url: str, mcp_session: str):
 async def test_mcp_list_types(base_url: str, mcp_session: str):
     """Test twitter_list_types tool."""
     try:
-        response = await call_mcp_tool(base_url, mcp_session, name="twitter_list_types", arguments={})
+        response = await call_mcp_tool(
+            base_url, mcp_session, name="twitter_list_types", arguments={}
+        )
         response.raise_for_status()
         payload = parse_sse_response(response.text)
         _assert_tool_ok(payload)
@@ -322,16 +327,18 @@ async def test_mcp_search_replies_tool(base_url: str, mcp_session: str):
     except httpx.ConnectError:
         pytest.skip("MCP server not running - start server to run E2E tests")
 
+
 # --- Standalone Execution (for manual testing) ---
+
 
 async def main():
     """Main test function for standalone execution."""
     base_url = os.getenv("MCP_SERVER_URL", "http://localhost:8002")
-    
+
     print("=" * 60)
     print("MCP Tools Testing (Standalone)")
     print("=" * 60)
-    
+
     # Step 1: Negotiate session
     print("\n1. Negotiating MCP session...")
     try:
@@ -340,7 +347,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to negotiate session: {e}")
         return
-    
+
     # Step 2: Initialize session
     print("\n2. Initializing MCP session...")
     try:
@@ -348,7 +355,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to initialize session: {e}")
         return
-    
+
     # Step 3: List tools
     print("\n3. Listing available tools...")
     try:
@@ -370,7 +377,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to list tools: {e}")
         print(f"  Response: {response.text[:500] if 'response' in locals() else 'N/A'}")
-    
+
     # Step 4: List types
     print("\n4. Testing twitter_list_types tool...")
     try:
@@ -387,7 +394,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to call twitter_list_types: {e}")
         print(f"  Response: {response.text[:500] if 'response' in locals() else 'N/A'}")
-    
+
     # Step 5: Search topic
     print("\n5. Testing twitter_search_topic tool...")
     try:
@@ -415,7 +422,7 @@ async def main():
     except Exception as e:
         print(f"✗ Failed to call twitter_search_topic: {e}")
         print(f"  Response: {response.text[:500] if 'response' in locals() else 'N/A'}")
-    
+
     print("\n" + "=" * 60)
     print("Testing complete!")
     print("=" * 60)
@@ -423,4 +430,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

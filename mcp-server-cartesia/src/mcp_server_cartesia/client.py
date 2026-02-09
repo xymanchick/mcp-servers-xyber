@@ -26,9 +26,8 @@ from dotenv import load_dotenv
 
 # MCP and agent-related imports
 try:
-    from langchain_core.messages import (
-        HumanMessage,
-    )  # ToolMessage might not be needed if using .arun
+    from langchain_core.messages import \
+        HumanMessage  # ToolMessage might not be needed if using .arun
     from langchain_core.tools import StructuredTool
     from langchain_mcp_adapters.client import MultiServerMCPClient
     from langchain_together import ChatTogether

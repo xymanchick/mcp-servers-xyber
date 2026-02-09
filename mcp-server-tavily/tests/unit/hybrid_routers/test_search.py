@@ -4,13 +4,10 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
-
 from mcp_server_tavily.dependencies import get_tavily_client
-from mcp_server_tavily.hybrid_routers.search import (
-    API_KEY_HEADER,
-    tavily_search,
-)
+from mcp_server_tavily.hybrid_routers.search import API_KEY_HEADER
 from mcp_server_tavily.hybrid_routers.search import router as search_router
+from mcp_server_tavily.hybrid_routers.search import tavily_search
 from mcp_server_tavily.schemas import SearchRequest
 from mcp_server_tavily.tavily.models import TavilySearchResult
 
@@ -157,6 +154,3 @@ async def test_tavily_search_empty_body_returns_422() -> None:
             headers={API_KEY_HEADER: "test-header-key"},
         )
         assert response.status_code == 422
-
-
-

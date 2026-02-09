@@ -14,4 +14,3 @@ def _isolate_docs_dir(tmp_path, monkeypatch):
     get_app_settings.cache_clear()
     yield
     get_app_settings.cache_clear()
-

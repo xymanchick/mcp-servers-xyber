@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import arxiv
 import pytest
-
 from mcp_server_arxiv.xy_arxiv.config import ArxivConfig
 from mcp_server_arxiv.xy_arxiv.errors import ArxivApiError, ArxivServiceError
 from mcp_server_arxiv.xy_arxiv.models import ArxivSearchResult
@@ -88,4 +87,3 @@ async def test_search_neither_query_nor_id_raises_error(
 
     with pytest.raises(ValueError, match="Either"):
         await arxiv_service.search()
-

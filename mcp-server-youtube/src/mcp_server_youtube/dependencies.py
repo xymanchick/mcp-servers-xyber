@@ -5,9 +5,11 @@ FastAPI dependencies for YouTube service.
 import logging
 
 from mcp_server_youtube.youtube import YouTubeVideoSearchAndTranscript
-from mcp_server_youtube.youtube import get_youtube_client as create_youtube_client
+from mcp_server_youtube.youtube import \
+    get_youtube_client as create_youtube_client
 from mcp_server_youtube.youtube.methods import DatabaseManager
-from mcp_server_youtube.youtube.methods import get_db_manager as create_db_manager
+from mcp_server_youtube.youtube.methods import \
+    get_db_manager as create_db_manager
 
 logger = logging.getLogger(__name__)
 
@@ -102,5 +104,7 @@ class DependencyContainer:
 
 # Alias the class methods for use as FastAPI dependencies
 get_youtube_service = DependencyContainer.get_youtube_service
-get_youtube_service_search_only = DependencyContainer.get_youtube_service  # Same as get_youtube_service
+get_youtube_service_search_only = (
+    DependencyContainer.get_youtube_service
+)  # Same as get_youtube_service
 get_db_manager = DependencyContainer.get_db_manager

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,8 +56,5 @@ def require_tavily_api_key(config: E2ETestConfig) -> str:
     if not config.tavily_api_key:
         import pytest
 
-        pytest.skip(
-            "Set MCP_TAVILY_TEST_TAVILY_API_KEY to run header auth E2E tests."
-        )
+        pytest.skip("Set MCP_TAVILY_TEST_TAVILY_API_KEY to run header auth E2E tests.")
     return config.tavily_api_key
-

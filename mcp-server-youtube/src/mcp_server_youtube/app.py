@@ -10,13 +10,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_server_youtube.api_routers import routers as api_routers
 from mcp_server_youtube.config import get_app_settings
 from mcp_server_youtube.dependencies import DependencyContainer
 from mcp_server_youtube.hybrid_routers import routers as hybrid_routers
-from mcp_server_youtube.x402_config import get_x402_settings
 from mcp_server_youtube.middlewares import X402WrapperMiddleware
+from mcp_server_youtube.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
 
@@ -112,13 +111,10 @@ def create_app() -> FastAPI:
 
     # --- Middleware Configuration ---
     if x402_settings.pricing_mode == "on":
-        app.add_middleware(
-            X402WrapperMiddleware, tool_pricing=x402_settings.pricing
-        )
+        app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
         logger.info("x402 payment middleware enabled.")
     else:
         logger.info("x402 payment middleware disabled (pricing_mode='off').")
 
     logger.info("Application setup complete.")
     return app
-

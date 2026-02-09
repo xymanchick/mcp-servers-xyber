@@ -72,4 +72,3 @@ async def convert_repo_to_markdown(
     except Exception as e:  # noqa: BLE001
         logger.error("Error converting repository %s: %s", repo_url, e)
         raise RuntimeError(f"Failed to convert repository: {str(e)}") from e
-

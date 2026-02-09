@@ -2,12 +2,10 @@ import logging
 from functools import lru_cache
 from typing import Iterable
 
-from mcp_server_telegram_parser.schemas import (
-    ParsedChannel,
-    ParsedMessage,
-    TelegramParseResult,
-)
-from mcp_server_telegram_parser.telegram.config import ParserAuthError, ParserConfig
+from mcp_server_telegram_parser.schemas import (ParsedChannel, ParsedMessage,
+                                                TelegramParseResult)
+from mcp_server_telegram_parser.telegram.config import (ParserAuthError,
+                                                        ParserConfig)
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 

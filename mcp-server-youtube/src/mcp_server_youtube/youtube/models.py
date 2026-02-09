@@ -1,12 +1,4 @@
-from sqlalchemy import (
-    Column,
-    String,
-    Text,
-    DateTime,
-    Integer,
-    Boolean,
-    func,
-)
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, func
 from sqlalchemy.orm import declarative_base
 
 # Define the base class for declarative class definitions
@@ -43,7 +35,9 @@ class YouTubeVideo(Base):
     # --- Transcript Information ---
     transcript_success = Column(Boolean, nullable=True)
     transcript = Column(Text, nullable=True)
-    transcript_length = Column(Integer, nullable=True)  # Length of transcript in characters
+    transcript_length = Column(
+        Integer, nullable=True
+    )  # Length of transcript in characters
     error = Column(Text, nullable=True)
     is_auto_generated = Column(Boolean, nullable=True)
     language = Column(String(10), nullable=True)
@@ -54,4 +48,3 @@ class YouTubeVideo(Base):
 
     def __repr__(self):
         return f"<YouTubeVideo(video_id='{self.video_id}', title='{self.title}', transcript_success={self.transcript_success})>"
-

@@ -1,7 +1,8 @@
 import logging
 
 from mcp_server_hangman.hangman.module import HangmanService
-from mcp_server_hangman.hangman.module import get_hangman_service as create_hangman_service
+from mcp_server_hangman.hangman.module import \
+    get_hangman_service as create_hangman_service
 
 logger = logging.getLogger(__name__)
 

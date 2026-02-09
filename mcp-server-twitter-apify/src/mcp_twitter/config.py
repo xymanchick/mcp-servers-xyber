@@ -33,7 +33,7 @@ class ApifyConfig(BaseModel):
     apify_token: str | None = os.getenv("APIFY_TOKEN") or os.getenv(
         "MCP_TWITTER__APIFY__APIFY_TOKEN"
     )
-    
+
     # Actor name can be set via APIFY_ACTOR_NAME or MCP_TWITTER__APIFY__ACTOR_NAME
     actor_name: str = os.getenv("APIFY_ACTOR_NAME") or os.getenv(
         "MCP_TWITTER__APIFY__ACTOR_NAME",
@@ -49,17 +49,19 @@ class DatabaseConfig(BaseModel):
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT_RAW: str = os.getenv("DB_PORT", "5432")
-    DB_PORT: str = (
-        DB_PORT_RAW.split(":")[0] if ":" in DB_PORT_RAW else DB_PORT_RAW
-    )
+    DB_PORT: str = DB_PORT_RAW.split(":")[0] if ":" in DB_PORT_RAW else DB_PORT_RAW
     DATABASE_URL: str = (
         f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
     logger.info(f"DEBUG: Connecting to: {DATABASE_URL}")
 
     # Cache TTL defaults (in seconds)
-    cache_ttl_topic_latest: int = int(os.getenv("CACHE_TTL_TOPIC_LATEST", "900"))  # 15 min
-    cache_ttl_topic_top: int = int(os.getenv("CACHE_TTL_TOPIC_TOP", "86400"))  # 24 hours
+    cache_ttl_topic_latest: int = int(
+        os.getenv("CACHE_TTL_TOPIC_LATEST", "900")
+    )  # 15 min
+    cache_ttl_topic_top: int = int(
+        os.getenv("CACHE_TTL_TOPIC_TOP", "86400")
+    )  # 24 hours
     cache_ttl_profile: int = int(os.getenv("CACHE_TTL_PROFILE", "1800"))  # 30 min
     cache_ttl_replies: int = int(os.getenv("CACHE_TTL_REPLIES", "3600"))  # 1 hour
 
@@ -88,4 +90,3 @@ class AppSettings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_app_settings() -> AppSettings:
     return AppSettings()
-

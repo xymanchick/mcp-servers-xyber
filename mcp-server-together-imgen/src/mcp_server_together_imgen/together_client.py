@@ -1,10 +1,9 @@
 from functools import lru_cache
 
 from loguru import logger
-from together import AsyncTogether
-
 from mcp_server_together_imgen.config import TogetherSettings
 from mcp_server_together_imgen.schemas import ImageGenerationRequest
+from together import AsyncTogether
 
 INSTRUCTION_TEXT = """
 <instruction>

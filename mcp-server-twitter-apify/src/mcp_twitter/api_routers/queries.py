@@ -8,9 +8,8 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import BaseModel
-
 from mcp_twitter.twitter import QueryRegistry, QueryType
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -50,7 +49,7 @@ class QueryInfo(BaseModel):
 async def list_types(http_request: Request) -> list[QueryTypeInfo]:
     """List all available query types with descriptions."""
     registry = _get_registry(http_request)
-    
+
     descriptions: dict[str, str] = {
         "topic": "Search tweets by keyword/topic (supports sort Top/Latest, verified/image filters)",
         "profile": "Search tweets from a specific username (supports date range filters)",
@@ -61,7 +60,7 @@ async def list_types(http_request: Request) -> list[QueryTypeInfo]:
         "profile": 'POST /hybrid/v1/search/profile {"username": "elonmusk", "max_items": 100}',
         "replies": 'POST /hybrid/v1/search/replies {"conversation_id": "1728108619189874825"}',
     }
-    
+
     return [
         QueryTypeInfo(
             type=q_type,
@@ -85,11 +84,9 @@ async def list_queries(
 ) -> list[QueryInfo]:
     """List all available queries, optionally filtered by type."""
     registry = _get_registry(http_request)
-    
+
     queries = registry.list_queries(query_type=query_type)
-    return [
-        QueryInfo(id=q.id, type=q.type, name=q.name) for q in queries
-    ]
+    return [QueryInfo(id=q.id, type=q.type, name=q.name) for q in queries]
 
 
 @router.get(
@@ -100,7 +97,7 @@ async def list_queries(
 async def get_results(filename: str, http_request: Request) -> dict[str, str]:
     """
     Get saved search results by query key (deprecated: use search endpoints directly).
-    
+
     This endpoint is kept for backward compatibility but results are now stored in DB.
     """
     raise HTTPException(
@@ -117,7 +114,7 @@ async def get_results(filename: str, http_request: Request) -> dict[str, str]:
 async def list_results(http_request: Request) -> dict[str, str | bool]:
     """
     List cache status (deprecated: file listing no longer supported).
-    
+
     Results are now stored in Postgres database cache.
     """
     scraper = getattr(http_request.app.state, "scraper", None)
@@ -125,4 +122,3 @@ async def list_results(http_request: Request) -> dict[str, str | bool]:
         "message": "File-based results are deprecated. Results are cached in Postgres database.",
         "cache_enabled": scraper.use_cache if scraper else False,
     }
-

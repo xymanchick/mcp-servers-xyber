@@ -5,7 +5,9 @@ class StartGameRequest(BaseModel):
     """Input schema for starting a new hangman game."""
 
     secret_word: str = Field(description="Secret word to guess (letters only)")
-    max_attempts: int = Field(ge=1, default=6, description="Maximum wrong attempts allowed")
+    max_attempts: int = Field(
+        ge=1, default=6, description="Maximum wrong attempts allowed"
+    )
 
 
 class GuessLetterRequest(BaseModel):

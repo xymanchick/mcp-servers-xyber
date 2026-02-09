@@ -35,5 +35,3 @@ class FakeApifyClient:
     def dataset(self, dataset_id: str) -> FakeApifyDataset:
         assert dataset_id == self._dataset_id
         return FakeApifyDataset(self._items)
-
-

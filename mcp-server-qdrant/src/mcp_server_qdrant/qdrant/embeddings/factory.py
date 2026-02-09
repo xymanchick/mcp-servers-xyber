@@ -19,7 +19,8 @@ def create_embedding_provider(settings: EmbeddingProviderSettings) -> EmbeddingP
     )
 
     if settings.provider_type == EmbeddingProviderType.FASTEMBED:
-        from mcp_server_qdrant.qdrant.embeddings.fastembed import FastEmbedProvider
+        from mcp_server_qdrant.qdrant.embeddings.fastembed import \
+            FastEmbedProvider
 
         return FastEmbedProvider(settings.model_name)
 

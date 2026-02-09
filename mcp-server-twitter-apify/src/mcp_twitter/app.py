@@ -9,17 +9,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_twitter.api_routers import routers as api_routers
-from mcp_twitter.x402_config import get_x402_settings
 from mcp_twitter.hybrid_routers import routers as hybrid_routers
 from mcp_twitter.mcp_routers import routers as mcp_routers
 from mcp_twitter.middlewares import X402WrapperMiddleware
-from mcp_twitter.twitter import (
-    QueryRegistry,
-    TwitterScraper,
-    build_default_registry,
-)
+from mcp_twitter.twitter import (QueryRegistry, TwitterScraper,
+                                 build_default_registry)
+from mcp_twitter.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +41,12 @@ async def app_lifespan(app: FastAPI):
 
     # Initialize scraper
     from mcp_twitter.config import AppSettings
+
     settings = AppSettings()
     token = settings.apify.apify_token
     if not token:
         raise RuntimeError("APIFY_TOKEN not configured. Set it in .env or environment.")
-    
+
     actor_name = settings.apify.actor_name
     scraper = TwitterScraper(
         apify_token=token,
@@ -59,10 +56,11 @@ async def app_lifespan(app: FastAPI):
         use_cache=True,  # Enable database cache
     )
     app.state.scraper = scraper
-    
+
     logger.info(f"Lifespan: Initialized with actor: {actor_name}")
     try:
         from db import get_db_instance
+
         db = get_db_instance()
         logger.info("Lifespan: Database cache enabled")
     except Exception as e:
@@ -163,4 +161,3 @@ def create_app() -> FastAPI:
 
     logger.info("Application setup complete.")
     return app
-

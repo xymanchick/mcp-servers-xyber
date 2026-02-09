@@ -11,4 +11,3 @@ routers: list[APIRouter] = [
     health_router,
     reports_router,
 ]
-

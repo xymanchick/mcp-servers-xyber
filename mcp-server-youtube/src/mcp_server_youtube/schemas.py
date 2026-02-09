@@ -2,12 +2,14 @@
 Pydantic schemas for request/response models.
 """
 
-from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class VideoResponse(BaseModel):
     """Video information with transcript."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -18,11 +20,11 @@ class VideoResponse(BaseModel):
                 "likes": 1000,
                 "transcript_success": True,
                 "transcript_length": 5000,
-                "transcript_preview": "This is a preview of the transcript..."
+                "transcript_preview": "This is a preview of the transcript...",
             }
         }
     )
-    
+
     title: str
     channel: str
     channel_id: Optional[str] = None
@@ -39,13 +41,17 @@ class VideoResponse(BaseModel):
     transcript_success: bool
     transcript: Optional[str] = None
     transcript_length: Optional[int] = None
-    transcript_preview: Optional[str] = Field(None, description="First 300 characters of transcript")
+    transcript_preview: Optional[str] = Field(
+        None, description="First 300 characters of transcript"
+    )
     error: Optional[str] = None
     is_auto_generated: Optional[bool] = None
     language: Optional[str] = None
 
     @classmethod
-    def from_video(cls, video: dict, include_transcript_preview: bool = True) -> "VideoResponse":
+    def from_video(
+        cls, video: dict, include_transcript_preview: bool = True
+    ) -> "VideoResponse":
         """Create VideoResponse from video dictionary."""
         transcript_preview = None
         if include_transcript_preview and video.get("transcript"):
@@ -89,6 +95,7 @@ class VideoResponse(BaseModel):
 
 class VideoSearchResponse(BaseModel):
     """Video search result without transcript."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -96,11 +103,11 @@ class VideoSearchResponse(BaseModel):
                 "channel": "Example Channel",
                 "video_url": "https://www.youtube.com/watch?v=example",
                 "video_id": "example",
-                "likes": 1000
+                "likes": 1000,
             }
         }
     )
-    
+
     title: str
     channel: str
     channel_id: Optional[str] = None
@@ -144,18 +151,36 @@ class VideoSearchResponse(BaseModel):
 
 class SearchVideosRequest(BaseModel):
     """Request model for video search."""
+
     query: str = Field(..., description="Search query for YouTube videos")
-    num_videos: int = Field(5, ge=1, le=50, description="Number of videos to process (1-50)")
-    include_transcripts: bool = Field(False, description="Whether to include transcripts in the response")
-    max_results: int | None = Field(None, ge=1, le=50, description="Alias for num_videos (deprecated)")
-    
+    num_videos: int = Field(
+        5, ge=1, le=50, description="Number of videos to process (1-50)"
+    )
+    include_transcripts: bool = Field(
+        False, description="Whether to include transcripts in the response"
+    )
+    max_results: int | None = Field(
+        None, ge=1, le=50, description="Alias for num_videos (deprecated)"
+    )
+
     # Apify YouTube Search Actor parameters
-    exclude_shorts: bool = Field(False, description="Exclude YouTube Shorts from results")
+    exclude_shorts: bool = Field(
+        False, description="Exclude YouTube Shorts from results"
+    )
     shorts_only: bool = Field(False, description="Return only YouTube Shorts")
-    upload_date_filter: str = Field("", description="Filter by upload date (e.g., 'today', 'week', 'month', 'year')")
-    sort_by: str = Field("relevance", description="Sort order: 'relevance', 'rating', 'upload_date', 'view_count'")
-    sleep_interval: int = Field(2, ge=0, le=10, description="Sleep interval between requests (seconds)")
-    max_retries: int = Field(3, ge=0, le=10, description="Maximum number of retries for failed requests")
+    upload_date_filter: str = Field(
+        "", description="Filter by upload date (e.g., 'today', 'week', 'month', 'year')"
+    )
+    sort_by: str = Field(
+        "relevance",
+        description="Sort order: 'relevance', 'rating', 'upload_date', 'view_count'",
+    )
+    sleep_interval: int = Field(
+        2, ge=0, le=10, description="Sleep interval between requests (seconds)"
+    )
+    max_retries: int = Field(
+        3, ge=0, le=10, description="Maximum number of retries for failed requests"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -168,7 +193,7 @@ class SearchVideosRequest(BaseModel):
                 "upload_date_filter": "",
                 "sort_by": "relevance",
                 "sleep_interval": 2,
-                "max_retries": 3
+                "max_retries": 3,
             }
         }
     )
@@ -182,19 +207,19 @@ class SearchVideosRequest(BaseModel):
 
 class ExtractTranscriptsRequest(BaseModel):
     """Request model for extracting transcripts from video IDs."""
-    video_ids: list[str] = Field(..., min_length=1, max_length=50, description="List of YouTube video IDs")
+
+    video_ids: list[str] = Field(
+        ..., min_length=1, max_length=50, description="List of YouTube video IDs"
+    )
 
     model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "video_ids": ["dQw4w9WgXcQ", "jNQXAC9IVRw"]
-            }
-        }
+        json_schema_extra={"example": {"video_ids": ["dQw4w9WgXcQ", "jNQXAC9IVRw"]}}
     )
 
 
 class SearchTranscriptsResponse(BaseModel):
     """Response model for search and extract transcripts endpoint."""
+
     query: str
     num_videos: int
     videos: list[VideoResponse]
@@ -204,6 +229,7 @@ class SearchTranscriptsResponse(BaseModel):
 
 class ExtractTranscriptsResponse(BaseModel):
     """Response model for extract transcripts endpoint."""
+
     video_ids: list[str]
     videos: list[VideoResponse]
     total_processed: int
@@ -212,9 +238,9 @@ class ExtractTranscriptsResponse(BaseModel):
 
 class SearchOnlyResponse(BaseModel):
     """Response model for search only endpoint."""
+
     query: str
     max_results: int  # Keep for backward compatibility
     num_videos: int | None = None  # New field
     videos: list[VideoSearchResponse]
     total_found: int
-

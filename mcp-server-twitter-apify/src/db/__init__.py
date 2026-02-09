@@ -19,4 +19,3 @@ __all__ = [
     "generate_query_key",
     "get_db_instance",
 ]
-

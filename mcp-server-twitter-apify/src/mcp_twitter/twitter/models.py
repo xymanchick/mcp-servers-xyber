@@ -36,7 +36,9 @@ class QueryDefinition(BaseModel):
     def output_filename(self) -> str:
         if not self.output:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            first_term = self.input.searchTerms[0] if self.input.searchTerms else "unknown"
+            first_term = (
+                self.input.searchTerms[0] if self.input.searchTerms else "unknown"
+            )
             safe = first_term.replace(":", "_").replace(" ", "_")
             return f"twitter_results_{safe}_{timestamp}.json"
         return self.output if self.output.endswith(".json") else f"{self.output}.json"
@@ -62,5 +64,3 @@ class TwitterData(BaseModel):
             query_id=query_id,
             query_name=query_name,
         )
-
-

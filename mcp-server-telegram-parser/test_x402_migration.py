@@ -10,9 +10,9 @@ import os
 os.environ["MCP_TELEGRAM_PARSER_X402_PRICING_MODE"] = "off"
 
 from mcp_server_telegram_parser.__main__ import create_app
-from mcp_server_telegram_parser.x402_config import get_x402_settings
-from mcp_server_telegram_parser.middlewares import X402WrapperMiddleware
 from mcp_server_telegram_parser.hybrid_routers import routers
+from mcp_server_telegram_parser.middlewares import X402WrapperMiddleware
+from mcp_server_telegram_parser.x402_config import get_x402_settings
 
 print("=" * 60)
 print("Testing x402 Architecture Migration")
@@ -26,7 +26,9 @@ print("✓ All imports successful")
 print(f"\n[Test 2] Hybrid routers...")
 print(f"✓ Found {len(routers)} hybrid router(s)")
 for i, router in enumerate(routers, 1):
-    print(f"  Router {i}: {router.prefix if hasattr(router, 'prefix') else 'No prefix'}")
+    print(
+        f"  Router {i}: {router.prefix if hasattr(router, 'prefix') else 'No prefix'}"
+    )
 
 # Test 3: x402 settings
 print(f"\n[Test 3] x402 settings...")
@@ -44,13 +46,15 @@ print(f"  - Title: {app.title}")
 print(f"  - Total routes: {len(app.routes)}")
 
 # Check for hybrid routes
-hybrid_routes = [r for r in app.routes if hasattr(r, 'path') and '/hybrid' in r.path]
+hybrid_routes = [r for r in app.routes if hasattr(r, "path") and "/hybrid" in r.path]
 print(f"  - Hybrid routes: {len(hybrid_routes)}")
 
 # Test 5: Verify middleware configuration
 print(f"\n[Test 5] Middleware configuration...")
 middleware_classes = [type(m).__name__ for m in app.user_middleware]
-print(f"✓ Middleware stack: {middleware_classes if middleware_classes else 'Empty (expected with pricing_mode=off)'}")
+print(
+    f"✓ Middleware stack: {middleware_classes if middleware_classes else 'Empty (expected with pricing_mode=off)'}"
+)
 
 print("\n" + "=" * 60)
 print("✓ ALL TESTS PASSED! Migration successful.")

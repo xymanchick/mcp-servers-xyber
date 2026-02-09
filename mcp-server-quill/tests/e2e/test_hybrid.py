@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from tests.e2e.config import require_quill_api_key
 
 

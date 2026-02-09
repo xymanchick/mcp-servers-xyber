@@ -39,12 +39,13 @@ class DependencyContainer:
 
         if settings.quill.api_key:
             cls._quill_client = QuillAPI(
-                api_key=settings.quill.api_key,
-                base_url=settings.quill.base_url
+                api_key=settings.quill.api_key, base_url=settings.quill.base_url
             )
             logger.info("Quill API client initialized successfully.")
         else:
-            logger.warning("Quill API key is not configured; Quill endpoints will be unavailable.")
+            logger.warning(
+                "Quill API key is not configured; Quill endpoints will be unavailable."
+            )
 
         cls._search_client = TokenSearchAPI(config=settings.dexscreener)
         logger.info("Token search client initialized successfully.")
@@ -82,9 +83,10 @@ class DependencyContainer:
         """
         if cls._quill_client is None:
             from fastapi import HTTPException
+
             raise HTTPException(
                 status_code=503,
-                detail="Quill API client not available. Check API key configuration."
+                detail="Quill API client not available. Check API key configuration.",
             )
         return cls._quill_client
 

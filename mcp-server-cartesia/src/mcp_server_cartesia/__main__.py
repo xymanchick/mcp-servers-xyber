@@ -6,7 +6,6 @@ import logging
 import os
 
 import uvicorn
-
 from mcp_server_cartesia.app import create_app
 from mcp_server_cartesia.logging_config import configure_logging, logging_level
 

@@ -43,4 +43,3 @@ async def get_admin_logs():
             },
         ]
     }
-

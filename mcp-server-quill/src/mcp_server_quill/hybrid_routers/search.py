@@ -2,12 +2,12 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
-
 from mcp_server_quill.dependencies import SearchClientDep
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Search"])
+
 
 @router.get(
     "/search/{query}",
@@ -26,7 +26,7 @@ async def search_token_address(
     query: str = Path(
         ...,
         description="Token name or symbol to search for (e.g., 'WETH', 'CAKE', 'RAY', 'PEPE')",
-        example="WETH"
+        example="WETH",
     ),
     chain: Optional[str] = Query(
         None,
@@ -43,14 +43,16 @@ async def search_token_address(
         
         If not provided, returns the first match across all chains.
         """,
-        example="ethereum"
+        example="ethereum",
     ),
 ):
     try:
         result = await search_client.search_token(query, chain_id=chain)
         if not result:
             chain_info = f" on chain '{chain}'" if chain else ""
-            raise HTTPException(status_code=404, detail=f"Token '{query}' not found{chain_info}")
+            raise HTTPException(
+                status_code=404, detail=f"Token '{query}' not found{chain_info}"
+            )
         return result
     except HTTPException:
         raise

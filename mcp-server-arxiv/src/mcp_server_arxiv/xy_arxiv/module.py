@@ -10,7 +10,6 @@ from functools import lru_cache
 
 import arxiv
 import fitz
-
 from mcp_server_arxiv.xy_arxiv.config import ArxivConfig, get_arxiv_config
 from mcp_server_arxiv.xy_arxiv.errors import ArxivApiError, ArxivServiceError
 from mcp_server_arxiv.xy_arxiv.models import ArxivSearchResult
@@ -99,7 +98,9 @@ class _ArxivService:
     ) -> tuple[str | None, str | None]:
         # Normalize inputs first
         normalized_query = query.strip() if isinstance(query, str) and query else None
-        normalized_id = arxiv_id.strip() if isinstance(arxiv_id, str) and arxiv_id else None
+        normalized_id = (
+            arxiv_id.strip() if isinstance(arxiv_id, str) and arxiv_id else None
+        )
 
         # Check for empty strings
         if isinstance(query, str) and not normalized_query:
@@ -348,4 +349,3 @@ class _ArxivService:
             pdf_url=paper_obj.pdf_url,
             processing_error=message,
         )
-

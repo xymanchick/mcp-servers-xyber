@@ -1,6 +1,5 @@
-from pydantic import BaseModel, Field, model_validator
-
 from mcp_server_arxiv.xy_arxiv.models import ArxivSearchResult
+from pydantic import BaseModel, Field, model_validator
 
 
 class SearchRequest(BaseModel):
@@ -30,7 +29,9 @@ class SearchRequest(BaseModel):
         if not self.query and not self.arxiv_id:
             raise ValueError("Either 'query' or 'arxiv_id' must be provided.")
         if self.query and self.arxiv_id:
-            raise ValueError("Cannot provide both 'query' and 'arxiv_id'. Provide exactly one.")
+            raise ValueError(
+                "Cannot provide both 'query' and 'arxiv_id'. Provide exactly one."
+            )
         return self
 
 
@@ -43,8 +44,12 @@ class ArxivPaperResponse(BaseModel):
     summary: str = Field(description="Abstract/summary of the paper")
     arxiv_id: str = Field(description="ArXiv paper ID")
     pdf_url: str | None = Field(default=None, description="URL to the PDF version")
-    full_text: str | None = Field(default=None, description="Extracted full text from PDF (if requested)")
-    processing_error: str | None = Field(default=None, description="Error message if PDF processing failed")
+    full_text: str | None = Field(
+        default=None, description="Extracted full text from PDF (if requested)"
+    )
+    processing_error: str | None = Field(
+        default=None, description="Error message if PDF processing failed"
+    )
 
     @classmethod
     def from_search_result(cls, result: ArxivSearchResult) -> "ArxivPaperResponse":

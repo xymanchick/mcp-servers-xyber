@@ -9,14 +9,10 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-
 from mcp_server_weather.dependencies import get_weather_client
 from mcp_server_weather.schemas import LocationRequest, WeatherResponse
-from mcp_server_weather.weather import (
-    WeatherApiError,
-    WeatherClient,
-    WeatherClientError,
-)
+from mcp_server_weather.weather import (WeatherApiError, WeatherClient,
+                                        WeatherClientError)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

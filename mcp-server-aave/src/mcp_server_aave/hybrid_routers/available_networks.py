@@ -2,7 +2,6 @@ import logging
 
 from fastapi import APIRouter, Request
 from fastmcp.exceptions import ToolError
-
 from mcp_server_aave.aave import AaveClient, AaveError
 
 logger = logging.getLogger(__name__)

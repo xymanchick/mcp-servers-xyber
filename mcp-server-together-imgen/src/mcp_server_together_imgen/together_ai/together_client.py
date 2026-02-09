@@ -1,14 +1,14 @@
 import asyncio
-from functools import lru_cache
 import json
+from functools import lru_cache
 
 import httpx
 from loguru import logger
-from together import AsyncTogether
-
-from mcp_server_together_imgen.together_ai.config import TogetherSettings
 from mcp_server_together_imgen.schemas import ImageGenerationRequest
-from mcp_server_together_imgen.together_ai.model_registry import get_model_schema
+from mcp_server_together_imgen.together_ai.config import TogetherSettings
+from mcp_server_together_imgen.together_ai.model_registry import \
+    get_model_schema
+from together import AsyncTogether
 
 
 class TogetherClient:
@@ -19,7 +19,7 @@ class TogetherClient:
         # The timeout parameter is in seconds for httpx (used internally)
         self.client = AsyncTogether(
             api_key=self.settings.api_key,
-            timeout=300.0  # 5 minutes timeout for FLUX.2 image generation
+            timeout=300.0,  # 5 minutes timeout for FLUX.2 image generation
         )
 
     async def refine_prompt(self, user_prompt: str) -> str:
@@ -68,7 +68,7 @@ class TogetherClient:
         request_params = {
             "prompt": request.prompt,
         }
-        
+
         # Add optional parameters only if they are provided
         if request.width is not None:
             request_params["width"] = request.width
@@ -80,13 +80,23 @@ class TogetherClient:
         if request.seed is not None and request.seed != 0:
             request_params["seed"] = request.seed
         # Only include guidance_scale if model supports it AND it's provided
-        if (model_schema.capabilities.supports_guidance_scale or model_schema.capabilities.supports_guidance_param) and request.guidance_scale is not None:
+        if (
+            model_schema.capabilities.supports_guidance_scale
+            or model_schema.capabilities.supports_guidance_param
+        ) and request.guidance_scale is not None:
             request_params["guidance_scale"] = request.guidance_scale
         # Only include negative_prompt if model supports it AND it's provided
-        if model_schema.capabilities.supports_negative_prompt and request.negative_prompt is not None:
+        if (
+            model_schema.capabilities.supports_negative_prompt
+            and request.negative_prompt is not None
+        ):
             request_params["negative_prompt"] = request.negative_prompt
         # Only include lora parameters if model supports it AND they're provided
-        if model_schema.capabilities.supports_lora and request.lora_scale is not None and request.lora_scale > 0:
+        if (
+            model_schema.capabilities.supports_lora
+            and request.lora_scale is not None
+            and request.lora_scale > 0
+        ):
             request_params["lora_scale"] = request.lora_scale
             request_params["lora_url"] = request.lora_url or self.settings.lora_url
 
@@ -95,16 +105,16 @@ class TogetherClient:
 
         logger.info(f"Calling Together API with model: {model}")
         logger.debug(f"API parameters: {generate_params}")
-        
+
         # Verify API key is set
         if not self.settings.api_key or self.settings.api_key.strip() == "":
             raise ValueError("TOGETHER_API_KEY is not set or empty")
-        
+
         try:
             # Use direct HTTP call to have full control over parameters
             # This bypasses the Together SDK which might be adding unwanted defaults
             logger.info("Waiting for Together API response (timeout: 300s)...")
-            
+
             async with httpx.AsyncClient(timeout=300.0) as client:
                 response = await client.post(
                     "https://api.together.xyz/v1/images/generations",
@@ -116,17 +126,17 @@ class TogetherClient:
                 )
                 response.raise_for_status()
                 result = response.json()
-            
+
             logger.info(f"Together API call successful, received response")
-            
+
             if not result or "data" not in result:
                 raise ValueError("Invalid response structure from API")
-                
+
             if not result["data"] or len(result["data"]) == 0:
                 raise ValueError("No image data in API response")
-                
+
             image_data = result["data"][0]
-            
+
             # Handle both b64_json and base64 response formats
             b64 = None
             if "b64_json" in image_data:
@@ -134,32 +144,48 @@ class TogetherClient:
             elif "base64" in image_data:
                 b64 = image_data["base64"]
             elif "url" in image_data:
-                logger.warning("API returned URL instead of base64. This endpoint expects base64.")
-                raise ValueError("API returned URL instead of base64. Please check response_format parameter.")
+                logger.warning(
+                    "API returned URL instead of base64. This endpoint expects base64."
+                )
+                raise ValueError(
+                    "API returned URL instead of base64. Please check response_format parameter."
+                )
             else:
                 raise ValueError("Empty or missing base64 data in response")
-                
+
             logger.info(f"Image generated successfully, base64 length: {len(b64)}")
             return b64.replace("\n", "")
-            
+
         except asyncio.TimeoutError:
             logger.error("Together API call timed out after 300 seconds")
-            logger.error("Possible causes: network issues, API overload, invalid API key, or model unavailable")
-            raise Exception("Image generation timed out after 300 seconds (5 minutes). This may indicate network issues, API overload, or the model is unavailable. Please check your network connection, API key, and try again.")
+            logger.error(
+                "Possible causes: network issues, API overload, invalid API key, or model unavailable"
+            )
+            raise Exception(
+                "Image generation timed out after 300 seconds (5 minutes). This may indicate network issues, API overload, or the model is unavailable. Please check your network connection, API key, and try again."
+            )
         except Exception as e:
             error_type = type(e).__name__
             error_msg = str(e)
-            logger.error(f"Error calling Together API: {error_type}: {error_msg}", exc_info=True)
-            
+            logger.error(
+                f"Error calling Together API: {error_type}: {error_msg}", exc_info=True
+            )
+
             # Provide more helpful error messages
             if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
-                raise Exception(f"Request timed out. The Together API may be slow or overloaded. Error: {error_msg}")
+                raise Exception(
+                    f"Request timed out. The Together API may be slow or overloaded. Error: {error_msg}"
+                )
             elif "401" in error_msg or "Unauthorized" in error_msg:
-                raise Exception("Invalid API key. Please check your TOGETHER_API_KEY environment variable.")
+                raise Exception(
+                    "Invalid API key. Please check your TOGETHER_API_KEY environment variable."
+                )
             elif "429" in error_msg or "rate limit" in error_msg.lower():
                 raise Exception("Rate limit exceeded. Please try again later.")
             elif "404" in error_msg or "not found" in error_msg.lower():
-                raise Exception(f"Model '{model}' not found or unavailable. Please check the model name.")
+                raise Exception(
+                    f"Model '{model}' not found or unavailable. Please check the model name."
+                )
             else:
                 raise
 

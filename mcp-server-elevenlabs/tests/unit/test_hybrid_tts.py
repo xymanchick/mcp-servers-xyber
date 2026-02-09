@@ -145,4 +145,3 @@ def test_hybrid_audio_download_rejects_path_traversal():
     # Use URL-encoded dots to avoid client-side path normalization.
     dl = client.get("/hybrid/audio/%2e%2e")
     assert dl.status_code == 400
-

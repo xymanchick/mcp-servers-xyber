@@ -8,10 +8,9 @@ import pytest_asyncio
 from eth_account import Account
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from x402.http import safe_base64_encode
-
-from mcp_server_weather.x402_config import PaymentOptionConfig
 from mcp_server_weather.middlewares import X402WrapperMiddleware
+from mcp_server_weather.x402_config import PaymentOptionConfig
+from x402.http import safe_base64_encode
 
 
 class DummyServer:
@@ -239,7 +238,9 @@ async def test_payment_header_with_wrong_network_returns_no_matching(
     }
     header_value = safe_base64_encode(json.dumps(payment_payload))
 
-    resp = await client.post("/hybrid/forecast", headers={"PAYMENT-SIGNATURE": header_value})
+    resp = await client.post(
+        "/hybrid/forecast", headers={"PAYMENT-SIGNATURE": header_value}
+    )
     assert resp.status_code == 402
     payload = resp.json()
     assert payload["error"] == "No matching payment requirements found"

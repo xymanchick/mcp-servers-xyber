@@ -1,14 +1,10 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-
 from mcp_server_arxiv.dependencies import get_arxiv_service
 from mcp_server_arxiv.schemas import ArxivPaperResponse, SearchRequest
-from mcp_server_arxiv.xy_arxiv import (
-    ArxivApiError,
-    ArxivServiceError,
-    _ArxivService,
-)
+from mcp_server_arxiv.xy_arxiv import (ArxivApiError, ArxivServiceError,
+                                       _ArxivService)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -26,11 +22,11 @@ async def arxiv_search(
 ) -> list[ArxivPaperResponse]:
     """
     Search ArXiv papers by query or fetch a specific paper by ID.
-    
+
     This endpoint supports two modes:
     1. Query-based search: Provide 'query' to search for papers
     2. ID-based lookup: Provide 'arxiv_id' to fetch a specific paper
-    
+
     Both modes return metadata and optionally full PDF text content.
     """
     try:
@@ -61,4 +57,3 @@ async def arxiv_search(
     except Exception as e:
         logger.error(f"Unexpected error in arxiv_search: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
-

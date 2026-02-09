@@ -14,7 +14,7 @@ import pytest
 @dataclass
 class E2ETestConfig:
     """Configuration for E2E tests."""
-    
+
     base_url: str
     timeout_seconds: int = 30
     private_key: str | None = None
@@ -25,7 +25,7 @@ def load_e2e_config() -> E2ETestConfig:
     base_url = os.getenv("MCP_DEEP_RESEARCHER_E2E_BASE_URL", "http://localhost:8006")
     timeout_seconds = int(os.getenv("MCP_DEEP_RESEARCHER_E2E_TIMEOUT", "30"))
     private_key = os.getenv("MCP_DEEP_RESEARCHER_E2E_PRIVATE_KEY")
-    
+
     return E2ETestConfig(
         base_url=base_url,
         timeout_seconds=timeout_seconds,
@@ -42,5 +42,6 @@ def require_base_url(config: E2ETestConfig) -> None:
 def require_wallet(config: E2ETestConfig) -> None:
     """Require that wallet private key is configured."""
     if not config.private_key:
-        pytest.skip("Wallet private key not configured (MCP_DEEP_RESEARCHER_E2E_PRIVATE_KEY)")
-
+        pytest.skip(
+            "Wallet private key not configured (MCP_DEEP_RESEARCHER_E2E_PRIVATE_KEY)"
+        )

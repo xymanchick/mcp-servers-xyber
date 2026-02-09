@@ -3,13 +3,10 @@ import logging
 
 from fastapi import APIRouter, Request
 from fastmcp.exceptions import ToolError
-
 from mcp_server_stability.schemas import ImageGenerationRequest
 from mcp_server_stability.stable_diffusion import (
-    StabilityService,
-    StableDiffusionClientError,
-    StableDiffusionServerConnectionError,
-)
+    StabilityService, StableDiffusionClientError,
+    StableDiffusionServerConnectionError)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

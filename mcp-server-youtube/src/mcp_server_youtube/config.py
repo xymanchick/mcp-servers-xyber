@@ -4,8 +4,8 @@ Configuration module for the MCP YouTube server.
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -25,6 +25,7 @@ load_dotenv(dotenv_path=_env_file)
 
 class DatabaseConfig(BaseModel):
     """Database configuration."""
+
     DB_NAME: str = os.getenv("DB_NAME", "mcp_youtube")
     DB_USER: str = os.getenv("DB_USER", "postgres")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
@@ -32,15 +33,17 @@ class DatabaseConfig(BaseModel):
     DB_PORT_RAW: str = os.getenv("DB_PORT", "5432")
     DB_PORT: str = ""
     DATABASE_URL: str = ""
-    
+
     @model_validator(mode="after")
     def compute_database_url(self):
         """Compute DATABASE_URL and DB_PORT after fields are set."""
-        self.DB_PORT = self.DB_PORT_RAW.split(":")[0] if ":" in self.DB_PORT_RAW else self.DB_PORT_RAW
-        # Use postgresql+psycopg:// to use psycopg3 driver (not psycopg2)
-        self.DATABASE_URL = (
-            f"postgresql+psycopg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        self.DB_PORT = (
+            self.DB_PORT_RAW.split(":")[0]
+            if ":" in self.DB_PORT_RAW
+            else self.DB_PORT_RAW
         )
+        # Use postgresql+psycopg:// to use psycopg3 driver (not psycopg2)
+        self.DATABASE_URL = f"postgresql+psycopg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         # Avoid leaking credentials in logs
         logger.info(
             "Database configured: postgresql+psycopg://%s:***@%s:%s/%s",
@@ -54,6 +57,7 @@ class DatabaseConfig(BaseModel):
 
 class ApifyConfig(BaseModel):
     """Apify API configuration."""
+
     # Loaded from process env (dotenv above ensures `.env` is applied).
     # Prefer the common `APIFY_TOKEN`, but allow nested form too.
     apify_token: str | None = os.getenv("APIFY_TOKEN") or os.getenv(
@@ -63,6 +67,7 @@ class ApifyConfig(BaseModel):
 
 class YouTubeConfig(BaseModel):
     """YouTube service configuration."""
+
     delay_between_requests: float = Field(default=1.0, env="DELAY_BETWEEN_REQUESTS")
     max_results: int = Field(default=10, env="MAX_RESULTS")
     num_videos: int = Field(default=5, env="NUM_VIDEOS")
@@ -71,6 +76,7 @@ class YouTubeConfig(BaseModel):
 
 class LoggingConfig(BaseModel):
     """Logging configuration."""
+
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     log_format: str = Field(
         default="%(asctime)s [%(levelname)s] %(name)s: %(message)s", env="LOG_FORMAT"
@@ -108,4 +114,3 @@ class AppSettings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_app_settings() -> AppSettings:
     return AppSettings()
-

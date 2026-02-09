@@ -13,6 +13,3 @@ async def test_health_endpoint_available(rest_client) -> None:
     payload = response.json()
     assert payload.get("status") == "ok"
     assert payload.get("service") == "mcp-server-tavily"
-
-
-

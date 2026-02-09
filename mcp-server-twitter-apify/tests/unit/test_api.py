@@ -7,7 +7,6 @@ from typing import Any
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-
 from mcp_twitter.app import create_app
 from mcp_twitter.twitter import build_default_registry
 
@@ -24,7 +23,7 @@ class FakeScraper:
         out = self.results_dir / query.output_filename()
         out.write_text(json.dumps([{"id": "1", "text": "hello"}]), encoding="utf-8")
         return out
-    
+
     def get_last_items(self) -> list[dict[str, Any]] | None:
         """Return fake items for API access."""
         return [{"id": "1", "text": "hello"}]
@@ -51,28 +50,29 @@ async def client(monkeypatch, tmp_results_dir: Path) -> AsyncClient:
     from mcp_twitter.api_routers import routers as api_routers
     from mcp_twitter.hybrid_routers import routers as hybrid_routers
     from mcp_twitter.mcp_routers import routers as mcp_routers
-    
+
     # Create app without lifespan for testing
     app = FastAPI(
         title="Twitter MCP Server (Hybrid) - Test",
         description="Test app without lifespan",
         version="2.0.0",
     )
-    
+
     # Mount routers
     for router in api_routers:
         app.include_router(router, prefix="/api")
     for router in hybrid_routers:
         app.include_router(router, prefix="/hybrid")
-    
+
     # Set up app state manually (bypassing lifespan)
     app.state.registry = build_default_registry()
     app.state.scraper = FakeScraper(tmp_results_dir)
-    
+
     # Patch TwitterScraper class for tests
     from mcp_twitter.twitter import scraper as scraper_mod
+
     monkeypatch.setattr(scraper_mod, "TwitterScraper", FakeTwitterScraper)
-    
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
         yield ac
@@ -109,7 +109,9 @@ async def test_list_queries(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_search_topic_uses_fake_scraper_and_returns_items(client: AsyncClient) -> None:
+async def test_search_topic_uses_fake_scraper_and_returns_items(
+    client: AsyncClient,
+) -> None:
     r = await client.post(
         "/hybrid/v1/search/topic",
         json={
@@ -137,7 +139,9 @@ async def test_list_results(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_search_profile_batch_returns_items_per_username(client: AsyncClient) -> None:
+async def test_search_profile_batch_returns_items_per_username(
+    client: AsyncClient,
+) -> None:
     r = await client.post(
         "/hybrid/v1/search/profile/batch",
         json={
@@ -162,7 +166,7 @@ async def test_search_profile_batch_continue_on_error_returns_error_entry(
     client: AsyncClient, monkeypatch
 ) -> None:
     from mcp_twitter.twitter import scraper as scraper_mod
-    
+
     class ErroringFakeTwitterScraper(FakeTwitterScraper):  # type: ignore[misc]
         def run_query(self, query) -> Path:  # noqa: ANN001
             term = ""
@@ -196,7 +200,9 @@ async def test_search_profile_batch_continue_on_error_returns_error_entry(
 
 
 @pytest.mark.asyncio
-async def test_search_profile_batch_splits_comma_separated_usernames(client: AsyncClient) -> None:
+async def test_search_profile_batch_splits_comma_separated_usernames(
+    client: AsyncClient,
+) -> None:
     r = await client.post(
         "/hybrid/v1/search/profile/batch",
         json={
@@ -213,7 +219,9 @@ async def test_search_profile_batch_splits_comma_separated_usernames(client: Asy
 
 
 @pytest.mark.asyncio
-async def test_search_profile_latest_batch_returns_items_per_username(client: AsyncClient) -> None:
+async def test_search_profile_latest_batch_returns_items_per_username(
+    client: AsyncClient,
+) -> None:
     r = await client.post(
         "/hybrid/v1/search/profile/latest/batch",
         json={
@@ -234,7 +242,9 @@ async def test_search_profile_latest_batch_returns_items_per_username(client: As
 
 
 @pytest.mark.asyncio
-async def test_search_profile_latest_batch_splits_comma_separated_usernames(client: AsyncClient) -> None:
+async def test_search_profile_latest_batch_splits_comma_separated_usernames(
+    client: AsyncClient,
+) -> None:
     r = await client.post(
         "/hybrid/v1/search/profile/latest/batch",
         json={
@@ -255,5 +265,3 @@ async def test_get_results_deprecated(client: AsyncClient) -> None:
     """Test that file-based results endpoint is deprecated."""
     r = await client.get("/api/v1/results/test.json")
     assert r.status_code == 410  # Gone
-
-

@@ -10,7 +10,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_server_weather.api_routers import routers as api_routers
 from mcp_server_weather.dependencies import DependencyContainer
 from mcp_server_weather.hybrid_routers import routers as hybrid_routers

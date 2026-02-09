@@ -9,7 +9,6 @@ import argparse
 import logging
 
 import uvicorn
-
 from mcp_server_youtube.config import get_app_settings
 from mcp_server_youtube.logging_config import get_logging_config
 
@@ -41,4 +40,3 @@ if __name__ == "__main__":
         log_config=get_logging_config(),
         factory=True,
     )
-

@@ -3,8 +3,8 @@ import logging
 import os
 
 import uvicorn
-from mcp_server_twitter.logging_config import configure_logging, logging_level
 from mcp_server_twitter.app import create_app
+from mcp_server_twitter.logging_config import configure_logging, logging_level
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -38,12 +38,12 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    
+
     if args.logging_level != os.getenv("LOGGING_LEVEL", "INFO").upper():
         os.environ["LOGGING_LEVEL"] = args.logging_level
         configure_logging()
         logger = logging.getLogger(__name__)
-    
+
     logger.info(f"Starting Twitter MCP server on {args.host}:{args.port}")
 
     uvicorn.run(

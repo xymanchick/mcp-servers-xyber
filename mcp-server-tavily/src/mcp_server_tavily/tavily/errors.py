@@ -23,9 +23,11 @@ class TavilyApiError(TavilyServiceError):
 
 class TavilyEmptyResultsError(TavilyServiceError):
     """Raised when Tavily API returns empty results."""
+
     pass
 
 
 class TavilyInvalidResponseError(TavilyServiceError):
     """Raised when Tavily API returns an invalid or unexpected response format."""
+
     pass

@@ -2,7 +2,6 @@ import logging
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-
 from mcp_server_telegram_parser.api_routers import routers as api_routers
 from mcp_server_telegram_parser.hybrid_routers import routers as hybrid_routers
 from mcp_server_telegram_parser.x402_config import get_x402_settings
@@ -51,7 +50,9 @@ def create_app() -> FastAPI:
 
     # --- Middleware Configuration ---
     if x402_settings.pricing_mode == "on":
-        from mcp_server_telegram_parser.middlewares import X402WrapperMiddleware
+        from mcp_server_telegram_parser.middlewares import \
+            X402WrapperMiddleware
+
         app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
         logger.info("x402 payment middleware enabled.")
     else:

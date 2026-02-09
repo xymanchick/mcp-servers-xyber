@@ -19,4 +19,3 @@ class TwitterApiError(TwitterServiceError):
 
 class TwitterClientError(TwitterServiceError):
     """Raised for unexpected client-side errors."""
-

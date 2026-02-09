@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from tests.e2e.config import require_lurky_api_key
 
 
@@ -14,5 +13,3 @@ async def test_health_endpoint_available(rest_client) -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload.get("status") == "ok"
-
-

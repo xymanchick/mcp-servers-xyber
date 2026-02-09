@@ -3,9 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from mcp_server_deepresearcher.deepresearcher.utils import (
-    create_mcp_tasks,
-    filter_mcp_tools_for_deepresearcher,
-)
+    create_mcp_tasks, filter_mcp_tools_for_deepresearcher)
 
 
 def _tool(name: str) -> MagicMock:
@@ -15,7 +13,9 @@ def _tool(name: str) -> MagicMock:
     return t
 
 
-def test_filter_mcp_tools_keeps_only_search_and_extract_transcripts_for_youtube() -> None:
+def test_filter_mcp_tools_keeps_only_search_and_extract_transcripts_for_youtube() -> (
+    None
+):
     tools = [
         _tool("mcp_search_youtube_videos"),
         _tool("search_and_extract_transcripts"),
@@ -52,4 +52,3 @@ def test_twitter_tools_use_simplified_original_topic_when_provided() -> None:
     apify_tool.coroutine.assert_called_once()
     kwargs = apify_tool.coroutine.call_args.kwargs
     assert kwargs["searchTerms"] == ["xyber inc"]
-

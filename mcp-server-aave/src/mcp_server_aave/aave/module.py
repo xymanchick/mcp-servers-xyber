@@ -7,14 +7,13 @@ from functools import lru_cache
 from typing import Any, Dict, List, Literal
 
 import aiohttp
-from tenacity import (before_sleep_log, retry, retry_if_exception_type,
-                      stop_after_attempt, wait_exponential)
-
 from mcp_server_aave.aave.config import (AaveApiError, AaveClientError,
                                          AaveConfig, AaveContractError,
                                          get_aave_config)
 from mcp_server_aave.aave.models import (AssetData, PoolData, ReserveData,
                                          RiskData)
+from tenacity import (before_sleep_log, retry, retry_if_exception_type,
+                      stop_after_attempt, wait_exponential)
 
 # --- Logger Setup --- #
 

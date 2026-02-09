@@ -12,7 +12,9 @@ def test_build_default_registry_has_expected_types_and_ids() -> None:
     assert reg.get("5") is not None
 
 
-def test_create_topic_query_builds_expected_input_and_output(monkeypatch, fixed_datetime) -> None:
+def test_create_topic_query_builds_expected_input_and_output(
+    monkeypatch, fixed_datetime
+) -> None:
     monkeypatch.setattr(queries, "datetime", fixed_datetime)
     q = queries.create_topic_query(
         "AI news",
@@ -32,7 +34,9 @@ def test_create_topic_query_builds_expected_input_and_output(monkeypatch, fixed_
     assert q.output == "topic_AI_news_20250101_010203.json"
 
 
-def test_create_profile_query_strips_at_and_adds_date_range(monkeypatch, fixed_datetime) -> None:
+def test_create_profile_query_strips_at_and_adds_date_range(
+    monkeypatch, fixed_datetime
+) -> None:
     monkeypatch.setattr(queries, "datetime", fixed_datetime)
     q = queries.create_profile_query(
         "@elonmusk",
@@ -48,7 +52,9 @@ def test_create_profile_query_strips_at_and_adds_date_range(monkeypatch, fixed_d
     assert q.output.endswith("_20250101_010203.json")
 
 
-def test_create_replies_query_builds_conversation_id(monkeypatch, fixed_datetime) -> None:
+def test_create_replies_query_builds_conversation_id(
+    monkeypatch, fixed_datetime
+) -> None:
     monkeypatch.setattr(queries, "datetime", fixed_datetime)
     q = queries.create_replies_query("12345", max_items=10, lang="en")
     assert q.type == "replies"
@@ -63,5 +69,3 @@ def test_registry_forces_query_type_to_match_container() -> None:
     reg = QueryRegistry({"topic": [q]})
     assert reg.get(q.id) is not None
     assert reg.get(q.id).type == "topic"
-
-

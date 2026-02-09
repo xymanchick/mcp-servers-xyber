@@ -1,11 +1,12 @@
 import datetime
-import os
 import logging
+import os
 
 from elevenlabs.client import ElevenLabs
 from mcp_server_elevenlabs.config import ElevenLabsSettings
 
 logger = logging.getLogger(__name__)
+
 
 def generate_voice(
     text: str,
@@ -19,7 +20,7 @@ def generate_voice(
     # The path is now absolute in container (/app/media/voice/generated_audio)
     os.makedirs(generated_audio_dir, exist_ok=True)
     api_key = api_config.ELEVENLABS_API_KEY
-    
+
     # Use provided ID or fallback to config
     voice_id = voice_id or api_config.ELEVENLABS_VOICE_ID
     model_id = model_id or api_config.ELEVENLABS_MODEL_ID
@@ -53,5 +54,5 @@ def generate_voice(
             f.write(chunk)
 
     logger.info(f"Audio saved to: {filepath}")
-    
+
     return filename

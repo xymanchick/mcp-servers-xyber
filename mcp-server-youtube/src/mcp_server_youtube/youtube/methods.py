@@ -5,12 +5,11 @@ Database manager for YouTube video caching.
 import logging
 from typing import Dict, List, Optional
 
+from mcp_server_youtube.config import DatabaseConfig
+from mcp_server_youtube.youtube.models import Base, YouTubeVideo
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
-
-from mcp_server_youtube.config import DatabaseConfig
-from mcp_server_youtube.youtube.models import Base, YouTubeVideo
 
 logger = logging.getLogger(__name__)
 
@@ -33,15 +32,17 @@ class NullDatabaseManager:
     def save_video(self, video_data: Dict) -> bool:
         return False
 
-    def batch_get_videos(self, video_ids: list[str]) -> Dict[str, Optional[YouTubeVideo]]:
+    def batch_get_videos(
+        self, video_ids: list[str]
+    ) -> Dict[str, Optional[YouTubeVideo]]:
         return {video_id: None for video_id in video_ids}
 
     def batch_check_transcripts(self, video_ids: list[str]) -> Dict[str, bool]:
         return {video_id: False for video_id in video_ids}
-    
+
     def video_exists(self, video_id: str) -> bool:
         return False
-    
+
     def batch_check_video_exists(self, video_ids: list[str]) -> Dict[str, bool]:
         return {video_id: False for video_id in video_ids}
 
@@ -55,21 +56,23 @@ class DatabaseManager:
 
         Args:
             database_url: PostgreSQL connection URL. Defaults to DatabaseConfig.DATABASE_URL.
-        
+
         Raises:
             ValueError: If DATABASE_URL is not configured or connection cannot be established.
         """
         if database_url is None:
             db_config = DatabaseConfig()
             database_url = db_config.DATABASE_URL
-        
+
         if not database_url:
             raise ValueError(
                 "DATABASE_URL is required. Set DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, and DB_PORT environment variables."
             )
-        
-        logger.info(f"Connecting to database: {database_url.split('@')[1] if '@' in database_url else '***'}")
-        
+
+        logger.info(
+            f"Connecting to database: {database_url.split('@')[1] if '@' in database_url else '***'}"
+        )
+
         try:
             self.engine = create_engine(
                 database_url,
@@ -77,11 +80,11 @@ class DatabaseManager:
                 pool_pre_ping=True,  # Verify connections before using
             )
             self.SessionLocal = sessionmaker(bind=self.engine)
-            
+
             # Test connection immediately
             with self.engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            
+
             logger.info("Successfully connected to database")
         except Exception as e:
             logger.error(f"Failed to connect to database: {e}")
@@ -164,7 +167,9 @@ class DatabaseManager:
                 else:
                     video_data["transcript_length"] = 0
 
-            existing_video = session.query(YouTubeVideo).filter_by(video_id=video_id).first()
+            existing_video = (
+                session.query(YouTubeVideo).filter_by(video_id=video_id).first()
+            )
 
             if existing_video:
                 for key, value in video_data.items():
@@ -185,7 +190,9 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def batch_get_videos(self, video_ids: list[str]) -> Dict[str, Optional[YouTubeVideo]]:
+    def batch_get_videos(
+        self, video_ids: list[str]
+    ) -> Dict[str, Optional[YouTubeVideo]]:
         """
         Get multiple videos from database.
 
@@ -197,7 +204,11 @@ class DatabaseManager:
         """
         session = self.get_session()
         try:
-            videos = session.query(YouTubeVideo).filter(YouTubeVideo.video_id.in_(video_ids)).all()
+            videos = (
+                session.query(YouTubeVideo)
+                .filter(YouTubeVideo.video_id.in_(video_ids))
+                .all()
+            )
             result = {video.video_id: video for video in videos}
             for video_id in video_ids:
                 if video_id not in result:
@@ -223,11 +234,13 @@ class DatabaseManager:
         videos = self.batch_get_videos(video_ids)
         return {
             video_id: (
-                video is not None and video.transcript_success and video.transcript is not None
+                video is not None
+                and video.transcript_success
+                and video.transcript is not None
             )
             for video_id, video in videos.items()
         }
-    
+
     def video_exists(self, video_id: str) -> bool:
         """
         Check if video exists in database (regardless of transcript success).
@@ -240,7 +253,7 @@ class DatabaseManager:
         """
         video = self.get_video(video_id)
         return video is not None
-    
+
     def batch_check_video_exists(self, video_ids: list[str]) -> Dict[str, bool]:
         """
         Check which videos exist in database (regardless of transcript success).
@@ -253,10 +266,7 @@ class DatabaseManager:
             Dictionary mapping video_id to boolean (True if video exists in DB)
         """
         videos = self.batch_get_videos(video_ids)
-        return {
-            video_id: video is not None
-            for video_id, video in videos.items()
-        }
+        return {video_id: video is not None for video_id, video in videos.items()}
 
 
 # Global database manager instance
@@ -275,4 +285,3 @@ def get_db_manager() -> DatabaseManager:
             )
             _db_manager = NullDatabaseManager()  # type: ignore[assignment]
     return _db_manager
-

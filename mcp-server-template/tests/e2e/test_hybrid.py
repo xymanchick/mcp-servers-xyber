@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from tests.e2e.config import require_weather_api_key
 
 API_KEY_HEADER = "Weather-Api-Key"
@@ -44,7 +43,10 @@ async def test_hybrid_current_via_rest_missing_header_falls_back_to_config(rest_
         # Server doesn't have config key, so should get 503
         assert response.status_code == 503
         body = response.json()
-        assert "not configured" in body.get("detail", "").lower() or "api key" in body.get("detail", "").lower()
+        assert (
+            "not configured" in body.get("detail", "").lower()
+            or "api key" in body.get("detail", "").lower()
+        )
 
 
 @pytest.mark.asyncio

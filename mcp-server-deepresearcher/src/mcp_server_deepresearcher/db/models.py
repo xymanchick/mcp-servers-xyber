@@ -39,29 +39,33 @@ class ResearchReport(Base):
     __tablename__ = "research_reports"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    
+
     # Research metadata
     research_topic: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
-    
+
     # Report content
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     executive_summary: Mapped[str] = mapped_column(Text, nullable=False)
     key_findings: Mapped[list[str]] = mapped_column(_json_type(), nullable=False)  # type: ignore[arg-type]
-    sources: Mapped[str] = mapped_column(Text, nullable=True)  # Formatted sources string
-    
+    sources: Mapped[str] = mapped_column(
+        Text, nullable=True
+    )  # Formatted sources string
+
     # Full report JSON for flexibility
     report_data: Mapped[dict[str, Any] | None] = mapped_column(
         _json_type(), nullable=True
     )  # Full report JSON
-    
+
     # Research configuration
     research_loop_count: Mapped[int] = mapped_column(nullable=False, default=1)
-    
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )
-

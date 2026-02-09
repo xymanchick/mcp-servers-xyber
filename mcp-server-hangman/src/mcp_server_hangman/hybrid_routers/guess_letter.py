@@ -1,15 +1,11 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-
 from mcp_server_hangman.dependencies import get_hangman_service
 from mcp_server_hangman.hangman.models import GameState
-from mcp_server_hangman.hangman.module import (
-    GameNotFoundError,
-    HangmanError,
-    HangmanService,
-    InvalidGuessError,
-)
+from mcp_server_hangman.hangman.module import (GameNotFoundError, HangmanError,
+                                               HangmanService,
+                                               InvalidGuessError)
 from mcp_server_hangman.schemas import GuessLetterRequest
 
 logger = logging.getLogger(__name__)

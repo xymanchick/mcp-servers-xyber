@@ -6,10 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from pydantic import Field, computed_field
-from pydantic_settings import (
-    BaseSettings,
-    SettingsConfigDict,
-)
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Define the path to the root .env file to ensure consistent loading
 # src/mcp_server_elevenlabs/config.py -> src/mcp_server_elevenlabs/ -> src/ -> root

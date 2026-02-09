@@ -79,6 +79,7 @@ class X402Config(BaseSettings):
             logger.info("CDP API keys found, configuring for mainnet facilitator.")
             try:
                 from cdp.x402 import create_facilitator_config
+
                 return create_facilitator_config(
                     api_key_id=self.cdp_api_key_id,
                     api_key_secret=self.cdp_api_key_secret,
@@ -92,6 +93,7 @@ class X402Config(BaseSettings):
         if self.facilitator_url:
             logger.info(f"Using public facilitator at {self.facilitator_url}")
             from x402.http import FacilitatorConfig
+
             return FacilitatorConfig(url=self.facilitator_url)
         return None
 

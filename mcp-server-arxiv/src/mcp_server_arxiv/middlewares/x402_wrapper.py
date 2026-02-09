@@ -8,20 +8,17 @@ import logging
 import httpx
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from mcp_server_arxiv.x402_config import (PaymentOption, X402Config,
+                                          get_x402_settings)
+from starlette.middleware.base import (BaseHTTPMiddleware,
+                                       RequestResponseEndpoint)
 from starlette.routing import Match
 from x402.chains import NETWORK_TO_ID, get_token_name, get_token_version
 from x402.common import find_matching_payment_requirements, x402_VERSION
 from x402.encoding import safe_base64_decode
 from x402.facilitator import FacilitatorClient
-from x402.types import (
-    PaymentPayload,
-    PaymentRequirements,
-    VerifyResponse,
-    x402PaymentRequiredResponse,
-)
-
-from mcp_server_arxiv.x402_config import PaymentOption, X402Config, get_x402_settings
+from x402.types import (PaymentPayload, PaymentRequirements, VerifyResponse,
+                        x402PaymentRequiredResponse)
 
 logger = logging.getLogger(__name__)
 

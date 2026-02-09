@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-
 from mcp_server_elevenlabs.schemas import HealthResponse
 
 router = APIRouter(tags=["Health"])

@@ -8,7 +8,7 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# --- Configuration Model --- 
+# --- Configuration Model ---
 
 
 class TwitterConfig(BaseSettings):
@@ -54,4 +54,3 @@ def get_twitter_config() -> TwitterConfig:
     """
     config = TwitterConfig()
     return config
-

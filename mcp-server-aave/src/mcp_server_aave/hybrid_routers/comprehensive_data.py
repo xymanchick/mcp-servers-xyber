@@ -3,15 +3,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Request
 from fastmcp.exceptions import ToolError
-from pydantic import BaseModel, Field
-
 from mcp_server_aave.aave import AaveApiError, AaveClient, AaveClientError
-from mcp_server_aave.schemas import (
-    AAVE_ASSETS,
-    AAVE_NETWORKS,
-    ComprehensiveAaveData,
-    NetworkAaveData,
-)
+from mcp_server_aave.schemas import (AAVE_ASSETS, AAVE_NETWORKS,
+                                     ComprehensiveAaveData, NetworkAaveData)
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

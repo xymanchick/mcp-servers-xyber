@@ -7,7 +7,6 @@ import logging
 import os
 
 import uvicorn
-
 from mcp_server_deepresearcher.logging_config import LOGGING_LEVEL
 
 # The configure_logging() call is removed from here.
@@ -19,8 +18,12 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     default_host = os.getenv("MCP_DEEP_RESEARCHER_HOST", "0.0.0.0")
     default_port = int(os.getenv("MCP_DEEP_RESEARCHER_PORT", "8003"))
-    default_reload = os.getenv("DEEP_RESEARCHER_HOT_RELOAD", "false").lower() in ("true", "1", "t")
-    
+    default_reload = os.getenv("DEEP_RESEARCHER_HOT_RELOAD", "false").lower() in (
+        "true",
+        "1",
+        "t",
+    )
+
     parser = argparse.ArgumentParser(description="Run the Deep Researcher MCP Server.")
     parser.add_argument("--host", default=default_host, help="Host to bind to.")
     parser.add_argument(

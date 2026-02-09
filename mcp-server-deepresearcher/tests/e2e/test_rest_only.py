@@ -8,9 +8,8 @@ import httpx
 import pytest
 import pytest_asyncio
 from eth_account import Account
-from x402.clients.httpx import x402HttpxClient
-
 from tests.e2e.config import load_e2e_config, require_base_url, require_wallet
+from x402.clients.httpx import x402HttpxClient
 
 
 @pytest_asyncio.fixture
@@ -67,4 +66,3 @@ async def test_health_endpoint_structure(rest_client) -> None:
     assert isinstance(payload, dict)
     assert "status" in payload
     assert "service" in payload
-

@@ -3,9 +3,10 @@ import logging
 import os
 
 import uvicorn
-from mcp_server_telegram_parser.logging_config import LOGGING_LEVEL as logging_level
-from mcp_server_telegram_parser.logging_config import configure_logging
 from mcp_server_telegram_parser.app import create_app
+from mcp_server_telegram_parser.logging_config import \
+    LOGGING_LEVEL as logging_level
+from mcp_server_telegram_parser.logging_config import configure_logging
 
 configure_logging()
 logger = logging.getLogger(__name__)

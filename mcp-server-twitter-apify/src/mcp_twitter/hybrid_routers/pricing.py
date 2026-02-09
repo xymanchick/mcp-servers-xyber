@@ -2,7 +2,6 @@ import logging
 
 import yaml
 from fastapi import APIRouter, status
-
 from mcp_twitter.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
@@ -10,7 +9,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/pricing", status_code=status.HTTP_200_OK, operation_id="twitter_apify_get_pricing")
+@router.get(
+    "/pricing", status_code=status.HTTP_200_OK, operation_id="twitter_apify_get_pricing"
+)
 async def get_pricing() -> dict:
     """Get tool pricing configuration."""
     settings = get_x402_settings()

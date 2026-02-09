@@ -30,9 +30,15 @@ class ConvertGithubRequest(BaseModel):
         description="The GitHub repository URL to convert.",
         examples=["https://github.com/coderamp-labs/gitingest"],
     )
-    token: Optional[str] = Field(None, description="GitHub Personal Access Token for private repositories.")
-    include_submodules: bool = Field(False, description="Include repository submodules.")
-    include_gitignored: bool = Field(False, description="Include files listed in .gitignore.")
+    token: Optional[str] = Field(
+        None, description="GitHub Personal Access Token for private repositories."
+    )
+    include_submodules: bool = Field(
+        False, description="Include repository submodules."
+    )
+    include_gitignored: bool = Field(
+        False, description="Include files listed in .gitignore."
+    )
 
 
 class ConvertResponse(BaseModel):
@@ -47,4 +53,3 @@ class ErrorResponse(BaseModel):
     success: bool = Field(False, description="Always false for errors.")
     error: str = Field(..., description="Error message.")
     url: Optional[str] = Field(None, description="The URL that caused the error.")
-

@@ -1,23 +1,20 @@
 # Libraries for different LLMs
 import json
 import logging
-import yaml
-from logging import LoggerAdapter
 import os
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
 from functools import lru_cache
+from logging import LoggerAdapter
+from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
+
+import yaml
+from langchain_core.output_parsers import JsonOutputParser
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_mistralai import ChatMistralAI
-from langchain_core.output_parsers import JsonOutputParser
-
 from mcp_server_deepresearcher.deepresearcher.config import LLM_Config
 
 logger = logging.getLogger(__name__)
-
-
-
 
 
 def load_json(file_path, create_file=False):
@@ -77,9 +74,7 @@ def load_yaml(file_path):
             return data if data else []
 
     except yaml.YAMLError as ye:
-        logger.error(
-            f"YAML parsing error in {file_path}: {ye}. Returning empty list."
-        )
+        logger.error(f"YAML parsing error in {file_path}: {ye}. Returning empty list.")
         return []
 
     except Exception as e:
@@ -284,16 +279,18 @@ def clean_response(response_text: str) -> str:
     try:
         # Handle case where response_text is a list (extract first string element)
         if isinstance(response_text, list):
-            logger.warning(f"clean_response received a list instead of string, extracting first element")
+            logger.warning(
+                f"clean_response received a list instead of string, extracting first element"
+            )
             if len(response_text) > 0:
                 response_text = str(response_text[0])
             else:
                 response_text = ""
-        
+
         # Ensure response_text is a string
         if not isinstance(response_text, str):
             response_text = str(response_text)
-        
+
         # Clean response text by removing markdown code block markers if present
         cleaned_response = response_text.strip()
         if cleaned_response.startswith("```json"):
@@ -313,8 +310,9 @@ def clean_response(response_text: str) -> str:
         # Replace \' with ' (but preserve valid escapes like \\ and \")
         # Use a simple approach: replace \' but not \\' (which would be a backslash followed by quote)
         import re
+
         # Replace \' but not \\' (escaped backslash followed by quote)
-        cleaned_response = re.sub(r'(?<!\\)\\\'', "'", cleaned_response)
+        cleaned_response = re.sub(r"(?<!\\)\\\'", "'", cleaned_response)
         # Also handle the case where it's written as \\' (double backslash single quote)
         cleaned_response = cleaned_response.replace("\\\\'", "'")
 
@@ -340,7 +338,7 @@ def clean_response(response_text: str) -> str:
             # Handle 2 backslashes: \\" -> \"
             result = result.replace('\\\\"', '\\"')
             return result
-        
+
         cleaned_response = fix_escaped_quotes(cleaned_response)
 
         # Escape newlines and tabs within JSON strings
@@ -350,16 +348,16 @@ def clean_response(response_text: str) -> str:
             full_match = match.group(0)
             # Extract the content between quotes
             content = full_match[1:-1]  # Remove surrounding quotes
-            
+
             # Don't double-escape already escaped characters
             # Escape unescaped quotes (but not already escaped ones)
             # The pattern (?<!\\)" matches quotes that are not preceded by a backslash
             content = re.sub(r'(?<!\\)"', r'\\"', content)
             # Escape newlines and tabs
             content = content.replace("\n", "\\n").replace("\t", "\\t")
-            
+
             return f'"{content}"'
-        
+
         cleaned_response = re.sub(
             r'"([^"\\]|\\.)*"',
             escape_string_content,
@@ -372,23 +370,22 @@ def clean_response(response_text: str) -> str:
 
         # Convert Python boolean values to JSON boolean values
         # Replace True/False (Python) with true/false (JSON)
-        cleaned_response = re.sub(r'\bTrue\b', 'true', cleaned_response)
-        cleaned_response = re.sub(r'\bFalse\b', 'false', cleaned_response)
+        cleaned_response = re.sub(r"\bTrue\b", "true", cleaned_response)
+        cleaned_response = re.sub(r"\bFalse\b", "false", cleaned_response)
         # Also handle None -> null
-        cleaned_response = re.sub(r'\bNone\b', 'null', cleaned_response)
+        cleaned_response = re.sub(r"\bNone\b", "null", cleaned_response)
 
         return cleaned_response
     except Exception as e:
         logger.error(f"Error cleaning response: {e}")
         # Return original response if cleaning fails, but still try to fix booleans
         try:
-            response_text = re.sub(r'\bTrue\b', 'true', response_text)
-            response_text = re.sub(r'\bFalse\b', 'false', response_text)
-            response_text = re.sub(r'\bNone\b', 'null', response_text)
+            response_text = re.sub(r"\bTrue\b", "true", response_text)
+            response_text = re.sub(r"\bFalse\b", "false", response_text)
+            response_text = re.sub(r"\bNone\b", "null", response_text)
         except Exception:
             pass
         return response_text
-
 
 
 def load_mcp_servers_config(
@@ -601,6 +598,7 @@ def create_mcp_tasks(
     Returns:
         Tuple of (tasks, task_names) where tasks are coroutines with validated parameters
     """
+
     def _tool_args_schema_has_field(tool_obj: Any, field_name: str) -> bool:
         """
         Best-effort detection of whether a tool expects a wrapper field like `request`.
@@ -691,7 +689,10 @@ def create_mcp_tasks(
             logger.warning(f"  - Skipping {tool.name}: requires video_ids parameter")
         # This is where you match and activate the Apify tool
         # Support both tweet-scraper and twitter-scraper-lite
-        elif tool.name in ["apidojo-slash-tweet-scraper", "apidojo-slash-twitter-scraper-lite"]:
+        elif tool.name in [
+            "apidojo-slash-tweet-scraper",
+            "apidojo-slash-twitter-scraper-lite",
+        ]:
             logger.info(f"  - Adding task: {tool.name}")
             twitter_query = simplified_search_query or search_query
             logger.info(
@@ -709,20 +710,22 @@ def create_mcp_tasks(
                 usernames = []
                 for url in twitter_sources:
                     # Extract username from URLs like https://x.com/username or https://twitter.com/username
-                    username_match = re.search(r'(?:x\.com|twitter\.com)/([^/?]+)', url)
+                    username_match = re.search(r"(?:x\.com|twitter\.com)/([^/?]+)", url)
                     if username_match:
                         username = username_match.group(1)
                         # Remove @ if present
-                        username = username.lstrip('@')
+                        username = username.lstrip("@")
                         usernames.append(username)
                     else:
                         logger.warning(f"Could not extract username from URL: {url}")
-                
+
                 if usernames:
                     # Use twitterHandles for twitter-scraper-lite (more efficient for profile scraping)
                     # Use searchTerms with "from:" prefix for tweet-scraper
                     if tool.name == "apidojo-slash-twitter-scraper-lite":
-                        logger.info(f"Using twitterHandles: {usernames[:5]}...")  # Log first 5
+                        logger.info(
+                            f"Using twitterHandles: {usernames[:5]}..."
+                        )  # Log first 5
                         request_data = {
                             "twitterHandles": usernames[:20],  # Limit to 20 handles
                             "maxItems": 20,
@@ -739,7 +742,9 @@ def create_mcp_tasks(
                         }
                 else:
                     # Fallback to search query if no usernames extracted
-                    logger.warning("No usernames extracted, falling back to search query")
+                    logger.warning(
+                        "No usernames extracted, falling back to search query"
+                    )
                     request_data = {
                         "searchTerms": [twitter_query],
                         "maxItems": 20,
@@ -779,7 +784,9 @@ def filter_mcp_tools_for_deepresearcher(mcp_tools: List[Any]) -> List[Any]:
             "extract_transcripts",
             "youtube_search_and_transcript",
         }
-        filtered = [t for t in mcp_tools if getattr(t, "name", None) not in youtube_extras]
+        filtered = [
+            t for t in mcp_tools if getattr(t, "name", None) not in youtube_extras
+        ]
         return filtered
 
     return mcp_tools
@@ -797,28 +804,28 @@ def extract_source_info(content: str, source_name: str) -> Dict[str, str]:
         r'"url":\s*"([^"]+)"',
         r'"link":\s*"([^"]+)"',
         r'"pdf_url":\s*"([^"]+)"',
-        r'(https?://[^\s\n\)\"\'<>]+)' # Generic fallback
+        r"(https?://[^\s\n\)\"\'<>]+)",  # Generic fallback
     ]
-    
+
     for pattern in url_patterns:
         url_match = re.search(pattern, content)
         if url_match:
-            source_info["url"] = url_match.group(1).strip().rstrip('.,;!?')
+            source_info["url"] = url_match.group(1).strip().rstrip(".,;!?")
             break
 
     # Try to find a Title
     title_patterns = [
         r"Title: ([^\n]+)",
         r'"title":\s*"([^"]+)"',
-        r'"name":\s*"([^"]+)"'
+        r'"name":\s*"([^"]+)"',
     ]
-    
+
     for pattern in title_patterns:
         title_match = re.search(pattern, content)
         if title_match:
             source_info["title"] = title_match.group(1).strip()
             break
-            
+
     # If no title, use the first line as a fallback
     if source_info["title"] == "N/A" and content:
         source_info["title"] = content.split("\n")[0].strip()[:100]
@@ -828,14 +835,14 @@ def extract_source_info(content: str, source_name: str) -> Dict[str, str]:
 
 def extract_title_near_url(content_str: str, url: str, max_distance: int = 500) -> str:
     """Extract title from content near a given URL.
-    
+
     Searches for title patterns in the content around the URL location.
-    
+
     Args:
         content_str: The content string to search in
         url: The URL to find titles near
         max_distance: Maximum characters before/after URL to search for title
-        
+
     Returns:
         Extracted title or empty string if not found
     """
@@ -843,23 +850,23 @@ def extract_title_near_url(content_str: str, url: str, max_distance: int = 500) 
     url_pos = content_str.find(url)
     if url_pos == -1:
         return ""
-    
+
     # Extract a window around the URL
     start = max(0, url_pos - max_distance)
     end = min(len(content_str), url_pos + len(url) + max_distance)
     window = content_str[start:end]
-    
+
     # Title patterns to search for (case-insensitive)
     title_patterns = [
         r'(?i)"title"\s*:\s*"([^"]+)"',  # JSON: "title": "..."
-        r'(?i)"name"\s*:\s*"([^"]+)"',   # JSON: "name": "..."
-        r'(?i)title\s*:\s*([^\n]+)',     # Text: Title: ...
-        r'(?i)TITLE\s*:\s*([^\n]+)',      # Text: TITLE: ...
-        r'(?i)Title\s*:\s*([^\n]+)',     # Text: Title: ...
-        r'(?i)name\s*:\s*([^\n]+)',      # Text: name: ...
-        r'(?i)Name\s*:\s*([^\n]+)',      # Text: Name: ...
+        r'(?i)"name"\s*:\s*"([^"]+)"',  # JSON: "name": "..."
+        r"(?i)title\s*:\s*([^\n]+)",  # Text: Title: ...
+        r"(?i)TITLE\s*:\s*([^\n]+)",  # Text: TITLE: ...
+        r"(?i)Title\s*:\s*([^\n]+)",  # Text: Title: ...
+        r"(?i)name\s*:\s*([^\n]+)",  # Text: name: ...
+        r"(?i)Name\s*:\s*([^\n]+)",  # Text: Name: ...
     ]
-    
+
     # Search for title patterns in the window
     for pattern in title_patterns:
         matches = re.findall(pattern, window)
@@ -867,36 +874,38 @@ def extract_title_near_url(content_str: str, url: str, max_distance: int = 500) 
             # Take the first match and clean it up
             title = matches[0].strip()
             # Remove common trailing characters
-            title = title.rstrip('.,;!?')
+            title = title.rstrip(".,;!?")
             # Limit length
             if len(title) > 200:
                 title = title[:200] + "..."
             if title and title.lower() not in ["n/a", "none", "null", ""]:
                 return title
-    
+
     return ""
 
 
-def extract_sources_from_raw_content(content: Any, source_name: str) -> list[Dict[str, str]]:
+def extract_sources_from_raw_content(
+    content: Any, source_name: str
+) -> list[Dict[str, str]]:
     """Generic source extractor that looks for URLs in raw content using multiple patterns.
-    
-    This function replaces instrument-specific parsing for sources by looking for 
+
+    This function replaces instrument-specific parsing for sources by looking for
     common URL keys in JSON or text patterns. It also extracts titles from the content
     when available.
-    
+
     Args:
         content: Raw content from MCP tool (can be dict, list, str, or None)
         source_name: Name of the source/tool (e.g., "youtube", "arxiv", "twitter")
-        
+
     Returns:
         List of source dictionaries with 'name', 'title', and 'url' keys
     """
     sources = []
-    
+
     # Handle None or empty content
     if content is None:
         return sources
-    
+
     # 1. Convert content to string for regex searching
     if isinstance(content, (dict, list)):
         try:
@@ -905,20 +914,32 @@ def extract_sources_from_raw_content(content: Any, source_name: str) -> list[Dic
             content_str = str(content)
     else:
         content_str = str(content)
-        
+
     if not content_str or not content_str.strip():
         return sources
-        
+
     # 2. Extract sources from structured data if possible (for better titles)
     if isinstance(content, list):
         for item in content:
             if isinstance(item, dict):
-                u = item.get("video_url") or item.get("url") or item.get("link") or item.get("pdf_url") or item.get("tweet_url")
+                u = (
+                    item.get("video_url")
+                    or item.get("url")
+                    or item.get("link")
+                    or item.get("pdf_url")
+                    or item.get("tweet_url")
+                )
                 if u and isinstance(u, str):
                     t = item.get("title") or item.get("name") or item.get("text", "")
                     if not t or t == "N/A":
                         t = ""
-                    sources.append({"name": source_name, "title": str(t).strip()[:200] if t else "", "url": u.strip()})
+                    sources.append(
+                        {
+                            "name": source_name,
+                            "title": str(t).strip()[:200] if t else "",
+                            "url": u.strip(),
+                        }
+                    )
     elif isinstance(content, dict):
         # Look for lists in common keys
         found_structured = False
@@ -927,23 +948,55 @@ def extract_sources_from_raw_content(content: Any, source_name: str) -> list[Dic
             if isinstance(items, list):
                 for item in items:
                     if isinstance(item, dict):
-                        u = item.get("video_url") or item.get("url") or item.get("link") or item.get("pdf_url") or item.get("tweet_url")
+                        u = (
+                            item.get("video_url")
+                            or item.get("url")
+                            or item.get("link")
+                            or item.get("pdf_url")
+                            or item.get("tweet_url")
+                        )
                         if u and isinstance(u, str):
-                            t = item.get("title") or item.get("name") or item.get("text", "")
+                            t = (
+                                item.get("title")
+                                or item.get("name")
+                                or item.get("text", "")
+                            )
                             if not t or t == "N/A":
                                 t = ""
-                            sources.append({"name": source_name, "title": str(t).strip()[:200] if t else "", "url": u.strip()})
+                            sources.append(
+                                {
+                                    "name": source_name,
+                                    "title": str(t).strip()[:200] if t else "",
+                                    "url": u.strip(),
+                                }
+                            )
                 found_structured = True
                 break
-        
+
         if not found_structured:
             # Single object
-            u = content.get("video_url") or content.get("url") or content.get("link") or content.get("pdf_url") or content.get("tweet_url")
+            u = (
+                content.get("video_url")
+                or content.get("url")
+                or content.get("link")
+                or content.get("pdf_url")
+                or content.get("tweet_url")
+            )
             if u and isinstance(u, str):
-                t = content.get("title") or content.get("name") or content.get("text", "")
+                t = (
+                    content.get("title")
+                    or content.get("name")
+                    or content.get("text", "")
+                )
                 if not t or t == "N/A":
                     t = ""
-                sources.append({"name": source_name, "title": str(t).strip()[:200] if t else "", "url": u.strip()})
+                sources.append(
+                    {
+                        "name": source_name,
+                        "title": str(t).strip()[:200] if t else "",
+                        "url": u.strip(),
+                    }
+                )
 
     # 3. Use regex to find any other URLs (especially if content was just a string)
     patterns = [
@@ -951,30 +1004,30 @@ def extract_sources_from_raw_content(content: Any, source_name: str) -> list[Dic
         r'"url"\s*:\s*"([^"]+)"',
         r'"link"\s*:\s*"([^"]+)"',
         r'"pdf_url"\s*:\s*"([^"]+)"',
-        r'URL:\s*(https?://[^\s\n\)\"\'<>]+)',
-        r'Link:\s*(https?://[^\s\n\)\"\'<>]+)',
-        r'https?://[^\s\n\)\"\'<>]+' # Generic fallback
+        r"URL:\s*(https?://[^\s\n\)\"\'<>]+)",
+        r"Link:\s*(https?://[^\s\n\)\"\'<>]+)",
+        r"https?://[^\s\n\)\"\'<>]+",  # Generic fallback
     ]
-    
+
     # Create a set of already found URLs to avoid duplicates
     existing_urls = {s["url"] for s in sources}
-    
+
     for pattern in patterns:
         matches = re.findall(pattern, content_str)
         for url in matches:
-            url = url.strip().rstrip('.,;!?')
-            if url.startswith('http') and url not in existing_urls:
+            url = url.strip().rstrip(".,;!?")
+            if url.startswith("http") and url not in existing_urls:
                 # Try to extract title near this URL
                 title = extract_title_near_url(content_str, url)
                 sources.append({"name": source_name, "title": title, "url": url})
                 existing_urls.add(url)
-                
+
     return sources
 
 
 def filter_invalid_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]]:
     """Filter out invalid sources that indicate no results or empty responses.
-    
+
     Removes sources with:
     - Titles indicating no results (e.g., "No Results", "No search results found")
     - Invalid URLs (e.g., "#", "N/A", empty strings)
@@ -990,80 +1043,92 @@ def filter_invalid_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]
         r".*no\s+results.*",  # Match "No Results" anywhere in title
         r".*no\s+search\s+results?\s+found.*",  # Match "No search results found" anywhere
     ]
-    
+
     invalid_urls = ["#", "N/A", "n/a", "", None]
-    
+
     valid_sources = []
     for source in sources:
         title = source.get("title", "N/A")
         url = source.get("url", "N/A")
-        
+
         # Check if title indicates no results (case-insensitive, anywhere in string)
         title_lower = title.strip().lower() if title else ""
         is_invalid_title = any(
             re.search(pattern, title_lower) for pattern in invalid_title_patterns
         )
-        
+
         # Check if URL is invalid
         is_invalid_url = url in invalid_urls or (url and url.strip() in invalid_urls)
-        
+
         # Special case: If title contains "No Results" AND URL is "#", definitely invalid
-        if ("no results" in title_lower or "no search results" in title_lower) and url == "#":
-            logger.debug(f"Filtering out invalid source: title='{title}', url='{url}' (No Results with # URL)")
+        if (
+            "no results" in title_lower or "no search results" in title_lower
+        ) and url == "#":
+            logger.debug(
+                f"Filtering out invalid source: title='{title}', url='{url}' (No Results with # URL)"
+            )
             continue
-        
+
         # Skip if title indicates no results
         if is_invalid_title:
-            logger.debug(f"Filtering out invalid source: title='{title}', url='{url}' (invalid title)")
+            logger.debug(
+                f"Filtering out invalid source: title='{title}', url='{url}' (invalid title)"
+            )
             continue
-        
+
         # Skip if both title and URL are invalid
         if is_invalid_url and title in ["N/A", "n/a", ""]:
-            logger.debug(f"Filtering out invalid source: title='{title}', url='{url}' (both invalid)")
+            logger.debug(
+                f"Filtering out invalid source: title='{title}', url='{url}' (both invalid)"
+            )
             continue
-        
+
         # Keep sources that have at least a valid title or URL
-        if title != "N/A" and title.strip() and (url not in invalid_urls and url and url != "#"):
+        if (
+            title != "N/A"
+            and title.strip()
+            and (url not in invalid_urls and url and url != "#")
+        ):
             valid_sources.append(source)
-    
+
     filtered_count = len(sources) - len(valid_sources)
     if filtered_count > 0:
         logger.info(f"Filtered out {filtered_count} invalid sources")
-    
+
     return valid_sources
 
 
 def are_sources_valid(sources: list[Dict[str, str]]) -> bool:
     """Check if sources list contains at least one valid source.
-    
+
     Args:
         sources: List of source dictionaries
-        
+
     Returns:
         True if at least one valid source exists, False otherwise
     """
     if not sources:
         return False
-    
+
     filtered = filter_invalid_sources(sources)
     return len(filtered) > 0
 
 
 def is_formatted_sources_valid(formatted_sources: str) -> bool:
     """Check if formatted sources string contains valid sources.
-    
+
     Args:
         formatted_sources: Formatted sources string (e.g., "1. Title (URL)")
-        
+
     Returns:
         True if sources appear valid, False if they contain "No Results" or are empty
     """
     if not formatted_sources or formatted_sources.strip() == "":
         return False
-    
+
     if formatted_sources.strip() == "No valid sources found.":
         return False
-    
+
     # Check for "No Results" patterns in the formatted string
     formatted_lower = formatted_sources.lower()
     invalid_patterns = [
@@ -1073,39 +1138,43 @@ def is_formatted_sources_valid(formatted_sources: str) -> bool:
         "(#)",
         "(n/a)",
     ]
-    
+
     # If the formatted string contains any invalid patterns, it's not valid
     if any(pattern in formatted_lower for pattern in invalid_patterns):
         # But check if there are also valid sources - if it's ALL invalid, return False
         # Count how many sources appear to be invalid vs valid
         lines = formatted_sources.split("\n")
-        invalid_count = sum(1 for line in lines if any(pattern in line.lower() for pattern in invalid_patterns))
+        invalid_count = sum(
+            1
+            for line in lines
+            if any(pattern in line.lower() for pattern in invalid_patterns)
+        )
         total_count = len([line for line in lines if line.strip()])
-        
+
         # If all sources are invalid, return False
         if invalid_count == total_count and total_count > 0:
             return False
-    
+
     return True
 
 
 def deduplicate_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]]:
     """Deduplicate sources based on URL and title combination.
-    
+
     Sources are considered duplicates if they have the same URL (and URL is not "N/A").
     If URL is "N/A", sources are considered duplicates if they have the same title.
     """
     seen_urls = set()
     seen_titles = set()  # For sources without URLs
     unique_sources = []
-    
+
     for source in sources:
         url = source.get("url", "N/A")
         title = source.get("title", "N/A")
-        
+
         # Normalize URL for comparison (remove trailing slashes, etc.)
         if url and url != "N/A":
-            url_normalized = url.rstrip('/')
+            url_normalized = url.rstrip("/")
             if url_normalized not in seen_urls:
                 seen_urls.add(url_normalized)
                 unique_sources.append(source)
@@ -1118,17 +1187,21 @@ def deduplicate_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]]:
         else:
             # If both URL and title are N/A, skip it
             logger.warning(f"Skipping source with no URL or title: {source}")
-    
-    logger.info(f"Deduplicated {len(sources)} sources to {len(unique_sources)} unique sources")
+
+    logger.info(
+        f"Deduplicated {len(sources)} sources to {len(unique_sources)} unique sources"
+    )
     return unique_sources
 
 
 # --- Helper Function 2: To format the final sources list ---
 
 
-def format_sources(sources: list[Dict[str, str]], include_source_name: bool = False) -> str:
+def format_sources(
+    sources: list[Dict[str, str]], include_source_name: bool = False
+) -> str:
     """Formats a list of source dictionaries into a numbered string.
-    
+
     Args:
         sources: List of source dictionaries with 'name', 'title', and 'url' keys
         include_source_name: If True, includes [source_name] prefix. Default False.
@@ -1141,7 +1214,7 @@ def format_sources(sources: list[Dict[str, str]], include_source_name: bool = Fa
         title = source.get("title")
         url = source.get("url", "No URL")
         name = source.get("name")
-        
+
         line = f"{i + 1}."
 
         if include_source_name and name:
@@ -1153,7 +1226,7 @@ def format_sources(sources: list[Dict[str, str]], include_source_name: bool = Fa
         else:
             # Otherwise, just include the URL
             line += f" {url}"
-            
+
         formatted_list.append(line)
 
     return "\n".join(formatted_list)
@@ -1283,31 +1356,35 @@ def get_telegram_sources_for_topic(topic: str, topics_file_path: str) -> list[st
 
     logger.warning(f"No Telegram sources found for topic '{topic}'")
     return []
-def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict[str, str]] = None) -> str:
+
+
+def construct_tools_yaml(
+    mcp_tools: list[Any], tool_to_server_map: Optional[Dict[str, str]] = None
+) -> str:
     """
     Constructs valid YAML specification from MCP tools.
-    
+
     Args:
         mcp_tools: List of StructuredTool objects from MCP servers
         tool_to_server_map: Optional dictionary mapping tool names to MCP server names
-        
+
     Returns:
         Valid YAML string containing tool specifications
     """
     tools_spec = []
-    
+
     for tool in mcp_tools:
         tool_spec = {
             "name": getattr(tool, "name", "unknown"),
             "description": getattr(tool, "description", ""),
         }
-        
+
         # Add server information if available
         if tool_to_server_map:
             tool_name = tool_spec["name"]
             if tool_name in tool_to_server_map:
                 tool_spec["server"] = tool_to_server_map[tool_name]
-        
+
         # Extract tags from metadata
         metadata = getattr(tool, "metadata", {})
         if metadata:
@@ -1316,7 +1393,7 @@ def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict
             tags = fastmcp_info.get("tags", [])
             if tags:
                 tool_spec["tags"] = tags
-        
+
         # Extract parameters from args_schema
         args_schema = getattr(tool, "args_schema", {})
         if args_schema:
@@ -1324,7 +1401,7 @@ def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict
             properties = args_schema.get("properties", {})
             required = args_schema.get("required", [])
             defs = args_schema.get("$defs", {})
-            
+
             # Helper function to resolve $ref references
             def resolve_ref(ref_spec):
                 """Resolve $ref references to actual schema definitions."""
@@ -1341,12 +1418,12 @@ def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict
                                     resolved[key] = value
                             return resolved
                 return ref_spec
-            
+
             # Helper function to extract parameter info from a schema spec
             def extract_param_info(param_spec, is_required=False):
                 """Extract parameter information from a schema specification."""
                 param_info = {}
-                
+
                 # Handle anyOf (union types) - extract types from union
                 if "anyOf" in param_spec:
                     any_of_types = []
@@ -1356,24 +1433,28 @@ def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict
                             if opt_type:
                                 any_of_types.append(opt_type)
                     if any_of_types:
-                        param_info["type"] = " | ".join(any_of_types) if len(any_of_types) > 1 else any_of_types[0]
+                        param_info["type"] = (
+                            " | ".join(any_of_types)
+                            if len(any_of_types) > 1
+                            else any_of_types[0]
+                        )
                     else:
                         param_info["type"] = "union"
                 else:
                     param_info["type"] = param_spec.get("type", "unknown")
-                
+
                 # Add description if available
                 if "description" in param_spec:
                     param_info["description"] = param_spec["description"]
-                
+
                 # Add title if available
                 if "title" in param_spec:
                     param_info["title"] = param_spec["title"]
-                
+
                 # Add default value if available
                 if "default" in param_spec:
                     param_info["default"] = param_spec["default"]
-                
+
                 # Add constraints
                 if "minimum" in param_spec:
                     param_info["minimum"] = param_spec["minimum"]
@@ -1388,7 +1469,9 @@ def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict
                 if "items" in param_spec:
                     items_spec = param_spec["items"]
                     if isinstance(items_spec, dict):
-                        param_info["items"] = {"type": items_spec.get("type", "unknown")}
+                        param_info["items"] = {
+                            "type": items_spec.get("type", "unknown")
+                        }
                     else:
                         param_info["items"] = items_spec
                 if "minItems" in param_spec:
@@ -1397,24 +1480,26 @@ def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict
                     param_info["maxItems"] = param_spec["maxItems"]
                 if "format" in param_spec:
                     param_info["format"] = param_spec["format"]
-                
+
                 # Mark as required
                 if is_required:
                     param_info["required"] = True
-                
+
                 return param_info
-            
+
             for param_name, param_spec in properties.items():
                 # Resolve $ref references if present
                 param_spec = resolve_ref(param_spec)
-                
+
                 # Check if this parameter is an object with nested properties
                 if param_spec.get("type") == "object" and "properties" in param_spec:
                     # Extract nested properties
                     nested_properties = {}
                     nested_required = param_spec.get("required", [])
-                    nested_defs = param_spec.get("$defs", defs)  # Use parent defs if no local defs
-                    
+                    nested_defs = param_spec.get(
+                        "$defs", defs
+                    )  # Use parent defs if no local defs
+
                     # Update resolve_ref to use nested defs if available
                     def resolve_nested_ref(ref_spec):
                         if isinstance(ref_spec, dict) and "$ref" in ref_spec:
@@ -1428,12 +1513,14 @@ def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict
                                             resolved[key] = value
                                     return resolved
                         return ref_spec
-                    
+
                     for nested_name, nested_spec in param_spec["properties"].items():
                         nested_spec = resolve_nested_ref(nested_spec)
-                        nested_info = extract_param_info(nested_spec, nested_name in nested_required)
+                        nested_info = extract_param_info(
+                            nested_spec, nested_name in nested_required
+                        )
                         nested_properties[nested_name] = nested_info
-                    
+
                     param_info = {
                         "type": "object",
                         "properties": nested_properties,
@@ -1447,14 +1534,14 @@ def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict
                 else:
                     # Regular parameter extraction
                     param_info = extract_param_info(param_spec, param_name in required)
-                
+
                 parameters[param_name] = param_info
-            
+
             if parameters:
                 tool_spec["parameters"] = parameters
-        
+
         tools_spec.append(tool_spec)
-    
+
     # Convert to YAML
     yaml_output = yaml.dump(
         {"tools": tools_spec},
@@ -1463,37 +1550,39 @@ def construct_tools_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict
         allow_unicode=True,
         width=1000,  # Wide width to prevent line breaks in long descriptions
     )
-    
+
     return yaml_output
 
 
-def construct_tools_description_yaml(mcp_tools: list[Any], tool_to_server_map: Optional[Dict[str, str]] = None) -> str:
+def construct_tools_description_yaml(
+    mcp_tools: list[Any], tool_to_server_map: Optional[Dict[str, str]] = None
+) -> str:
     """
     Constructs a simplified YAML with only name and description for each tool.
-    
+
     Args:
         mcp_tools: List of StructuredTool objects from MCP servers
         tool_to_server_map: Optional dictionary mapping tool names to MCP server names
-        
+
     Returns:
         Valid YAML string containing simplified tool specifications (name and description only)
     """
     tools_spec = []
-    
+
     for tool in mcp_tools:
         tool_spec = {
             "name": getattr(tool, "name", "unknown"),
             "description": getattr(tool, "description", ""),
         }
-        
+
         # Add server information if available
         if tool_to_server_map:
             tool_name = tool_spec["name"]
             if tool_name in tool_to_server_map:
                 tool_spec["server"] = tool_to_server_map[tool_name]
-        
+
         tools_spec.append(tool_spec)
-    
+
     # Convert to YAML
     yaml_output = yaml.dump(
         {"tools": tools_spec},
@@ -1502,17 +1591,17 @@ def construct_tools_description_yaml(mcp_tools: list[Any], tool_to_server_map: O
         allow_unicode=True,
         width=1000,
     )
-    
+
     return yaml_output
 
 
 def parse_tools_description_from_yaml(yaml_content: str) -> list[Dict[str, Any]]:
     """
     Parse YAML content and return list of tool descriptions as dictionaries.
-    
+
     Args:
         yaml_content: YAML string containing tools specification
-        
+
     Returns:
         List of dictionaries with tool information (name, description, server)
     """
@@ -1521,7 +1610,7 @@ def parse_tools_description_from_yaml(yaml_content: str) -> list[Dict[str, Any]]
         if not data or "tools" not in data:
             logger.warning("YAML content does not contain 'tools' key")
             return []
-        
+
         tools_list = []
         for tool in data.get("tools", []):
             tool_dict = {
@@ -1530,7 +1619,7 @@ def parse_tools_description_from_yaml(yaml_content: str) -> list[Dict[str, Any]]
                 "server": tool.get("server"),
             }
             tools_list.append(tool_dict)
-        
+
         return tools_list
     except Exception as e:
         logger.error(f"Error parsing tools YAML: {e}")
@@ -1540,19 +1629,19 @@ def parse_tools_description_from_yaml(yaml_content: str) -> list[Dict[str, Any]]
 def save_tools_yaml_to_file(yaml_content: str, file_path: str) -> None:
     """
     Saves YAML content to a file.
-    
+
     Args:
         yaml_content: YAML string content to save
         file_path: Path to the output YAML file
     """
     import os
-    
+
     # Create directory if it doesn't exist
     dir_path = os.path.dirname(file_path)
     if dir_path:  # Only create directory if path contains a directory
         os.makedirs(dir_path, exist_ok=True)
-    
+
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(yaml_content)
-    
+
     logger.info(f"Tools YAML saved to: {file_path}")

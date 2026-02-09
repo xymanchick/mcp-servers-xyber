@@ -28,4 +28,3 @@ async def get_server_health():
         "status": "ok",
         "service": "mcp-server-deep-researcher",
     }
-

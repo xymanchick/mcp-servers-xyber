@@ -7,13 +7,10 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-
 from mcp_server_youtube.dependencies import get_youtube_service_search_only
-from mcp_server_youtube.schemas import (
-    SearchVideosRequest,
-    SearchOnlyResponse,
-    VideoSearchResponse,
-)
+from mcp_server_youtube.schemas import (SearchOnlyResponse,
+                                        SearchVideosRequest,
+                                        VideoSearchResponse)
 from mcp_server_youtube.youtube import YouTubeVideoSearchAndTranscript
 
 logger = logging.getLogger(__name__)
@@ -37,7 +34,9 @@ async def search_youtube_videos(
     It does not require Apify API token.
     """
     try:
-        logger.info(f"Search only - query: '{request.query}', num_videos: {request.num_videos}")
+        logger.info(
+            f"Search only - query: '{request.query}', num_videos: {request.num_videos}"
+        )
 
         videos = await service.search_videos(
             request.query,
@@ -53,7 +52,9 @@ async def search_youtube_videos(
         if not videos:
             raise HTTPException(status_code=404, detail="No videos found")
 
-        video_responses = [VideoSearchResponse.from_video(video.model_dump()) for video in videos]
+        video_responses = [
+            VideoSearchResponse.from_video(video.model_dump()) for video in videos
+        ]
 
         return SearchOnlyResponse(
             query=request.query,
@@ -75,4 +76,3 @@ async def search_youtube_videos(
     except Exception as e:
         logger.error(f"Error in search endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-

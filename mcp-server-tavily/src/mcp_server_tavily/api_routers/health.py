@@ -17,4 +17,3 @@ async def get_server_health():
         "status": "ok",
         "service": "mcp-server-tavily",
     }
-

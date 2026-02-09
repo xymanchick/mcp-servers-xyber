@@ -2,13 +2,9 @@ import logging
 from typing import List
 
 from fastapi import APIRouter, Request
-from pydantic import ValidationError as PydanticValidationError
-
 from mcp_server_wikipedia.schemas import SearchWikipediaRequest
-from mcp_server_wikipedia.wikipedia import (
-    WikipediaAPIError,
-    _WikipediaService,
-)
+from mcp_server_wikipedia.wikipedia import WikipediaAPIError, _WikipediaService
+from pydantic import ValidationError as PydanticValidationError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -19,7 +15,9 @@ router = APIRouter()
     tags=["Wikipedia"],
     operation_id="search_wikipedia",
 )
-async def search_wikipedia(request: Request, params: SearchWikipediaRequest) -> List[str]:
+async def search_wikipedia(
+    request: Request, params: SearchWikipediaRequest
+) -> List[str]:
     """
     Search Wikipedia for articles matching a query and return a list of titles.
 

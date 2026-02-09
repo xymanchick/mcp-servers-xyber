@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -48,4 +49,3 @@ def require_wallet(config: E2ETestConfig) -> None:
         import pytest
 
         pytest.skip("Set MCP_ARXIV_TEST_PRIVATE_KEY to run x402 payment E2E tests.")
-

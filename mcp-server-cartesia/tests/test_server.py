@@ -1,23 +1,21 @@
-import pytest
 import logging
-from unittest.mock import AsyncMock
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
+from unittest.mock import AsyncMock
 
+import pytest
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
-
-from mcp_server_cartesia.cartesia_client import (
-    CartesiaApiError,
-    CartesiaClientError,
-    CartesiaConfigError,
-)
+from mcp_server_cartesia.cartesia_client import (CartesiaApiError,
+                                                 CartesiaClientError,
+                                                 CartesiaConfigError)
 
 logger = logging.getLogger(__name__)
 
 
-#Helper Functions
+# Helper Functions
+
 
 async def generate_cartesia_tts_helper(
     ctx: Context,
@@ -64,30 +62,43 @@ async def app_lifespan_helper(server) -> AsyncIterator[dict[str, Any]]:
 
     try:
         from mcp_server_cartesia.cartesia_client import get_cartesia_service
+
         cartesia_service = get_cartesia_service()
 
         logger.info("Lifespan: Services initialized successfully")
         yield {"cartesia_service": cartesia_service}
 
     except Exception as init_err:
-        logger.error(f"FATAL: Lifespan initialization failed: {init_err}", exc_info=True)
+        logger.error(
+            f"FATAL: Lifespan initialization failed: {init_err}", exc_info=True
+        )
         raise init_err
 
     finally:
         logger.info("Lifespan: Shutdown cleanup completed")
 
 
-#TTS Function Tests
+# TTS Function Tests
+
 
 @pytest.mark.asyncio
-async def test_generate_cartesia_tts_success(mock_context, sample_text, sample_voice_with_id, sample_model_id):
-    result = await generate_cartesia_tts_helper(mock_context, text=sample_text, voice=sample_voice_with_id, model_id=sample_model_id)
+async def test_generate_cartesia_tts_success(
+    mock_context, sample_text, sample_voice_with_id, sample_model_id
+):
+    result = await generate_cartesia_tts_helper(
+        mock_context,
+        text=sample_text,
+        voice=sample_voice_with_id,
+        model_id=sample_model_id,
+    )
     assert "Successfully generated speech" in result
 
 
 @pytest.mark.asyncio
 async def test_generate_cartesia_tts_value_error(mock_context):
-    mock_context.request_context.lifespan_context["cartesia_service"].generate_speech.side_effect = ValueError("Invalid input")
+    mock_context.request_context.lifespan_context[
+        "cartesia_service"
+    ].generate_speech.side_effect = ValueError("Invalid input")
     with pytest.raises(ToolError) as exc:
         await generate_cartesia_tts_helper(mock_context, text="", voice=None)
     assert "Input validation error" in str(exc.value)
@@ -95,7 +106,9 @@ async def test_generate_cartesia_tts_value_error(mock_context):
 
 @pytest.mark.asyncio
 async def test_generate_cartesia_tts_cartesia_client_error(mock_context):
-    mock_context.request_context.lifespan_context["cartesia_service"].generate_speech.side_effect = CartesiaClientError("Service error")
+    mock_context.request_context.lifespan_context[
+        "cartesia_service"
+    ].generate_speech.side_effect = CartesiaClientError("Service error")
     with pytest.raises(ToolError) as exc:
         await generate_cartesia_tts_helper(mock_context, text="Test", voice=None)
     assert "Cartesia service error" in str(exc.value)
@@ -103,7 +116,9 @@ async def test_generate_cartesia_tts_cartesia_client_error(mock_context):
 
 @pytest.mark.asyncio
 async def test_generate_cartesia_tts_io_error(mock_context):
-    mock_context.request_context.lifespan_context["cartesia_service"].generate_speech.side_effect = IOError("Disk full")
+    mock_context.request_context.lifespan_context[
+        "cartesia_service"
+    ].generate_speech.side_effect = IOError("Disk full")
     with pytest.raises(ToolError) as exc:
         await generate_cartesia_tts_helper(mock_context, text="Test", voice=None)
     assert "File system error saving audio" in str(exc.value)
@@ -111,7 +126,9 @@ async def test_generate_cartesia_tts_io_error(mock_context):
 
 @pytest.mark.asyncio
 async def test_generate_cartesia_tts_unexpected_error(mock_context):
-    mock_context.request_context.lifespan_context["cartesia_service"].generate_speech.side_effect = RuntimeError("Unknown")
+    mock_context.request_context.lifespan_context[
+        "cartesia_service"
+    ].generate_speech.side_effect = RuntimeError("Unknown")
     with pytest.raises(ToolError) as exc:
         await generate_cartesia_tts_helper(mock_context, text="Test", voice=None)
     assert "unexpected error" in str(exc.value).lower()
@@ -121,23 +138,33 @@ async def test_generate_cartesia_tts_unexpected_error(mock_context):
 async def test_generate_cartesia_tts_with_defaults(mock_context, sample_text):
     result = await generate_cartesia_tts_helper(mock_context, text=sample_text)
     assert "Successfully generated speech" in result
-    mock_context.request_context.lifespan_context["cartesia_service"].generate_speech.assert_called_once_with(
+    mock_context.request_context.lifespan_context[
+        "cartesia_service"
+    ].generate_speech.assert_called_once_with(
         text=sample_text, voice_id=None, model_id=None
     )
 
 
 @pytest.mark.asyncio
-async def test_generate_cartesia_tts_voice_without_id(mock_context, sample_text, sample_voice_without_id):
-    result = await generate_cartesia_tts_helper(mock_context, text=sample_text, voice=sample_voice_without_id)
+async def test_generate_cartesia_tts_voice_without_id(
+    mock_context, sample_text, sample_voice_without_id
+):
+    result = await generate_cartesia_tts_helper(
+        mock_context, text=sample_text, voice=sample_voice_without_id
+    )
     assert "Successfully generated speech" in result
-    mock_context.request_context.lifespan_context["cartesia_service"].generate_speech.assert_called_once_with(
+    mock_context.request_context.lifespan_context[
+        "cartesia_service"
+    ].generate_speech.assert_called_once_with(
         text=sample_text, voice_id=None, model_id=None
     )
 
 
 @pytest.mark.asyncio
 async def test_generate_cartesia_tts_api_error(mock_context):
-    mock_context.request_context.lifespan_context["cartesia_service"].generate_speech.side_effect = CartesiaApiError("API error")
+    mock_context.request_context.lifespan_context[
+        "cartesia_service"
+    ].generate_speech.side_effect = CartesiaApiError("API error")
     with pytest.raises(ToolError) as exc:
         await generate_cartesia_tts_helper(mock_context, text="Test", voice=None)
     assert "Cartesia service error" in str(exc.value)
@@ -145,22 +172,27 @@ async def test_generate_cartesia_tts_api_error(mock_context):
 
 @pytest.mark.asyncio
 async def test_generate_cartesia_tts_config_error(mock_context):
-    mock_context.request_context.lifespan_context["cartesia_service"].generate_speech.side_effect = CartesiaConfigError("Config error")
+    mock_context.request_context.lifespan_context[
+        "cartesia_service"
+    ].generate_speech.side_effect = CartesiaConfigError("Config error")
     with pytest.raises(ToolError) as exc:
         await generate_cartesia_tts_helper(mock_context, text="Test", voice=None)
     assert "Cartesia service error" in str(exc.value)
 
 
-#Lifespan Management Tests
+# Lifespan Management Tests
+
 
 @pytest.mark.asyncio
 async def test_app_lifespan_init_success(monkeypatch):
     fake_service = AsyncMock()
-    monkeypatch.setattr("mcp_server_cartesia.cartesia_client.get_cartesia_service", lambda: fake_service)
-    
-    class DummyServer: 
+    monkeypatch.setattr(
+        "mcp_server_cartesia.cartesia_client.get_cartesia_service", lambda: fake_service
+    )
+
+    class DummyServer:
         pass
-    
+
     async with app_lifespan_helper(DummyServer()) as ctx:
         assert "cartesia_service" in ctx
         assert ctx["cartesia_service"] == fake_service
@@ -170,12 +202,14 @@ async def test_app_lifespan_init_success(monkeypatch):
 async def test_app_lifespan_cartesia_config_error(monkeypatch):
     def mock_get_service():
         raise CartesiaConfigError("Invalid configuration")
-    
-    monkeypatch.setattr("mcp_server_cartesia.cartesia_client.get_cartesia_service", mock_get_service)
-    
-    class DummyServer: 
+
+    monkeypatch.setattr(
+        "mcp_server_cartesia.cartesia_client.get_cartesia_service", mock_get_service
+    )
+
+    class DummyServer:
         pass
-    
+
     with pytest.raises(CartesiaConfigError):
         async with app_lifespan_helper(DummyServer()):
             pass
@@ -185,12 +219,14 @@ async def test_app_lifespan_cartesia_config_error(monkeypatch):
 async def test_app_lifespan_cartesia_client_error(monkeypatch):
     def mock_get_service():
         raise CartesiaClientError("Client initialization failed")
-    
-    monkeypatch.setattr("mcp_server_cartesia.cartesia_client.get_cartesia_service", mock_get_service)
-    
-    class DummyServer: 
+
+    monkeypatch.setattr(
+        "mcp_server_cartesia.cartesia_client.get_cartesia_service", mock_get_service
+    )
+
+    class DummyServer:
         pass
-    
+
     with pytest.raises(CartesiaClientError):
         async with app_lifespan_helper(DummyServer()):
             pass
@@ -200,12 +236,14 @@ async def test_app_lifespan_cartesia_client_error(monkeypatch):
 async def test_app_lifespan_unexpected_error(monkeypatch):
     def mock_get_service():
         raise RuntimeError("Unexpected error")
-    
-    monkeypatch.setattr("mcp_server_cartesia.cartesia_client.get_cartesia_service", mock_get_service)
-    
-    class DummyServer: 
+
+    monkeypatch.setattr(
+        "mcp_server_cartesia.cartesia_client.get_cartesia_service", mock_get_service
+    )
+
+    class DummyServer:
         pass
-    
+
     with pytest.raises(RuntimeError):
         async with app_lifespan_helper(DummyServer()):
             pass

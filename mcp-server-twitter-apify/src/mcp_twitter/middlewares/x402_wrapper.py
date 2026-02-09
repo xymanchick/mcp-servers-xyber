@@ -17,20 +17,17 @@ import logging
 import httpx
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from mcp_twitter.x402_config import (PaymentOption, X402Config,
+                                     get_x402_settings)
+from starlette.middleware.base import (BaseHTTPMiddleware,
+                                       RequestResponseEndpoint)
 from starlette.routing import Match
 from x402.chains import NETWORK_TO_ID, get_token_name, get_token_version
 from x402.common import find_matching_payment_requirements, x402_VERSION
 from x402.encoding import safe_base64_decode
 from x402.facilitator import FacilitatorClient
-from x402.types import (
-    PaymentPayload,
-    PaymentRequirements,
-    VerifyResponse,
-    x402PaymentRequiredResponse,
-)
-
-from mcp_twitter.x402_config import PaymentOption, X402Config, get_x402_settings
+from x402.types import (PaymentPayload, PaymentRequirements, VerifyResponse,
+                        x402PaymentRequiredResponse)
 
 logger = logging.getLogger(__name__)
 
@@ -102,14 +99,18 @@ class X402WrapperMiddleware(BaseHTTPMiddleware):
             # Wrap the receive callable to replay the cached body
             original_receive = request.scope["receive"]
             body_consumed = False
-            
+
             async def cached_receive():
                 nonlocal body_consumed
                 if not body_consumed:
                     body_consumed = True
-                    return {"type": "http.request", "body": body_bytes, "more_body": False}
+                    return {
+                        "type": "http.request",
+                        "body": body_bytes,
+                        "more_body": False,
+                    }
                 return await original_receive()
-            
+
             request.scope["receive"] = cached_receive
 
         operation_id = await self._get_operation_id(request)
@@ -295,4 +296,3 @@ class X402WrapperMiddleware(BaseHTTPMiddleware):
                 )
             )
         return accepts
-

@@ -1,10 +1,9 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-
 from mcp_server_telegram_parser.schemas import TelegramParseResult
 from mcp_server_telegram_parser.telegram.module import get_parser_service
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -47,4 +46,6 @@ async def parse_telegram_channels(request: ParseChannelsRequest) -> TelegramPars
         return await perform_parse_telegram_channels(request.channels, request.limit)
     except Exception as e:
         logger.error("Parsing failed: %s", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to parse telegram channels") from e
+        raise HTTPException(
+            status_code=500, detail="Failed to parse telegram channels"
+        ) from e

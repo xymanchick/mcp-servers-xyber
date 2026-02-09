@@ -6,10 +6,9 @@ Main responsibility: Provide dependency injection functions for shared resources
 
 import logging
 
-from mcp_server_cartesia.cartesia_client import (
-    _CartesiaService,
-    get_cartesia_service as create_cartesia_service,
-)
+from mcp_server_cartesia.cartesia_client import _CartesiaService
+from mcp_server_cartesia.cartesia_client import \
+    get_cartesia_service as create_cartesia_service
 
 logger = logging.getLogger(__name__)
 

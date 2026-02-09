@@ -4,15 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
+from mcp_server_twitter.schemas import (CreateTweetRequest, FollowUserRequest,
+                                        GetTrendsRequest, GetUserTweetsRequest,
+                                        RetweetTweetRequest,
+                                        SearchHashtagRequest)
 from mcp_server_twitter.server import mcp_server
-from mcp_server_twitter.schemas import (
-    CreateTweetRequest,
-    GetUserTweetsRequest,
-    FollowUserRequest,
-    RetweetTweetRequest,
-    GetTrendsRequest,
-    SearchHashtagRequest,
-)
 from pydantic import ValidationError
 
 
@@ -103,7 +99,9 @@ class TestCreateTweet(BaseTestClass):
         )
 
     @pytest.mark.asyncio
-    async def test_create_tweet_poll_validation_too_few_options(self, mock_context: Context):
+    async def test_create_tweet_poll_validation_too_few_options(
+        self, mock_context: Context
+    ):
         """Test poll validation with too few options."""
         create_tweet_func = self.get_create_tweet_func()
 
@@ -116,7 +114,9 @@ class TestCreateTweet(BaseTestClass):
             # await create_tweet_func(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
-    async def test_create_tweet_poll_validation_too_many_options(self, mock_context: Context):
+    async def test_create_tweet_poll_validation_too_many_options(
+        self, mock_context: Context
+    ):
         """Test poll validation with too many options."""
         create_tweet_func = self.get_create_tweet_func()
 
@@ -267,7 +267,7 @@ class TestCreateTweet(BaseTestClass):
         )
 
         # Act & Assert
-        with pytest.raises(ToolError, match='Image content too large \(max 5MB\)'):
+        with pytest.raises(ToolError, match="Image content too large \(max 5MB\)"):
             await create_tweet_func(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
@@ -295,7 +295,9 @@ class TestGetUserTweets(BaseTestClass):
     """Test suite for the get_user_tweets tool."""
 
     @pytest.mark.asyncio
-    async def test_get_user_tweets_success(self, mock_context: Context, mock_twitter_response, mock_tweet):
+    async def test_get_user_tweets_success(
+        self, mock_context: Context, mock_twitter_response, mock_tweet
+    ):
         """Test retrieving tweets for multiple users successfully."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
@@ -329,7 +331,9 @@ class TestGetUserTweets(BaseTestClass):
         assert mock_client.get_user_tweets.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_get_user_tweets_mixed_success_and_failure(self, mock_context: Context, mock_twitter_response, mock_tweet):
+    async def test_get_user_tweets_mixed_success_and_failure(
+        self, mock_context: Context, mock_twitter_response, mock_tweet
+    ):
         """Test retrieving tweets where one user is not found."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
@@ -359,7 +363,9 @@ class TestGetUserTweets(BaseTestClass):
         assert result_json == expected
 
     @pytest.mark.asyncio
-    async def test_get_user_tweets_no_tweets_found(self, mock_context: Context, mock_twitter_response):
+    async def test_get_user_tweets_no_tweets_found(
+        self, mock_context: Context, mock_twitter_response
+    ):
         """Test when a user exists but has no recent tweets."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
@@ -408,7 +414,9 @@ class TestGetUserTweets(BaseTestClass):
             # await get_user_tweets(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
-    async def test_get_user_tweets_batch_processing_small(self, mock_context: Context, mock_twitter_response, mock_tweet):
+    async def test_get_user_tweets_batch_processing_small(
+        self, mock_context: Context, mock_twitter_response, mock_tweet
+    ):
         """Test that tweets are processed in small batches for better performance."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
@@ -443,7 +451,9 @@ class TestGetUserTweets(BaseTestClass):
         assert mock_client.get_user_tweets.call_count == 5
 
     @pytest.mark.asyncio
-    async def test_get_user_tweets_large_batch_processing(self, mock_context: Context, mock_twitter_response, mock_tweet):
+    async def test_get_user_tweets_large_batch_processing(
+        self, mock_context: Context, mock_twitter_response, mock_tweet
+    ):
         """Test processing a larger batch of users efficiently."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
@@ -457,7 +467,9 @@ class TestGetUserTweets(BaseTestClass):
             if i % 5 == 0:  # Every 5th user fails
                 responses.append(Exception("404 User Not Found"))
             else:
-                responses.append(mock_twitter_response(data=[mock_tweet(f"Tweet from {user}")]))
+                responses.append(
+                    mock_twitter_response(data=[mock_tweet(f"Tweet from {user}")])
+                )
 
         mock_client.get_user_tweets.side_effect = responses
 
@@ -475,7 +487,10 @@ class TestGetUserTweets(BaseTestClass):
         for i, user in enumerate(users):
             assert user in result_json
             if i % 5 == 0:  # Failed users
-                assert result_json[user][0] == f"Error: User {user} not found or account is private/suspended"
+                assert (
+                    result_json[user][0]
+                    == f"Error: User {user} not found or account is private/suspended"
+                )
             else:  # Successful users
                 assert result_json[user] == [f"Tweet from {user}"]
 
@@ -483,7 +498,9 @@ class TestGetUserTweets(BaseTestClass):
         assert mock_client.get_user_tweets.call_count == 20
 
     @pytest.mark.asyncio
-    async def test_get_user_tweets_memory_efficient_processing(self, mock_context: Context, mock_twitter_response, mock_tweet):
+    async def test_get_user_tweets_memory_efficient_processing(
+        self, mock_context: Context, mock_twitter_response, mock_tweet
+    ):
         """Test memory efficient processing with many tweets per user."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
@@ -491,7 +508,9 @@ class TestGetUserTweets(BaseTestClass):
         # Simulate a user with many tweets (testing memory efficiency)
         large_tweet_count = 100
         mock_tweets = [mock_tweet(f"Tweet {i}") for i in range(large_tweet_count)]
-        mock_client.get_user_tweets.return_value = mock_twitter_response(data=mock_tweets)
+        mock_client.get_user_tweets.return_value = mock_twitter_response(
+            data=mock_tweets
+        )
 
         get_user_tweets = self.get_get_user_tweets_func()
         request = GetUserTweetsRequest(user_ids=["prolific_user"], max_results=100)
@@ -507,7 +526,9 @@ class TestGetUserTweets(BaseTestClass):
             assert result_json["prolific_user"][i] == f"Tweet {i}"
 
     @pytest.mark.asyncio
-    async def test_get_user_tweets_concurrent_error_handling(self, mock_context: Context):
+    async def test_get_user_tweets_concurrent_error_handling(
+        self, mock_context: Context
+    ):
         """Test handling multiple different error types in a single batch."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
@@ -518,7 +539,7 @@ class TestGetUserTweets(BaseTestClass):
             Exception("403 Forbidden"),
             Exception("404 Not Found"),
             Exception("Rate limit exceeded"),
-            Exception("Network timeout")
+            Exception("Network timeout"),
         ]
 
         users = [f"error_user_{i}" for i in range(5)]
@@ -532,11 +553,26 @@ class TestGetUserTweets(BaseTestClass):
         result_json = json.loads(result_str)
 
         # Assert - verify each error is handled appropriately
-        assert result_json["error_user_0"][0] == "Error: Unauthorized access. Twitter API permissions may be insufficient to read tweets for user error_user_0"
-        assert result_json["error_user_1"][0] == "Error: Access forbidden for user error_user_1. Account may be private or protected"
-        assert result_json["error_user_2"][0] == "Error retrieving tweets for user error_user_2: 404 Not Found"
-        assert result_json["error_user_3"][0] == "Error retrieving tweets for user error_user_3: Rate limit exceeded"
-        assert result_json["error_user_4"][0] == "Error retrieving tweets for user error_user_4: Network timeout"
+        assert (
+            result_json["error_user_0"][0]
+            == "Error: Unauthorized access. Twitter API permissions may be insufficient to read tweets for user error_user_0"
+        )
+        assert (
+            result_json["error_user_1"][0]
+            == "Error: Access forbidden for user error_user_1. Account may be private or protected"
+        )
+        assert (
+            result_json["error_user_2"][0]
+            == "Error retrieving tweets for user error_user_2: 404 Not Found"
+        )
+        assert (
+            result_json["error_user_3"][0]
+            == "Error retrieving tweets for user error_user_3: Rate limit exceeded"
+        )
+        assert (
+            result_json["error_user_4"][0]
+            == "Error retrieving tweets for user error_user_4: Network timeout"
+        )
 
 
 class TestFollowUser(BaseTestClass):
@@ -573,7 +609,10 @@ class TestFollowUser(BaseTestClass):
         request = FollowUserRequest(user_id="target_user")
 
         # Act & Assert
-        with pytest.raises(ToolError, match="An unexpected error occurred while following user target_user: 404 Not Found"):
+        with pytest.raises(
+            ToolError,
+            match="An unexpected error occurred while following user target_user: 404 Not Found",
+        ):
             await follow_user(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
@@ -588,7 +627,10 @@ class TestFollowUser(BaseTestClass):
         request = FollowUserRequest(user_id="target_user")
 
         # Act & Assert
-        with pytest.raises(ToolError, match=f"An unexpected error occurred while following user target_user: 403 Forbidden"):
+        with pytest.raises(
+            ToolError,
+            match=f"An unexpected error occurred while following user target_user: 403 Forbidden",
+        ):
             await follow_user(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
@@ -604,7 +646,8 @@ class TestFollowUser(BaseTestClass):
 
         # Act & Assert
         with pytest.raises(
-            ToolError, match="An unexpected error occurred while following user target_user: Network Error"
+            ToolError,
+            match="An unexpected error occurred while following user target_user: Network Error",
         ):
             await follow_user(ctx=mock_context, request=request)
 
@@ -623,7 +666,10 @@ class TestFollowUser(BaseTestClass):
         """Test simulating batch follow operations by calling follow multiple times."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
-        mock_client.follow_user.return_value = {"following": True, "pending_follow": False}
+        mock_client.follow_user.return_value = {
+            "following": True,
+            "pending_follow": False,
+        }
 
         follow_user = self.get_follow_user_func()
         users_to_follow = ["user1", "user2", "user3"]
@@ -677,7 +723,8 @@ class TestRetweetTweet(BaseTestClass):
 
         # Act & Assert
         with pytest.raises(
-            ToolError, match=f"An unexpected error occurred while retweeting {tweet_id}: 404 Not Found"
+            ToolError,
+            match=f"An unexpected error occurred while retweeting {tweet_id}: 404 Not Found",
         ):
             await retweet_func(ctx=mock_context, request=request)
 
@@ -694,7 +741,10 @@ class TestRetweetTweet(BaseTestClass):
 
         # Act & Assert
         expected_msg = "403 Forbidden"
-        with pytest.raises(ToolError, match=f"An unexpected error occurred while retweeting {tweet_id}: {expected_msg}"):
+        with pytest.raises(
+            ToolError,
+            match=f"An unexpected error occurred while retweeting {tweet_id}: {expected_msg}",
+        ):
             await retweet_func(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
@@ -709,7 +759,10 @@ class TestRetweetTweet(BaseTestClass):
         request = RetweetTweetRequest(tweet_id=tweet_id)
 
         # Act & Assert
-        with pytest.raises(ToolError, match=f"An unexpected error occurred while retweeting {tweet_id}: 401 Unauthorized"):
+        with pytest.raises(
+            ToolError,
+            match=f"An unexpected error occurred while retweeting {tweet_id}: 401 Unauthorized",
+        ):
             await retweet_func(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
@@ -724,7 +777,10 @@ class TestRetweetTweet(BaseTestClass):
         request = RetweetTweetRequest(tweet_id=tweet_id)
 
         # Act & Assert
-        with pytest.raises(ToolError, match=f"An unexpected error occurred while retweeting {tweet_id}: Network error"):
+        with pytest.raises(
+            ToolError,
+            match=f"An unexpected error occurred while retweeting {tweet_id}: Network error",
+        ):
             await retweet_func(ctx=mock_context, request=request)
 
 
@@ -764,7 +820,8 @@ class TestGetTrends(BaseTestClass):
 
         # Act & Assert
         with pytest.raises(
-            ToolError, match="An unexpected error occurred while retrieving trends: API limit reached"
+            ToolError,
+            match="An unexpected error occurred while retrieving trends: API limit reached",
         ):
             await trends_func(ctx=mock_context, request=request)
 
@@ -779,7 +836,9 @@ class TestGetTrends(BaseTestClass):
             # await trends_func(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
-    async def test_get_trends_batch_processing_multiple_countries(self, mock_context: Context):
+    async def test_get_trends_batch_processing_multiple_countries(
+        self, mock_context: Context
+    ):
         """Test getting trends for multiple countries efficiently."""
         # Arrange
         trends_func = self.get_trends_func()
@@ -791,7 +850,7 @@ class TestGetTrends(BaseTestClass):
             "USA": ["#SuperBowl", "#Tech"],
             "France": ["#Olympics", "#Paris"],
             "Germany": ["#Bundesliga", "#Berlin"],
-            "Japan": ["#Tokyo", "#Anime"]
+            "Japan": ["#Tokyo", "#Anime"],
         }
         mock_client.get_trends.return_value = mock_trends
 
@@ -809,7 +868,9 @@ class TestGetTrends(BaseTestClass):
         )
 
     @pytest.mark.asyncio
-    async def test_get_trends_memory_efficient_large_dataset(self, mock_context: Context):
+    async def test_get_trends_memory_efficient_large_dataset(
+        self, mock_context: Context
+    ):
         """Test memory efficiency when processing large trend datasets."""
         # Arrange
         trends_func = self.get_trends_func()
@@ -845,7 +906,7 @@ class TestGetTrends(BaseTestClass):
         partial_trends = {
             "USA": ["#trend1", "#trend2"],
             "Egypt": [],  # No trends available
-            "France": ["#france_trend"]
+            "France": ["#france_trend"],
         }
         mock_client.get_trends.return_value = partial_trends
 
@@ -900,7 +961,10 @@ class TestSearchHashtag(BaseTestClass):
         request = SearchHashtagRequest(hashtag="invalid-hashtag")
 
         # Act & Assert
-        with pytest.raises(ToolError, match="An unexpected error occurred while searching for a hashtag: Invalid query"):
+        with pytest.raises(
+            ToolError,
+            match="An unexpected error occurred while searching for a hashtag: Invalid query",
+        ):
             await search_func(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
@@ -916,17 +980,13 @@ class TestSearchHashtag(BaseTestClass):
 
         # Test max_results too low
         with pytest.raises(ValidationError):
-            request = SearchHashtagRequest(
-                hashtag="#test", max_results=5
-            )  # Under 10
+            request = SearchHashtagRequest(hashtag="#test", max_results=5)  # Under 10
             # No need to call search_func, ValidationError occurs during instantiation
             # await search_func(ctx=mock_context, request=request)
 
         # Test max_results too high
         with pytest.raises(ValidationError):
-            request = SearchHashtagRequest(
-                hashtag="#test", max_results=150
-            )  # Over 100
+            request = SearchHashtagRequest(hashtag="#test", max_results=150)  # Over 100
             # No need to call search_func, ValidationError occurs during instantiation
             # await search_func(ctx=mock_context, request=request)
 
@@ -948,7 +1008,8 @@ class TestSearchHashtag(BaseTestClass):
         # Assert
         assert result_json == mock_tweets
         mock_client.search_hashtag.assert_awaited_once_with(
-            hashtag="#python", max_results=10  # Default value
+            hashtag="#python",
+            max_results=10,  # Default value
         )
 
 
@@ -958,8 +1019,9 @@ class TestLifespanManagement:
     @pytest.mark.asyncio
     async def test_app_lifespan_success(self):
         """Test successful lifespan initialization."""
-        from mcp_server_twitter.server import app_lifespan, mcp_server
         from unittest.mock import AsyncMock, patch
+
+        from mcp_server_twitter.server import app_lifespan, mcp_server
 
         # Mock the get_twitter_client function
         with patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client:
@@ -977,35 +1039,34 @@ class TestLifespanManagement:
     @pytest.mark.asyncio
     async def test_app_lifespan_initialization_failure(self):
         """Test lifespan behavior when Twitter client initialization fails."""
-        from mcp_server_twitter.server import app_lifespan, mcp_server
         from unittest.mock import patch
 
+        from mcp_server_twitter.server import app_lifespan, mcp_server
+
         # Mock the get_twitter_client function to raise an exception
-        with patch(
-            "mcp_server_twitter.server.get_twitter_client"
-        ) as mock_get_client:
+        with patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client:
             mock_get_client.side_effect = Exception(
                 "Failed to initialize Twitter client"
             )
 
             # Test that the exception is propagated
-            with pytest.raises(
-                Exception, match="Failed to initialize Twitter client"
-            ):
+            with pytest.raises(Exception, match="Failed to initialize Twitter client"):
                 async with app_lifespan(mcp_server):
                     pass
 
     @pytest.mark.asyncio
     async def test_app_lifespan_graceful_shutdown(self):
         """Test graceful shutdown behavior in lifespan management."""
-        from mcp_server_twitter.server import app_lifespan, mcp_server
-        from unittest.mock import AsyncMock, patch, MagicMock
         import logging
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from mcp_server_twitter.server import app_lifespan, mcp_server
 
         # Mock the get_twitter_client and logger
-        with patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client, patch(
-            "mcp_server_twitter.server.logger"
-        ) as mock_logger:
+        with (
+            patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client,
+            patch("mcp_server_twitter.server.logger") as mock_logger,
+        ):
             mock_twitter_client = AsyncMock()
             mock_get_client.return_value = mock_twitter_client
 
@@ -1019,12 +1080,14 @@ class TestLifespanManagement:
     @pytest.mark.asyncio
     async def test_app_lifespan_resource_cleanup_on_exception(self):
         """Test that resources are cleaned up even if an exception occurs during yield."""
-        from mcp_server_twitter.server import app_lifespan, mcp_server
         from unittest.mock import AsyncMock, patch
 
-        with patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client, patch(
-            "mcp_server_twitter.server.logger"
-        ) as mock_logger:
+        from mcp_server_twitter.server import app_lifespan, mcp_server
+
+        with (
+            patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client,
+            patch("mcp_server_twitter.server.logger") as mock_logger,
+        ):
             mock_twitter_client = AsyncMock()
             mock_get_client.return_value = mock_twitter_client
 
@@ -1043,8 +1106,9 @@ class TestLifespanManagement:
     @pytest.mark.asyncio
     async def test_app_lifespan_multiple_initialization_attempts(self):
         """Test behavior when multiple initialization attempts occur."""
-        from mcp_server_twitter.server import app_lifespan, mcp_server
         from unittest.mock import AsyncMock, patch
+
+        from mcp_server_twitter.server import app_lifespan, mcp_server
 
         with patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client:
             mock_twitter_client = AsyncMock()
@@ -1063,12 +1127,14 @@ class TestLifespanManagement:
     @pytest.mark.asyncio
     async def test_app_lifespan_logging_during_phases(self):
         """Test that appropriate logging occurs during different lifespan phases."""
-        from mcp_server_twitter.server import app_lifespan, mcp_server
         from unittest.mock import AsyncMock, patch
 
-        with patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client, patch(
-            "mcp_server_twitter.server.logger"
-        ) as mock_logger:
+        from mcp_server_twitter.server import app_lifespan, mcp_server
+
+        with (
+            patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client,
+            patch("mcp_server_twitter.server.logger") as mock_logger,
+        ):
             mock_twitter_client = AsyncMock()
             mock_get_client.return_value = mock_twitter_client
 
@@ -1088,8 +1154,9 @@ class TestLifespanManagement:
     @pytest.mark.asyncio
     async def test_app_lifespan_client_configuration_validation(self):
         """Test that client configuration is properly validated during lifespan."""
-        from mcp_server_twitter.server import app_lifespan, mcp_server
         from unittest.mock import AsyncMock, patch
+
+        from mcp_server_twitter.server import app_lifespan, mcp_server
 
         with patch("mcp_server_twitter.server.get_twitter_client") as mock_get_client:
             # Mock a client with specific attributes to verify it's properly configured
@@ -1129,8 +1196,9 @@ class TestServerIntegration:
     @pytest.mark.asyncio
     async def test_tool_signatures(self):
         """Test that all tools have the expected signatures."""
-        from mcp_server_twitter.server import mcp_server
         import inspect
+
+        from mcp_server_twitter.server import mcp_server
 
         for tool_name in [
             "create_tweet",
@@ -1155,7 +1223,9 @@ class TestEdgeCases(BaseTestClass):
     """Test edge cases and additional scenarios."""
 
     @pytest.mark.asyncio
-    async def test_get_user_tweets_empty_response_data(self, mock_context: Context, mock_twitter_response):
+    async def test_get_user_tweets_empty_response_data(
+        self, mock_context: Context, mock_twitter_response
+    ):
         """Test get_user_tweets when response has empty data."""
         from mcp_server_twitter.server import mcp_server
 
@@ -1187,9 +1257,7 @@ class TestEdgeCases(BaseTestClass):
         result_str = await get_user_tweets(ctx=mock_context, request=request)
         result_json = json.loads(result_str)
 
-        expected_error = (
-            "Error: Access forbidden for user forbidden_user. Account may be private or protected"
-        )
+        expected_error = "Error: Access forbidden for user forbidden_user. Account may be private or protected"
         assert result_json["forbidden_user"][0] == expected_error
 
     @pytest.mark.asyncio
@@ -1223,14 +1291,20 @@ class TestEdgeCases(BaseTestClass):
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
 
         mock_tweets = [mock_tweet("Test tweet")]
-        mock_client.get_user_tweets.return_value = mock_twitter_response(data=mock_tweets)
+        mock_client.get_user_tweets.return_value = mock_twitter_response(
+            data=mock_tweets
+        )
 
-        request = GetUserTweetsRequest(user_ids=["test_user"])  # No max_results specified
+        request = GetUserTweetsRequest(
+            user_ids=["test_user"]
+        )  # No max_results specified
 
         await get_user_tweets(ctx=mock_context, request=request)
 
         # Verify default max_results=10 was used
-        mock_client.get_user_tweets.assert_called_with(user_id="test_user", max_results=10)
+        mock_client.get_user_tweets.assert_called_with(
+            user_id="test_user", max_results=10
+        )
 
     @pytest.mark.asyncio
     async def test_create_tweet_with_minimal_valid_poll(self, mock_context: Context):
@@ -1326,7 +1400,9 @@ class TestEdgeCases(BaseTestClass):
         mock_client.get_trends.assert_called_with(countries=["USA"], max_trends=50)
 
     @pytest.mark.asyncio
-    async def test_search_hashtag_large_result_set_processing(self, mock_context: Context):
+    async def test_search_hashtag_large_result_set_processing(
+        self, mock_context: Context
+    ):
         """Test processing large result sets efficiently."""
         # Arrange
         search_func = self.get_search_hashtag_func()
@@ -1360,7 +1436,9 @@ class TestEdgeCases(BaseTestClass):
         chunked_tweets = []
         for chunk in range(5):  # 5 chunks of 10 tweets each
             for tweet_num in range(10):
-                chunked_tweets.append(f"Chunk {chunk}, Tweet {tweet_num}: Amazing #ai discovery!")
+                chunked_tweets.append(
+                    f"Chunk {chunk}, Tweet {tweet_num}: Amazing #ai discovery!"
+                )
 
         mock_client.search_hashtag.return_value = chunked_tweets
 
@@ -1375,11 +1453,15 @@ class TestEdgeCases(BaseTestClass):
         # Verify chunk structure is maintained
         for chunk in range(5):
             for tweet_num in range(10):
-                expected_tweet = f"Chunk {chunk}, Tweet {tweet_num}: Amazing #ai discovery!"
+                expected_tweet = (
+                    f"Chunk {chunk}, Tweet {tweet_num}: Amazing #ai discovery!"
+                )
                 assert expected_tweet in result_json
 
     @pytest.mark.asyncio
-    async def test_search_hashtag_memory_efficient_json_processing(self, mock_context: Context):
+    async def test_search_hashtag_memory_efficient_json_processing(
+        self, mock_context: Context
+    ):
         """Test memory efficient JSON processing for large datasets."""
         # Arrange
         search_func = self.get_search_hashtag_func()
@@ -1391,7 +1473,7 @@ class TestEdgeCases(BaseTestClass):
             "مرحبا! #arabic coding نشاط رائع! 💻",
             "Здравствуй! #russian разработка крутая! 🔥",
             "こんにちは! #japanese コーディング楽しい! ⚡",
-            "Γεια! #greek προγραμματισμός είναι ωραίος! 🌟"
+            "Γεια! #greek προγραμματισμός είναι ωραίος! 🌟",
         ]
 
         mock_client.search_hashtag.return_value = unicode_tweets
@@ -1408,7 +1490,9 @@ class TestEdgeCases(BaseTestClass):
             assert tweet in result_json
 
     @pytest.mark.asyncio
-    async def test_search_hashtag_progressive_error_handling(self, mock_context: Context):
+    async def test_search_hashtag_progressive_error_handling(
+        self, mock_context: Context
+    ):
         """Test progressive error handling during hashtag search."""
         # Arrange
         search_func = self.get_search_hashtag_func()
@@ -1419,7 +1503,7 @@ class TestEdgeCases(BaseTestClass):
             "Rate limit exceeded",
             "Invalid hashtag format",
             "Search service temporarily unavailable",
-            "Network timeout occurred"
+            "Network timeout occurred",
         ]
 
         for error_msg in error_scenarios:
@@ -1428,19 +1512,24 @@ class TestEdgeCases(BaseTestClass):
 
             # Act & Assert
             with pytest.raises(
-                ToolError, match=f"An unexpected error occurred while searching for a hashtag: {error_msg}"
+                ToolError,
+                match=f"An unexpected error occurred while searching for a hashtag: {error_msg}",
             ):
                 await search_func(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
-    async def test_general_exception_handling_in_get_user_tweets(self, mock_context: Context):
+    async def test_general_exception_handling_in_get_user_tweets(
+        self, mock_context: Context
+    ):
         """Test general exception handling in get_user_tweets main try block."""
         from mcp_server_twitter.server import mcp_server
 
         get_user_tweets = self.get_get_user_tweets_func()
 
         # Mock validation to raise an exception to trigger the main exception handler
-        tool_input = {"user_ids": None}  # This should cause validation error, but let's mock differently
+        tool_input = {
+            "user_ids": None
+        }  # This should cause validation error, but let's mock differently
 
         # Instead, let's test when context access fails
         mock_context.request_context.lifespan_context = None
@@ -1459,13 +1548,17 @@ class TestEdgeCases(BaseTestClass):
         # Test follow_user with missing user_id
         follow_user = self.get_follow_user_func()
 
-        with pytest.raises(ToolError, match="Invalid input: 1 validation error for FollowUserRequest"):
+        with pytest.raises(
+            ToolError, match="Invalid input: 1 validation error for FollowUserRequest"
+        ):
             await follow_user(ctx=mock_context, request=FollowUserRequest(user_id=None))
 
         # Test retweet_tweet with missing tweet_id
         retweet_tweet = self.get_retweet_tweet_func()
 
-        with pytest.raises(ToolError, match="Invalid input: 1 validation error for RetweetTweetRequest"):
+        with pytest.raises(
+            ToolError, match="Invalid input: 1 validation error for RetweetTweetRequest"
+        ):
             await retweet_tweet(
                 ctx=mock_context, request=RetweetTweetRequest(tweet_id=None)
             )
@@ -1473,13 +1566,18 @@ class TestEdgeCases(BaseTestClass):
         # Test get_trends with missing countries
         get_trends = self.get_trends_func()
 
-        with pytest.raises(ToolError, match="Invalid input: 1 validation error for GetTrendsRequest"):
+        with pytest.raises(
+            ToolError, match="Invalid input: 1 validation error for GetTrendsRequest"
+        ):
             await get_trends(ctx=mock_context, request=GetTrendsRequest(countries=None))
 
         # Test search_hashtag with missing hashtag
         search_hashtag = self.get_search_hashtag_func()
 
-        with pytest.raises(ToolError, match="Invalid input: 1 validation error for SearchHashtagRequest"):
+        with pytest.raises(
+            ToolError,
+            match="Invalid input: 1 validation error for SearchHashtagRequest",
+        ):
             await search_hashtag(
                 ctx=mock_context, request=SearchHashtagRequest(hashtag=None)
             )
@@ -1491,7 +1589,9 @@ class TestEdgeCases(BaseTestClass):
 
         create_tweet = self.get_create_tweet_func()
 
-        with pytest.raises(ToolError, match="Invalid input: 1 validation error for CreateTweetRequest"):
+        with pytest.raises(
+            ToolError, match="Invalid input: 1 validation error for CreateTweetRequest"
+        ):
             await create_tweet(
                 ctx=mock_context,
                 request=CreateTweetRequest(image_content_str="valid_image"),
@@ -1538,7 +1638,9 @@ class TestEdgeCases(BaseTestClass):
         )
 
     @pytest.mark.asyncio
-    async def test_create_tweet_progressive_poll_validation(self, mock_context: Context):
+    async def test_create_tweet_progressive_poll_validation(
+        self, mock_context: Context
+    ):
         """Test progressive validation of poll options in batches."""
         create_tweet_func = self.get_create_tweet_func()
 
@@ -1548,26 +1650,26 @@ class TestEdgeCases(BaseTestClass):
                 "name": "minimal_valid_poll",
                 "poll_options": ["Yes", "No"],
                 "poll_duration": 5,
-                "should_pass": True
+                "should_pass": True,
             },
             {
                 "name": "maximum_valid_poll",
                 "poll_options": ["Option A", "Option B", "Option C", "Option D"],
                 "poll_duration": 10080,
-                "should_pass": True
+                "should_pass": True,
             },
             {
                 "name": "too_few_options",
                 "poll_options": ["Only one"],
                 "poll_duration": 60,
-                "should_pass": False
+                "should_pass": False,
             },
             {
                 "name": "too_many_options",
                 "poll_options": ["A", "B", "C", "D", "E"],
                 "poll_duration": 60,
-                "should_pass": False
-            }
+                "should_pass": False,
+            },
         ]
 
         # Process test cases in small batches
@@ -1589,9 +1691,7 @@ class TestEdgeCases(BaseTestClass):
                         f"poll_{test_case['name']}_123"
                     )
 
-                    result = await create_tweet_func(
-                        ctx=mock_context, request=request
-                    )
+                    result = await create_tweet_func(ctx=mock_context, request=request)
                     assert "Tweet created successfully" in result
                 else:
                     # Invalid polls should raise validation errors
@@ -1605,14 +1705,21 @@ class TestEdgeCases(BaseTestClass):
                         # await create_tweet_func(ctx=mock_context, request=request)
 
     @pytest.mark.asyncio
-    async def test_create_tweet_memory_efficient_text_processing(self, mock_context: Context):
+    async def test_create_tweet_memory_efficient_text_processing(
+        self, mock_context: Context
+    ):
         """Test memory efficient processing of various text lengths."""
         create_tweet_func = self.get_create_tweet_func()
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
 
         # Test text lengths in small increments to check memory efficiency
         text_length_tests = [
-            50, 100, 150, 200, 250, 280  # Various lengths up to Twitter's limit
+            50,
+            100,
+            150,
+            200,
+            250,
+            280,  # Various lengths up to Twitter's limit
         ]
 
         for length in text_length_tests:
@@ -1626,35 +1733,36 @@ class TestEdgeCases(BaseTestClass):
             result = await create_tweet_func(ctx=mock_context, request=request)
 
             # Assert
-            assert result == f"Tweet created successfully with ID: text_len_{length}_tweet"
+            assert (
+                result == f"Tweet created successfully with ID: text_len_{length}_tweet"
+            )
 
     @pytest.mark.asyncio
-    async def test_create_tweet_concurrent_validation_processing(self, mock_context: Context):
+    async def test_create_tweet_concurrent_validation_processing(
+        self, mock_context: Context
+    ):
         """Test that validation works correctly when processing multiple tweets conceptually."""
         create_tweet_func = self.get_create_tweet_func()
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
 
         # Simulate multiple tweet creation scenarios that might happen in sequence
         tweet_scenarios = [
-            {
-                "text": "Simple tweet #1",
-                "expected_id": "simple_1"
-            },
+            {"text": "Simple tweet #1", "expected_id": "simple_1"},
             {
                 "text": "Tweet with image #2",
                 "image_content_str": "image_data_base64",
-                "expected_id": "image_2"
+                "expected_id": "image_2",
             },
             {
                 "text": "Reply tweet #3",
                 "in_reply_to_tweet_id": "original_tweet_123",
-                "expected_id": "reply_3"
+                "expected_id": "reply_3",
             },
             {
                 "text": "Quote tweet #4",
                 "quote_tweet_id": "quoted_tweet_456",
-                "expected_id": "quote_4"
-            }
+                "expected_id": "quote_4",
+            },
         ]
 
         # Process scenarios in small batches
@@ -1669,10 +1777,15 @@ class TestEdgeCases(BaseTestClass):
             result = await create_tweet_func(ctx=mock_context, request=request)
 
             # Assert
-            assert result == f"Tweet created successfully with ID: {scenario['expected_id']}"
+            assert (
+                result
+                == f"Tweet created successfully with ID: {scenario['expected_id']}"
+            )
 
     @pytest.mark.asyncio
-    async def test_create_tweet_chunked_error_response_processing(self, mock_context: Context):
+    async def test_create_tweet_chunked_error_response_processing(
+        self, mock_context: Context
+    ):
         """Test processing of various error responses in manageable chunks."""
         create_tweet_func = self.get_create_tweet_func()
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
@@ -1681,20 +1794,20 @@ class TestEdgeCases(BaseTestClass):
         error_scenarios = [
             {
                 "error": Exception("403 Forbidden: Content violates policy"),
-                "expected_match": "An unexpected error occurred: 403 Forbidden: Content violates policy"
+                "expected_match": "An unexpected error occurred: 403 Forbidden: Content violates policy",
             },
             {
                 "error": Exception("401 Unauthorized: Invalid credentials"),
-                "expected_match": "An unexpected error occurred: 401 Unauthorized: Invalid credentials"
+                "expected_match": "An unexpected error occurred: 401 Unauthorized: Invalid credentials",
             },
             {
                 "error": Exception("duplicate content detected"),
-                "expected_match": "An unexpected error occurred: duplicate content detected"
+                "expected_match": "An unexpected error occurred: duplicate content detected",
             },
             {
                 "error": Exception("Network timeout"),
-                "expected_match": "An unexpected error occurred: Network timeout"
-            }
+                "expected_match": "An unexpected error occurred: Network timeout",
+            },
         ]
 
         # Process error scenarios in batches of 2
@@ -1723,7 +1836,7 @@ class TestEdgeCases(BaseTestClass):
             "This is ",
             "a streaming ",
             "tweet test. ",
-            "#streaming #test"
+            "#streaming #test",
         ]
 
         # Build content progressively (simulating reassembly)
@@ -1754,7 +1867,9 @@ class TestFixtureUsage(BaseTestClass):
     """Test class demonstrating usage of shared fixtures."""
 
     @pytest.mark.asyncio
-    async def test_using_mcp_server_tools_fixture(self, mock_context: Context, mcp_server_tools, sample_tool_inputs):
+    async def test_using_mcp_server_tools_fixture(
+        self, mock_context: Context, mcp_server_tools, sample_tool_inputs
+    ):
         """Test using the mcp_server_tools fixture for quick access to tools."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
@@ -1772,14 +1887,23 @@ class TestFixtureUsage(BaseTestClass):
         mock_client.create_tweet.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_using_sample_inputs_fixture(self, mock_context: Context, mcp_server_tools, sample_tool_inputs, mock_twitter_response, mock_tweet):
+    async def test_using_sample_inputs_fixture(
+        self,
+        mock_context: Context,
+        mcp_server_tools,
+        sample_tool_inputs,
+        mock_twitter_response,
+        mock_tweet,
+    ):
         """Test using the sample_tool_inputs fixture."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
 
         # Mock response for get_user_tweets
         mock_tweets = [mock_tweet("Sample tweet")]
-        mock_client.get_user_tweets.return_value = mock_twitter_response(data=mock_tweets)
+        mock_client.get_user_tweets.return_value = mock_twitter_response(
+            data=mock_tweets
+        )
 
         # Use fixtures
         get_user_tweets = mcp_server_tools["get_user_tweets"]
@@ -1796,16 +1920,16 @@ class TestFixtureUsage(BaseTestClass):
         assert result_json["user123"] == ["Sample tweet"]
 
     @pytest.mark.asyncio
-    async def test_poll_creation_with_fixtures(self, mock_context: Context, mcp_server_tools, sample_tool_inputs):
+    async def test_poll_creation_with_fixtures(
+        self, mock_context: Context, mcp_server_tools, sample_tool_inputs
+    ):
         """Test poll creation using sample inputs fixture."""
         # Arrange
         mock_client = mock_context.request_context.lifespan_context["twitter_client"]
         mock_client.create_tweet.return_value = "poll_tweet_456"
 
         create_tweet = mcp_server_tools["create_tweet"]
-        request = CreateTweetRequest(
-            **sample_tool_inputs["create_tweet"]["with_poll"]
-        )
+        request = CreateTweetRequest(**sample_tool_inputs["create_tweet"]["with_poll"])
 
         # Act
         result = await create_tweet(ctx=mock_context, request=request)

@@ -34,4 +34,3 @@ class TwitterResponse(BaseModel):
     items: list[dict] = Field(description="List of twitter items")
     query_id: str = Field(description="Query identifier")
     query_name: str = Field(description="Query name")
-

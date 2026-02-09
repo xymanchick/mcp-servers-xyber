@@ -1,5 +1,6 @@
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
 from fastapi import Request
 from fastmcp import Context
 
@@ -74,6 +75,7 @@ def mock_500_error_response():
 def create_mock_config():
     def _create_config(token="test_token", channel="@test_channel"):
         return MockTelegramConfig(token=token, channel=channel)
+
     return _create_config
 
 

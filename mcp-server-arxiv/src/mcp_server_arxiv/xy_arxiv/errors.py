@@ -15,4 +15,3 @@ class ArxivApiError(ArxivServiceError):
         base = super().__str__()
         details_str = f" Details: {self.details}" if self.details else ""
         return f"{base}{details_str}"
-

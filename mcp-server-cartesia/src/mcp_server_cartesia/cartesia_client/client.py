@@ -18,12 +18,8 @@ except ImportError:
 
 
 # Import local config and error classes
-from .config import (
-    CartesiaApiError,
-    CartesiaClientError,
-    CartesiaConfig,
-    CartesiaConfigError,
-)
+from .config import (CartesiaApiError, CartesiaClientError, CartesiaConfig,
+                     CartesiaConfigError)
 
 logger = logging.getLogger(__name__)
 
@@ -115,9 +111,7 @@ async def generate_voice_async(
                 f"Received {len(audio_bytes)} bytes of audio data from Cartesia."
             )
 
-    except (
-        asyncio.TimeoutError
-    ) as timeout_err:  # Catch potential timeouts if underlying library uses asyncio timeouts
+    except asyncio.TimeoutError as timeout_err:  # Catch potential timeouts if underlying library uses asyncio timeouts
         logger.error(
             f"Timeout error during Cartesia API call: {timeout_err}", exc_info=True
         )

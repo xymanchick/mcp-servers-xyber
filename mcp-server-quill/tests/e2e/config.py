@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -60,7 +61,5 @@ def require_quill_api_key(config: E2ETestConfig) -> str:
     if not config.quill_api_key:
         import pytest
 
-        pytest.skip(
-            "Set MCP_QUILL_TEST_QUILL_API_KEY to run Quill API E2E tests."
-        )
+        pytest.skip("Set MCP_QUILL_TEST_QUILL_API_KEY to run Quill API E2E tests.")
     return config.quill_api_key

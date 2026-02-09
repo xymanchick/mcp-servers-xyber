@@ -7,7 +7,8 @@ all service clients used by the application.
 
 import logging
 
-from mcp_server_weather.weather import WeatherClient, WeatherConfig, get_weather_config
+from mcp_server_weather.weather import (WeatherClient, WeatherConfig,
+                                        get_weather_config)
 
 logger = logging.getLogger(__name__)
 

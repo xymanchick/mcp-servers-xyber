@@ -7,7 +7,8 @@ from fastapi import FastAPI
 from fastapi_mcp import FastApiMCP
 from mcp_server_together_imgen.api_router import router as api_router
 from mcp_server_together_imgen.hybrid_routers import routers as hybrid_routers
-from mcp_server_together_imgen.logging_config import configure_logging, logging_level
+from mcp_server_together_imgen.logging_config import (configure_logging,
+                                                      logging_level)
 from mcp_server_together_imgen.x402_config import get_x402_settings
 
 configure_logging()
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     # --- Middleware Configuration ---
     if x402_settings.pricing_mode == "on":
         from mcp_server_together_imgen.middlewares import X402WrapperMiddleware
+
         app.add_middleware(X402WrapperMiddleware, tool_pricing=x402_settings.pricing)
         logger.info("x402 payment middleware enabled.")
     else:
@@ -50,7 +52,9 @@ def create_app() -> FastAPI:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run Together Image Generation MCP server")
+    parser = argparse.ArgumentParser(
+        description="Run Together Image Generation MCP server"
+    )
     parser.add_argument(
         "--host",
         default=os.getenv("MCP_TOGETHER_IMGEN_HOST", "0.0.0.0"),

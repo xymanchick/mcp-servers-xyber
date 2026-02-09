@@ -1,6 +1,7 @@
 import logging
 
-from mcp_server_lurky.db.database import DatabaseManager, get_db_manager as create_db_manager
+from mcp_server_lurky.db.database import DatabaseManager
+from mcp_server_lurky.db.database import get_db_manager as create_db_manager
 from mcp_server_lurky.lurky.config import get_lurky_config
 from mcp_server_lurky.lurky.module import LurkyClient
 

@@ -6,7 +6,9 @@ from pydantic import BaseModel, Field
 class SearchWikipediaRequest(BaseModel):
     """Input schema for searching Wikipedia articles by query."""
 
-    query: str = Field(..., max_length=300, description="Search query string for Wikipedia articles")
+    query: str = Field(
+        ..., max_length=300, description="Search query string for Wikipedia articles"
+    )
     limit: int = Field(
         10,
         ge=1,

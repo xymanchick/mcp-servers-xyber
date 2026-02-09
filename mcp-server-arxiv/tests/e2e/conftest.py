@@ -3,9 +3,8 @@ from __future__ import annotations
 import httpx
 import pytest_asyncio
 from eth_account import Account
-from x402.clients.httpx import x402HttpxClient
-
 from tests.e2e.config import load_e2e_config, require_base_url, require_wallet
+from x402.clients.httpx import x402HttpxClient
 
 
 @pytest_asyncio.fixture
@@ -35,4 +34,3 @@ async def paid_client():
         trust_env=False,
     ) as client:
         yield config, client
-

@@ -1,15 +1,11 @@
-import os
 import logging
+import os
+from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
-from typing import Optional
-from pydantic import Field
-from pydantic_settings import (
-    BaseSettings,
-    SettingsConfigDict,
-)
-from pathlib import Path
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +25,7 @@ class DatabaseConfig(BaseModel):
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT_RAW: str = os.getenv("DB_PORT", "5432")
-    DB_PORT: str = (
-        DB_PORT_RAW.split(":")[0] if ":" in DB_PORT_RAW else DB_PORT_RAW
-    )
+    DB_PORT: str = DB_PORT_RAW.split(":")[0] if ":" in DB_PORT_RAW else DB_PORT_RAW
     DATABASE_URL: str = (
         f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
@@ -56,49 +50,63 @@ class LLM_Config(BaseModel):
 
 class DeepResearcherConfig(BaseModel):
     """Configuration settings for the Deep Researcher."""
-    MAX_WEB_RESEARCH_LOOPS: int = Field(default=3, ge=1, le=10, description="Maximum number of web research loops to perform (1-10)")
+
+    MAX_WEB_RESEARCH_LOOPS: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Maximum number of web research loops to perform (1-10)",
+    )
 
 
 class SearchMCP_Config(BaseModel):
     """Configuration settings for the dependent search MCP servers."""
+
     APIFY_TOKEN: Optional[str] = os.getenv("APIFY_TOKEN")
     MCP_TAVILY_URL: str = os.getenv("MCP_TAVILY_URL")
     MCP_ARXIV_URL: str = os.getenv("MCP_ARXIV_URL")
     MCP_TWITTER_APIFY_URL: str = os.getenv("MCP_TWITTER_APIFY_URL")
     # Support both MCP_YOUTUBE_URL and MCP_YOUTUBE_APIFY_URL for backward compatibility
-    MCP_YOUTUBE_APIFY_URL: str = os.getenv("MCP_YOUTUBE_APIFY_URL") or os.getenv("MCP_YOUTUBE_URL")
+    MCP_YOUTUBE_APIFY_URL: str = os.getenv("MCP_YOUTUBE_APIFY_URL") or os.getenv(
+        "MCP_YOUTUBE_URL"
+    )
     MCP_TELEGRAM_PARSER_URL: Optional[str] = os.getenv("MCP_TELEGRAM_PARSER_URL")
     MCP_DEEPRESEARCH_URL: Optional[str] = os.getenv("MCP_DEEPRESEARCH_URL")
 
 
-
 class LangfuseConfig(BaseSettings):
     """Configuration settings for Langfuse integration."""
+
     # Support both LANGFUSE_API_KEY and LANGFUSE_PUBLIC_KEY for compatibility
     LANGFUSE_API_KEY: str = Field(default="")
     LANGFUSE_SECRET_KEY: str = Field(default="")
     LANGFUSE_PROJECT: str = Field(default="deepresearcher")
     # Support both LANGFUSE_HOST and LANGFUSE_BASE_URL for compatibility
     LANGFUSE_HOST: str = Field(default="https://cloud.langfuse.com")
-    
+
     model_config = SettingsConfigDict(
         env_file=_env_file,
         env_file_encoding="utf-8",
         extra="ignore",
     )
-    
+
     def __init__(self, **kwargs):
         # Handle LANGFUSE_PUBLIC_KEY as alias for LANGFUSE_API_KEY
         if not kwargs.get("LANGFUSE_API_KEY"):
-            api_key = os.getenv("LANGFUSE_API_KEY") or os.getenv("LANGFUSE_PUBLIC_KEY") or ""
+            api_key = (
+                os.getenv("LANGFUSE_API_KEY") or os.getenv("LANGFUSE_PUBLIC_KEY") or ""
+            )
             if api_key:
                 kwargs["LANGFUSE_API_KEY"] = api_key
         # Handle LANGFUSE_BASE_URL as alias for LANGFUSE_HOST
         if not kwargs.get("LANGFUSE_HOST"):
-            host = os.getenv("LANGFUSE_HOST") or os.getenv("LANGFUSE_BASE_URL") or "https://cloud.langfuse.com"
+            host = (
+                os.getenv("LANGFUSE_HOST")
+                or os.getenv("LANGFUSE_BASE_URL")
+                or "https://cloud.langfuse.com"
+            )
             kwargs["LANGFUSE_HOST"] = host
         super().__init__(**kwargs)
-
 
 
 class Settings(BaseSettings):

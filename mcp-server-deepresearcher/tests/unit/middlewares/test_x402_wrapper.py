@@ -13,16 +13,16 @@ import pytest_asyncio
 from eth_account import Account
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from x402.clients.base import x402Client
-from x402.types import PaymentPayload, PaymentRequirements, x402PaymentRequiredResponse
-
 from mcp_server_deepresearcher.middlewares import X402WrapperMiddleware
 from mcp_server_deepresearcher.x402_config import PaymentOption
+from x402.clients.base import x402Client
+from x402.types import (PaymentPayload, PaymentRequirements,
+                        x402PaymentRequiredResponse)
 
 
 class DummyFacilitator:
     """Dummy facilitator for testing."""
-    
+
     def __init__(self) -> None:
         self.verify_calls: list[tuple[PaymentPayload, PaymentRequirements]] = []
         self.settle_calls: list[tuple[PaymentPayload, PaymentRequirements]] = []
@@ -173,14 +173,18 @@ async def test_payment_header_with_wrong_network_returns_no_matching(
     raw["network"] = "base-sepolia"  # mismatch the configured "base"
     tampered_header = base64.b64encode(json.dumps(raw).encode("utf-8")).decode("utf-8")
 
-    resp = await client.post("/hybrid/deep-research", headers={"X-PAYMENT": tampered_header})
+    resp = await client.post(
+        "/hybrid/deep-research", headers={"X-PAYMENT": tampered_header}
+    )
     assert resp.status_code == 402
     payload = resp.json()
     assert payload["error"] == "No matching payment requirements found"
 
 
 @pytest.mark.asyncio
-async def test_free_endpoint_bypasses_middleware(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_free_endpoint_bypasses_middleware(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test that free endpoints bypass payment middleware."""
     facilitator = DummyFacilitator()
 
@@ -219,7 +223,7 @@ async def test_free_endpoint_bypasses_middleware(monkeypatch: pytest.MonkeyPatch
 async def test_mcp_endpoint_payment_detection(payment_app) -> None:
     """Test that MCP endpoints can detect payment requirements."""
     client, _ = payment_app
-    
+
     # Test MCP-style request
     mcp_payload = {
         "jsonrpc": "2.0",
@@ -227,20 +231,19 @@ async def test_mcp_endpoint_payment_detection(payment_app) -> None:
         "method": "tools/call",
         "params": {
             "name": "deep_research",
-            "arguments": {
-                "research_topic": "test",
-                "max_web_research_loops": 3
-            }
-        }
+            "arguments": {"research_topic": "test", "max_web_research_loops": 3},
+        },
     }
-    
+
     response = await client.post("/hybrid/deep-research", json=mcp_payload)
     # Should return 402 if payment required, or handle MCP format
     assert response.status_code in [200, 402, 422]
 
 
 @pytest.mark.asyncio
-async def test_middleware_disabled_when_no_facilitator(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_middleware_disabled_when_no_facilitator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test that middleware is disabled when no facilitator is configured."""
     settings = SimpleNamespace(
         facilitator_config=None,
@@ -273,4 +276,3 @@ async def test_middleware_disabled_when_no_facilitator(monkeypatch: pytest.Monke
         # Should bypass payment when facilitator is None
         response = await client.post("/hybrid/deep-research")
         assert response.status_code == 200
-

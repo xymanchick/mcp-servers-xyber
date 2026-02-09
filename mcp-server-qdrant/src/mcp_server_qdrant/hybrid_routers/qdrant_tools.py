@@ -2,16 +2,12 @@ import logging
 
 from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
-
-from qdrant_client.models import CollectionInfo, ScoredPoint
-
 from mcp_server_qdrant.dependencies import get_qdrant_connector
 from mcp_server_qdrant.qdrant import Entry, QdrantConnector
-from mcp_server_qdrant.schemas import (
-    QdrantStoreRequest,
-    QdrantFindRequest,
-    QdrantGetCollectionInfoRequest,
-)
+from mcp_server_qdrant.schemas import (QdrantFindRequest,
+                                       QdrantGetCollectionInfoRequest,
+                                       QdrantStoreRequest)
+from qdrant_client.models import CollectionInfo, ScoredPoint
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,9 +29,7 @@ async def qdrant_store(
 
     try:
         # Execute core logic using the validated request data
-        entry = Entry(
-            content=request_body.information, metadata=request_body.metadata
-        )
+        entry = Entry(content=request_body.information, metadata=request_body.metadata)
         await qdrant_connector.store(
             entry, collection_name=request_body.collection_name
         )

@@ -1,18 +1,13 @@
 import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-
 from mcp_server_tavily.dependencies import get_tavily_service
 from mcp_server_tavily.schemas import SearchRequest, TavilySearchResultResponse
-from mcp_server_tavily.tavily import (
-    TavilyApiError,
-    TavilyConfigError,
-    TavilyEmptyQueryError,
-    TavilyEmptyResultsError,
-    TavilyInvalidResponseError,
-    TavilyServiceError,
-    _TavilyService,
-)
+from mcp_server_tavily.tavily import (TavilyApiError, TavilyConfigError,
+                                      TavilyEmptyQueryError,
+                                      TavilyEmptyResultsError,
+                                      TavilyInvalidResponseError,
+                                      TavilyServiceError, _TavilyService)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -73,4 +68,3 @@ async def tavily_search(
     except Exception as e:
         logger.error(f"Unexpected error in tavily_search: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
-

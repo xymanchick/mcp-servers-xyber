@@ -8,7 +8,6 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-
 from mcp_server_deepresearcher.api_routers import health
 
 
@@ -50,11 +49,11 @@ async def test_health_endpoint_methods(api_client: AsyncClient) -> None:
     # POST should fail
     response = await api_client.post("/api/health")
     assert response.status_code == 405  # Method Not Allowed
-    
+
     # PUT should fail
     response = await api_client.put("/api/health")
     assert response.status_code == 405
-    
+
     # DELETE should fail
     response = await api_client.delete("/api/health")
     assert response.status_code == 405
@@ -74,4 +73,3 @@ async def test_health_endpoint_content_type(api_client: AsyncClient) -> None:
     response = await api_client.get("/api/health")
     assert response.status_code == 200
     assert "application/json" in response.headers.get("content-type", "")
-

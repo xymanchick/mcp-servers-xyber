@@ -2,10 +2,8 @@ import logging
 
 import httpx
 from mcp_server_stability.stable_diffusion.config import (
-    StableDiffusionClientConfig,
-    StableDiffusionClientError,
-    StableDiffusionServerConnectionError,
-)
+    StableDiffusionClientConfig, StableDiffusionClientError,
+    StableDiffusionServerConnectionError)
 
 logger = logging.getLogger(__name__)
 

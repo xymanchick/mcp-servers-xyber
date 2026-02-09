@@ -4,15 +4,10 @@ This module should be changed to fit your domain-specific service layer, using i
 Main responsibility: Provide a public facade for the weather service by re-exporting the client, configuration helpers, error types, and data models.
 """
 
-from mcp_server_weather.weather.config import (
-    WeatherConfig,
-    get_weather_config,
-)
-from mcp_server_weather.weather.errors import (
-    WeatherApiError,
-    WeatherClientError,
-    WeatherConfigError,
-)
+from mcp_server_weather.weather.config import WeatherConfig, get_weather_config
+from mcp_server_weather.weather.errors import (WeatherApiError,
+                                               WeatherClientError,
+                                               WeatherConfigError)
 from mcp_server_weather.weather.models import WeatherData
 from mcp_server_weather.weather.module import WeatherClient
 

@@ -1,12 +1,8 @@
 import pytest
-from mcp_server_twitter.schemas import (
-    CreateTweetRequest,
-    FollowUserRequest,
-    GetTrendsRequest,
-    GetUserTweetsRequest,
-    RetweetTweetRequest,
-    SearchHashtagRequest,
-)
+from mcp_server_twitter.schemas import (CreateTweetRequest, FollowUserRequest,
+                                        GetTrendsRequest, GetUserTweetsRequest,
+                                        RetweetTweetRequest,
+                                        SearchHashtagRequest)
 from pydantic_core import ValidationError as PydanticValidationError
 
 # === CreateTweetRequest ===
@@ -52,9 +48,9 @@ def test_create_tweet_text_too_long(boundary_test_data):
 def test_create_tweet_invalid_text_too_short(boundary_test_data, common_test_data):
     with pytest.raises(PydanticValidationError) as exc_info:
         CreateTweetRequest(
-            text=boundary_test_data["empty_text"], 
-            poll_options=common_test_data["poll_options_min"], 
-            poll_duration=common_test_data["standard_duration"]
+            text=boundary_test_data["empty_text"],
+            poll_options=common_test_data["poll_options_min"],
+            poll_duration=common_test_data["standard_duration"],
         )
     assert "String should have at least 1 character" in str(exc_info.value)
 
@@ -63,7 +59,7 @@ def test_create_tweet_with_image(common_test_data):
     """Test creating tweet with image content"""
     model = CreateTweetRequest(
         text=common_test_data["image_text"],
-        image_content_str=common_test_data["base64_image"]
+        image_content_str=common_test_data["base64_image"],
     )
     assert model.text == common_test_data["image_text"]
     assert model.image_content_str == common_test_data["base64_image"]
@@ -73,7 +69,7 @@ def test_create_tweet_with_reply(common_test_data):
     """Test creating reply tweet"""
     model = CreateTweetRequest(
         text=common_test_data["reply_text"],
-        in_reply_to_tweet_id=common_test_data["reply_tweet_id"]
+        in_reply_to_tweet_id=common_test_data["reply_tweet_id"],
     )
     assert model.text == common_test_data["reply_text"]
     assert model.in_reply_to_tweet_id == common_test_data["reply_tweet_id"]
@@ -83,7 +79,7 @@ def test_create_tweet_with_quote(common_test_data):
     """Test creating quote tweet"""
     model = CreateTweetRequest(
         text=common_test_data["quote_text"],
-        quote_tweet_id=common_test_data["quote_tweet_id"]
+        quote_tweet_id=common_test_data["quote_tweet_id"],
     )
     assert model.text == common_test_data["quote_text"]
     assert model.quote_tweet_id == common_test_data["quote_tweet_id"]
@@ -94,7 +90,7 @@ def test_create_tweet_poll_options_min(common_test_data):
     model = CreateTweetRequest(
         text=common_test_data["poll_question"],
         poll_options=common_test_data["poll_options_long"],
-        poll_duration=common_test_data["standard_duration"]
+        poll_duration=common_test_data["standard_duration"],
     )
     assert len(model.poll_options) == 2
 
@@ -104,7 +100,7 @@ def test_create_tweet_poll_options_max(common_test_data):
     model = CreateTweetRequest(
         text=common_test_data["poll_question"],
         poll_options=common_test_data["poll_options_max"],
-        poll_duration=common_test_data["standard_duration"]
+        poll_duration=common_test_data["standard_duration"],
     )
     assert len(model.poll_options) == 4
 
@@ -112,8 +108,7 @@ def test_create_tweet_poll_options_max(common_test_data):
 def test_create_tweet_invalid_poll_options_too_few(common_test_data):
     with pytest.raises(PydanticValidationError):
         CreateTweetRequest(
-            text="Valid", 
-            poll_options=common_test_data["poll_options_too_few"]
+            text="Valid", poll_options=common_test_data["poll_options_too_few"]
         )
 
 
@@ -123,7 +118,7 @@ def test_create_tweet_invalid_poll_options_too_many(common_test_data):
         CreateTweetRequest(
             text=common_test_data["poll_question"],
             poll_options=common_test_data["poll_options_too_many"],
-            poll_duration=common_test_data["standard_duration"]
+            poll_duration=common_test_data["standard_duration"],
         )
     assert "poll_options must contain between 2 and 4 items" in str(exc_info.value)
 
@@ -133,7 +128,7 @@ def test_create_tweet_poll_duration_min(common_test_data, schema_constants):
     model = CreateTweetRequest(
         text="Quick poll",
         poll_options=common_test_data["poll_options_yes_no"],
-        poll_duration=schema_constants["min_poll_duration"]
+        poll_duration=schema_constants["min_poll_duration"],
     )
     assert model.poll_duration == schema_constants["min_poll_duration"]
 
@@ -143,7 +138,7 @@ def test_create_tweet_poll_duration_max(common_test_data, schema_constants):
     model = CreateTweetRequest(
         text="Long poll",
         poll_options=common_test_data["poll_options_yes_no"],
-        poll_duration=schema_constants["max_poll_duration"]
+        poll_duration=schema_constants["max_poll_duration"],
     )
     assert model.poll_duration == schema_constants["max_poll_duration"]
 
@@ -154,7 +149,7 @@ def test_create_tweet_poll_duration_too_short(common_test_data, schema_constants
         CreateTweetRequest(
             text="Poll",
             poll_options=common_test_data["poll_options_min"],
-            poll_duration=schema_constants["under_min_poll_duration"]
+            poll_duration=schema_constants["under_min_poll_duration"],
         )
     assert "Input should be greater than or equal to 5" in str(exc_info.value)
 
@@ -165,17 +160,14 @@ def test_create_tweet_poll_duration_too_long(common_test_data, schema_constants)
         CreateTweetRequest(
             text="Poll",
             poll_options=common_test_data["poll_options_min"],
-            poll_duration=schema_constants["over_max_poll_duration"]
+            poll_duration=schema_constants["over_max_poll_duration"],
         )
     assert "Input should be less than or equal to 10080" in str(exc_info.value)
 
 
 def test_create_tweet_poll_options_without_duration():
     """Test that poll options can be provided without duration (uses default)"""
-    model = CreateTweetRequest(
-        text="Poll without duration",
-        poll_options=["Yes", "No"]
-    )
+    model = CreateTweetRequest(text="Poll without duration", poll_options=["Yes", "No"])
     assert model.poll_options == ["Yes", "No"]
     assert model.poll_duration is None
 
@@ -198,14 +190,18 @@ def test_get_user_tweets_default_max_results(common_test_data, schema_constants)
 
 def test_get_user_tweets_single_user(common_test_data):
     """Test with single user ID"""
-    model = GetUserTweetsRequest(user_ids=common_test_data["single_user_list"], max_results=25)
+    model = GetUserTweetsRequest(
+        user_ids=common_test_data["single_user_list"], max_results=25
+    )
     assert len(model.user_ids) == 1
     assert model.user_ids[0] == common_test_data["user_id"]
 
 
 def test_get_user_tweets_multiple_users(common_test_data):
     """Test with multiple user IDs"""
-    model = GetUserTweetsRequest(user_ids=common_test_data["multiple_users"], max_results=75)
+    model = GetUserTweetsRequest(
+        user_ids=common_test_data["multiple_users"], max_results=75
+    )
     assert model.user_ids == common_test_data["multiple_users"]
     assert len(model.user_ids) == 3
 
@@ -213,8 +209,8 @@ def test_get_user_tweets_multiple_users(common_test_data):
 def test_get_user_tweets_max_results_min(common_test_data, boundary_test_data):
     """Test with minimum max_results value (1)"""
     model = GetUserTweetsRequest(
-        user_ids=common_test_data["single_user_list"], 
-        max_results=boundary_test_data["user_tweets_boundaries"]["min"]
+        user_ids=common_test_data["single_user_list"],
+        max_results=boundary_test_data["user_tweets_boundaries"]["min"],
     )
     assert model.max_results == boundary_test_data["user_tweets_boundaries"]["min"]
 
@@ -222,8 +218,8 @@ def test_get_user_tweets_max_results_min(common_test_data, boundary_test_data):
 def test_get_user_tweets_max_results_max(common_test_data, boundary_test_data):
     """Test with maximum max_results value (100)"""
     model = GetUserTweetsRequest(
-        user_ids=common_test_data["single_user_list"], 
-        max_results=boundary_test_data["user_tweets_boundaries"]["max"]
+        user_ids=common_test_data["single_user_list"],
+        max_results=boundary_test_data["user_tweets_boundaries"]["max"],
     )
     assert model.max_results == boundary_test_data["user_tweets_boundaries"]["max"]
 
@@ -238,8 +234,8 @@ def test_get_user_tweets_empty_user_ids(common_test_data):
 def test_get_user_tweets_invalid_max_results(common_test_data, boundary_test_data):
     with pytest.raises(PydanticValidationError):
         GetUserTweetsRequest(
-            user_ids=common_test_data["single_user_list"], 
-            max_results=boundary_test_data["user_tweets_boundaries"]["over_max"]
+            user_ids=common_test_data["single_user_list"],
+            max_results=boundary_test_data["user_tweets_boundaries"]["over_max"],
         )
 
 
@@ -487,7 +483,7 @@ def test_create_tweet_all_fields(common_test_data, schema_constants):
         poll_options=["Option 1", "Option 2", "Option 3"],
         poll_duration=1440,  # 24 hours
         in_reply_to_tweet_id=common_test_data["reply_tweet_id"],
-        quote_tweet_id=common_test_data["quote_tweet_id"]
+        quote_tweet_id=common_test_data["quote_tweet_id"],
     )
     assert model.text == "This is a comprehensive tweet with all features!"
     assert model.image_content_str == common_test_data["base64_image"]
@@ -503,7 +499,7 @@ def test_create_tweet_edge_case_combinations(boundary_test_data):
     model = CreateTweetRequest(
         text=boundary_test_data["max_length_text"],
         poll_options=boundary_test_data["min_poll_data"]["options"],
-        poll_duration=boundary_test_data["min_poll_data"]["duration"]
+        poll_duration=boundary_test_data["min_poll_data"]["duration"],
     )
     assert len(model.text) == 280
     assert len(model.poll_options) == 2
@@ -515,19 +511,19 @@ def test_create_tweet_boundary_values(schema_factories, boundary_test_data):
     # Text exactly at boundary - using factory for convenience
     model = schema_factories["create_tweet"](text="X")  # Minimum length
     assert len(model.text) == 1
-    
+
     # Poll duration at boundaries
     model_min = schema_factories["create_tweet"](
         text="Poll test",
         poll_options=boundary_test_data["min_poll_data"]["options"],
-        poll_duration=boundary_test_data["min_poll_data"]["duration"]
+        poll_duration=boundary_test_data["min_poll_data"]["duration"],
     )
     assert model_min.poll_duration == 5
-    
+
     model_max = schema_factories["create_tweet"](
         text="Poll test",
         poll_options=boundary_test_data["max_poll_data"]["options"],
-        poll_duration=boundary_test_data["max_poll_data"]["duration"]
+        poll_duration=boundary_test_data["max_poll_data"]["duration"],
     )
     assert model_max.poll_duration == 10080
     assert len(model_max.poll_options) == 4
@@ -538,17 +534,17 @@ def test_all_schemas_type_validation():
     # Test that non-string values are rejected where strings are expected
     with pytest.raises(PydanticValidationError):
         CreateTweetRequest(text=123)  # Should be string
-    
+
     with pytest.raises(PydanticValidationError):
         FollowUserRequest(user_id=456)  # Should be string
-    
+
     with pytest.raises(PydanticValidationError):
         RetweetTweetRequest(tweet_id=789)  # Should be string
-    
+
     # Test that non-list values are rejected where lists are expected
     with pytest.raises(PydanticValidationError):
         GetUserTweetsRequest(user_ids="single_user")  # Should be list
-    
+
     with pytest.raises(PydanticValidationError):
         GetTrendsRequest(countries="USA")  # Should be list
 
@@ -561,7 +557,7 @@ def test_optional_fields_none_values():
         poll_options=None,
         poll_duration=None,
         in_reply_to_tweet_id=None,
-        quote_tweet_id=None
+        quote_tweet_id=None,
     )
     assert model.image_content_str is None
     assert model.poll_options is None
@@ -575,7 +571,7 @@ def test_schema_string_representations():
     model = CreateTweetRequest(text="Test")
     assert isinstance(str(model), str)
     assert isinstance(repr(model), str)
-    
+
     model2 = GetUserTweetsRequest(user_ids=["123"])
     assert isinstance(str(model2), str)
     assert isinstance(repr(model2), str)
@@ -590,16 +586,16 @@ def test_create_tweet_serialization():
         text="Test tweet",
         image_content_str="image_data",
         poll_options=["A", "B"],
-        poll_duration=60
+        poll_duration=60,
     )
-    
+
     # Test model_dump
     data = original.model_dump()
     assert data["text"] == "Test tweet"
     assert data["image_content_str"] == "image_data"
     assert data["poll_options"] == ["A", "B"]
     assert data["poll_duration"] == 60
-    
+
     # Test reconstruction from dict
     reconstructed = CreateTweetRequest(**data)
     assert reconstructed.text == original.text
@@ -611,11 +607,11 @@ def test_create_tweet_serialization():
 def test_get_user_tweets_serialization():
     """Test GetUserTweetsRequest serialization"""
     original = GetUserTweetsRequest(user_ids=["1", "2", "3"], max_results=25)
-    
+
     data = original.model_dump()
     assert data["user_ids"] == ["1", "2", "3"]
     assert data["max_results"] == 25
-    
+
     reconstructed = GetUserTweetsRequest(**data)
     assert reconstructed.user_ids == original.user_ids
     assert reconstructed.max_results == original.max_results
@@ -624,10 +620,10 @@ def test_get_user_tweets_serialization():
 def test_follow_user_serialization():
     """Test FollowUserRequest serialization"""
     original = FollowUserRequest(user_id="test_user_123")
-    
+
     data = original.model_dump()
     assert data["user_id"] == "test_user_123"
-    
+
     reconstructed = FollowUserRequest(**data)
     assert reconstructed.user_id == original.user_id
 
@@ -635,10 +631,10 @@ def test_follow_user_serialization():
 def test_retweet_serialization():
     """Test RetweetTweetRequest serialization"""
     original = RetweetTweetRequest(tweet_id="tweet_456")
-    
+
     data = original.model_dump()
     assert data["tweet_id"] == "tweet_456"
-    
+
     reconstructed = RetweetTweetRequest(**data)
     assert reconstructed.tweet_id == original.tweet_id
 
@@ -646,11 +642,11 @@ def test_retweet_serialization():
 def test_get_trends_serialization():
     """Test GetTrendsRequest serialization"""
     original = GetTrendsRequest(countries=["USA", "Canada"], max_trends=15)
-    
+
     data = original.model_dump()
     assert data["countries"] == ["USA", "Canada"]
     assert data["max_trends"] == 15
-    
+
     reconstructed = GetTrendsRequest(**data)
     assert reconstructed.countries == original.countries
     assert reconstructed.max_trends == original.max_trends
@@ -659,11 +655,11 @@ def test_get_trends_serialization():
 def test_search_hashtag_serialization():
     """Test SearchHashtagRequest serialization"""
     original = SearchHashtagRequest(hashtag="#python", max_results=75)
-    
+
     data = original.model_dump()
     assert data["hashtag"] == "#python"
     assert data["max_results"] == 75
-    
+
     reconstructed = SearchHashtagRequest(**data)
     assert reconstructed.hashtag == original.hashtag
     assert reconstructed.max_results == original.max_results
@@ -684,7 +680,7 @@ def test_create_tweet_numeric_strings():
     model = CreateTweetRequest(
         text="Reply tweet",
         in_reply_to_tweet_id="123456789012345678",
-        quote_tweet_id="987654321098765432"
+        quote_tweet_id="987654321098765432",
     )
     assert model.in_reply_to_tweet_id == "123456789012345678"
     assert model.quote_tweet_id == "987654321098765432"
@@ -694,7 +690,7 @@ def test_list_fields_immutability():
     """Test that list fields maintain their values correctly"""
     user_ids = ["user1", "user2", "user3"]
     model = GetUserTweetsRequest(user_ids=user_ids)
-    
+
     # Modifying original list shouldn't affect model
     user_ids.append("user4")
     assert len(model.user_ids) == 3
@@ -706,7 +702,7 @@ def test_poll_options_special_characters():
     model = CreateTweetRequest(
         text="Poll with special chars",
         poll_options=["Option #1", "Choice & More", "2nd Option", "Final!"],
-        poll_duration=120
+        poll_duration=120,
     )
     assert len(model.poll_options) == 4
     assert "Option #1" in model.poll_options

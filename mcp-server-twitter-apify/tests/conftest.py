@@ -27,5 +27,3 @@ def tmp_results_dir(tmp_path: Path) -> Path:
     d = tmp_path / "results"
     d.mkdir()
     return d
-
-

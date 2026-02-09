@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from tests.e2e.config import require_tavily_api_key
 
 API_KEY_HEADER = "Tavily-Api-Key"
@@ -48,7 +47,10 @@ async def test_hybrid_search_via_rest_missing_header_falls_back_to_config(rest_c
         # Server doesn't have config key, so should get 503
         assert response.status_code == 503
         body = response.json()
-        assert "not configured" in body.get("detail", "").lower() or "api key" in body.get("detail", "").lower()
+        assert (
+            "not configured" in body.get("detail", "").lower()
+            or "api key" in body.get("detail", "").lower()
+        )
 
 
 @pytest.mark.asyncio
@@ -87,11 +89,10 @@ async def test_hybrid_search_succeeds_with_x402(paid_client) -> None:
     )
     if response.status_code == 402:
         error_body = response.json()
-        pytest.fail(f"Httpx client failed to handle 402 response. Error body: {error_body}")
+        pytest.fail(
+            f"Httpx client failed to handle 402 response. Error body: {error_body}"
+        )
     response.raise_for_status()
     body = response.json()
     assert isinstance(body, list)
     assert len(body) > 0
-
-
-

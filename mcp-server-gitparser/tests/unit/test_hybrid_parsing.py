@@ -16,7 +16,9 @@ def test_hybrid_parse_gitbook_writes_file(monkeypatch):
     app = create_app()
     client = TestClient(app)
 
-    resp = client.post("/hybrid/parse-gitbook", json={"url": "https://docs.gitbook.com"})
+    resp = client.post(
+        "/hybrid/parse-gitbook", json={"url": "https://docs.gitbook.com"}
+    )
     assert resp.status_code == 200
     data = resp.json()
 
@@ -71,7 +73,9 @@ def test_hybrid_parse_github_normalizes_swagger_placeholder_token(monkeypatch):
 
     captured = {}
 
-    async def _fake_convert_repo_to_markdown(repo_url: str, token=None, **kwargs) -> str:
+    async def _fake_convert_repo_to_markdown(
+        repo_url: str, token=None, **kwargs
+    ) -> str:
         captured["repo_url"] = repo_url
         captured["token"] = token
         captured["kwargs"] = kwargs
@@ -96,4 +100,3 @@ def test_hybrid_parse_github_normalizes_swagger_placeholder_token(monkeypatch):
     )
     assert resp.status_code == 200
     assert captured["token"] is None
-

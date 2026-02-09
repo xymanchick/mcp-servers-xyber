@@ -7,16 +7,13 @@ Main responsibility: Provide the generate_cartesia_tts tool for AI agents.
 import logging
 
 from fastapi import APIRouter, Depends
-from pydantic import ValidationError as PydanticValidationError
-
-from mcp_server_cartesia.cartesia_client import (
-    CartesiaApiError,
-    CartesiaClientError,
-    CartesiaConfigError,
-    _CartesiaService,
-)
+from mcp_server_cartesia.cartesia_client import (CartesiaApiError,
+                                                 CartesiaClientError,
+                                                 CartesiaConfigError,
+                                                 _CartesiaService)
 from mcp_server_cartesia.dependencies import get_cartesia_service
 from mcp_server_cartesia.schemas import GenerateCartesiaTTSRequest
+from pydantic import ValidationError as PydanticValidationError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -65,10 +62,14 @@ async def generate_cartesia_tts(
     """
     try:
         # Log the input parameters
-        logger.info(f"Received request to generate speech for text='{request.text[:50]}...'")
+        logger.info(
+            f"Received request to generate speech for text='{request.text[:50]}...'"
+        )
 
         # Extract voice ID from voice dictionary if present
-        voice_id = request.voice.get("id") if request.voice and "id" in request.voice else None
+        voice_id = (
+            request.voice.get("id") if request.voice and "id" in request.voice else None
+        )
         logger.info(
             f"Generating speech for text='{request.text[:50]}...', voice='{voice_id or 'default'}', model='{request.model_id or 'default'}'"
         )

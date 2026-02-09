@@ -6,17 +6,15 @@ Handles connection, table creation, and research report storage operations.
 
 from __future__ import annotations
 
+import logging
 import time
 from datetime import datetime, timezone
 from typing import Any
 
-import logging
-
+from mcp_server_deepresearcher.db.models import Base, ResearchReport
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
-
-from mcp_server_deepresearcher.db.models import Base, ResearchReport
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +51,9 @@ class Database:
             retry_delay: Initial delay between retries in seconds (exponential backoff)
         """
         if db_url is None:
-            from mcp_server_deepresearcher.deepresearcher.config import Settings
+            from mcp_server_deepresearcher.deepresearcher.config import \
+                Settings
+
             settings = Settings()
             db_config = settings.database
             db_url = db_config.DATABASE_URL
@@ -68,7 +68,9 @@ class Database:
         # Retry connection with exponential backoff
         for attempt in range(max_retries):
             try:
-                logger.info(f"Attempting to connect to database (attempt {attempt + 1}/{max_retries})...")
+                logger.info(
+                    f"Attempting to connect to database (attempt {attempt + 1}/{max_retries})..."
+                )
 
                 # Create database engine with connection pooling
                 self.engine = create_engine(
@@ -115,7 +117,9 @@ class Database:
                     logger.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
-                    logger.error(f"Failed to connect to database after {max_retries} attempts: {e}")
+                    logger.error(
+                        f"Failed to connect to database after {max_retries} attempts: {e}"
+                    )
                     raise
             except Exception as e:
                 if attempt < max_retries - 1:
@@ -127,7 +131,9 @@ class Database:
                     logger.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
-                    logger.error(f"Failed to connect to database after {max_retries} attempts: {e}")
+                    logger.error(
+                        f"Failed to connect to database after {max_retries} attempts: {e}"
+                    )
                     raise
 
     def save_research_report(
@@ -171,7 +177,7 @@ class Database:
             session.add(report)
             session.commit()
             session.refresh(report)
-            
+
             logger.info(
                 f"Saved research report to database (id={report.id}, "
                 f"topic='{research_topic[:50]}...', title='{title[:50]}...')"
@@ -192,7 +198,11 @@ class Database:
             return None
 
         with self.Session() as session:
-            report = session.query(ResearchReport).filter(ResearchReport.id == report_id).first()
+            report = (
+                session.query(ResearchReport)
+                .filter(ResearchReport.id == report_id)
+                .first()
+            )
             return report
 
     def get_reports_by_topic(
@@ -242,4 +252,3 @@ class Database:
                 .all()
             )
             return reports
-

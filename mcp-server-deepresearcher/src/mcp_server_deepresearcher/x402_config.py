@@ -193,4 +193,3 @@ class X402Config(BaseSettings):
 @lru_cache(maxsize=1)
 def get_x402_settings() -> X402Config:
     return X402Config()
-

@@ -1,13 +1,5 @@
-from sqlalchemy import (
-    Column,
-    String,
-    Text,
-    DateTime,
-    Integer,
-    JSON,
-    func,
-    ForeignKey,
-)
+from sqlalchemy import (JSON, Column, DateTime, ForeignKey, Integer, String,
+                        Text, func)
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -41,10 +33,14 @@ class LurkySpace(Base):
     fetched_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    discussions = relationship("LurkyDiscussion", back_populates="space", cascade="all, delete-orphan")
+    discussions = relationship(
+        "LurkyDiscussion", back_populates="space", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
-        return f"<LurkySpace(id='{self.id}', title='{self.title}', state='{self.state}')>"
+        return (
+            f"<LurkySpace(id='{self.id}', title='{self.title}', state='{self.state}')>"
+        )
 
 
 class LurkyDiscussion(Base):

@@ -81,7 +81,9 @@ class X402Config(BaseSettings):
         except yaml.YAMLError as e:
             raise ValueError(f"Invalid YAML syntax: {e}") from e
         except (TypeError, AttributeError) as e:
-            raise ValueError(f"Each endpoint must map to a list of payment options: {e}") from e
+            raise ValueError(
+                f"Each endpoint must map to a list of payment options: {e}"
+            ) from e
         except ValueError:
             raise
 

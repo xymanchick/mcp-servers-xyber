@@ -6,10 +6,9 @@ Main responsibility: Provide dependency injection for Telegram service clients.
 
 import logging
 
-from mcp_server_telegram.telegram import (
-    _TelegramService,
-    get_telegram_service as create_telegram_service,
-)
+from mcp_server_telegram.telegram import _TelegramService
+from mcp_server_telegram.telegram import \
+    get_telegram_service as create_telegram_service
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,9 @@ class DependencyContainer:
         so no global initialization is needed.
         """
         logger.info("Initializing dependencies...")
-        logger.info("Telegram service uses per-request cached instances (no explicit init).")
+        logger.info(
+            "Telegram service uses per-request cached instances (no explicit init)."
+        )
         logger.info("Dependencies initialized successfully.")
 
     @classmethod
@@ -48,7 +49,9 @@ class DependencyContainer:
         so no explicit cleanup is needed.
         """
         logger.info("Shutting down dependencies...")
-        logger.info("Telegram service instances managed by lru_cache (no explicit cleanup).")
+        logger.info(
+            "Telegram service instances managed by lru_cache (no explicit cleanup)."
+        )
         logger.info("Dependencies shut down successfully.")
 
     @classmethod

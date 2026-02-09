@@ -7,16 +7,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
 import mcp_twitter.twitter.scraper as scraper_mod
+import pytest
 from db import Database
 from db.models import Base
 from mcp_twitter.twitter.models import QueryDefinition, TwitterScraperInput
 from mcp_twitter.twitter.scraper import TwitterScraper
-
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from tests.unit.fakes import FakeApifyClient
 
 
@@ -26,7 +24,7 @@ def in_memory_db() -> Database:
     engine = create_engine("sqlite:///:memory:", echo=False)
     Base.metadata.create_all(engine)
     SessionLocal = sessionmaker(bind=engine)
-    
+
     db = Database.__new__(Database)
     db.engine = engine
     db.Session = SessionLocal
@@ -59,16 +57,19 @@ def sample_tweet_data() -> list[dict[str, Any]]:
 
 
 def test_scraper_uses_cache_on_hit(
-    monkeypatch, tmp_results_dir: Path, in_memory_db: Database, sample_tweet_data: list[dict[str, Any]]
+    monkeypatch,
+    tmp_results_dir: Path,
+    in_memory_db: Database,
+    sample_tweet_data: list[dict[str, Any]],
 ) -> None:
     """Test that scraper uses cache when available."""
     from db import generate_query_key
-    
+
     # Pre-populate cache
     query_type = "topic"
     params = {"searchTerms": ["cached"], "maxItems": 100, "sort": "Latest"}
     query_key = generate_query_key(query_type, params)
-    
+
     in_memory_db.save_query_cache(
         query_key=query_key,
         query_type=query_type,
@@ -76,10 +77,10 @@ def test_scraper_uses_cache_on_hit(
         items=sample_tweet_data,
         output_format="min",
     )
-    
+
     # Mock database instance
     monkeypatch.setattr("db.get_db_instance", lambda: in_memory_db)
-    
+
     # Create scraper with cache enabled
     scraper = TwitterScraper(
         apify_token="token",
@@ -88,7 +89,7 @@ def test_scraper_uses_cache_on_hit(
         output_format="min",
         use_cache=True,
     )
-    
+
     # Create query
     query = QueryDefinition(
         id="test",
@@ -96,19 +97,19 @@ def test_scraper_uses_cache_on_hit(
         name="Test Query",
         input=TwitterScraperInput(**params),
     )
-    
+
     # Mock the database getter to return our in-memory DB
     scraper._db = in_memory_db
-    
+
     # Run query - should use cache, not call Apify
     fake_client = FakeApifyClient(dataset_id="ds1", items=[])
     monkeypatch.setattr(scraper_mod, "ApifyClient", lambda token: fake_client)  # noqa: ARG005
-    
+
     result_path = scraper.run_query(query)
-    
+
     # Verify cache was used (no Apify calls)
     assert len(fake_client.calls) == 0
-    
+
     # Verify items are available
     items = scraper.get_last_items()
     assert items is not None
@@ -117,15 +118,18 @@ def test_scraper_uses_cache_on_hit(
 
 
 def test_scraper_saves_to_cache_on_miss(
-    monkeypatch, tmp_results_dir: Path, in_memory_db: Database, sample_tweet_data: list[dict[str, Any]]
+    monkeypatch,
+    tmp_results_dir: Path,
+    in_memory_db: Database,
+    sample_tweet_data: list[dict[str, Any]],
 ) -> None:
     """Test that scraper saves to cache after Apify call."""
     from db import generate_query_key
-    
+
     # Create fake Apify client
     fake_client = FakeApifyClient(dataset_id="ds1", items=sample_tweet_data)
     monkeypatch.setattr(scraper_mod, "ApifyClient", lambda token: fake_client)  # noqa: ARG005
-    
+
     # Create scraper with cache enabled
     scraper = TwitterScraper(
         apify_token="token",
@@ -134,10 +138,10 @@ def test_scraper_saves_to_cache_on_miss(
         output_format="min",
         use_cache=True,
     )
-    
+
     # Mock the database getter to return our in-memory DB
     scraper._db = in_memory_db
-    
+
     # Create query
     query_type = "profile"
     params = {"searchTerms": ["from:testuser"], "maxItems": 100}
@@ -148,13 +152,13 @@ def test_scraper_saves_to_cache_on_miss(
         name="Test Query",
         input=query_input,
     )
-    
+
     # Run query - should call Apify and save to cache
     scraper.run_query(query)
-    
+
     # Verify Apify was called
     assert len(fake_client.calls) > 0
-    
+
     # Verify cache was populated
     # Use the same params dict that the scraper uses (with defaults included)
     run_dict = query_input.model_dump(exclude_none=True)
@@ -165,11 +169,13 @@ def test_scraper_saves_to_cache_on_miss(
     assert cached[0]["id"] == "1234567890"
 
 
-def test_scraper_cache_disabled(monkeypatch, tmp_results_dir: Path, sample_tweet_data: list[dict[str, Any]]) -> None:
+def test_scraper_cache_disabled(
+    monkeypatch, tmp_results_dir: Path, sample_tweet_data: list[dict[str, Any]]
+) -> None:
     """Test that scraper skips cache when disabled."""
     fake_client = FakeApifyClient(dataset_id="ds1", items=sample_tweet_data)
     monkeypatch.setattr(scraper_mod, "ApifyClient", lambda token: fake_client)  # noqa: ARG005
-    
+
     # Create scraper with cache disabled
     scraper = TwitterScraper(
         apify_token="token",
@@ -178,20 +184,19 @@ def test_scraper_cache_disabled(monkeypatch, tmp_results_dir: Path, sample_tweet
         output_format="min",
         use_cache=False,  # Cache disabled
     )
-    
+
     query = QueryDefinition(
         id="test",
         type="topic",
         name="Test Query",
         input=TwitterScraperInput(searchTerms=["test"], maxItems=100),
     )
-    
+
     # Run query
     scraper.run_query(query)
-    
+
     # Should call Apify (cache disabled)
     assert len(fake_client.calls) > 0
-    
+
     # Should write to file (results_dir provided)
     assert scraper.results_dir is not None
-

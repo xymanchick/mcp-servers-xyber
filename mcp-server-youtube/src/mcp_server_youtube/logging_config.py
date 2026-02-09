@@ -60,4 +60,3 @@ def configure_logging() -> None:
     When using Uvicorn, prefer passing ``get_logging_config()`` to ``log_config``.
     """
     dictConfig(get_logging_config())
-

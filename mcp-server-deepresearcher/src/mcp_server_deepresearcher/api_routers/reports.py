@@ -6,9 +6,8 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
-
 from mcp_server_deepresearcher.db.database import get_db_instance
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -177,7 +176,9 @@ async def get_reports_by_topic(
         )
 
     except Exception as e:
-        logger.error(f"Error retrieving reports for topic '{topic}': {e}", exc_info=True)
+        logger.error(
+            f"Error retrieving reports for topic '{topic}': {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Failed to retrieve reports: {str(e)}",
@@ -237,4 +238,3 @@ async def get_report_by_id(report_id: int) -> ReportResponse:
             status_code=500,
             detail=f"Failed to retrieve report: {str(e)}",
         )
-

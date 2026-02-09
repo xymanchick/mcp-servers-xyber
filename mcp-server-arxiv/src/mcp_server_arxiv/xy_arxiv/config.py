@@ -19,9 +19,8 @@ class ArxivConfig(BaseSettings):
     )
 
     max_results: int = Field(default=5, ge=1, le=50)
-    max_text_length: int | None = Field(
-        default=None, ge=100
-    )
+    max_text_length: int | None = Field(default=None, ge=100)
+
 
 @lru_cache(maxsize=1)
 def get_arxiv_config() -> ArxivConfig:

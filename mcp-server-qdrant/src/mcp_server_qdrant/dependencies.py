@@ -1,8 +1,10 @@
 import logging
 
 from mcp_server_qdrant.qdrant import QdrantConnector
-from mcp_server_qdrant.qdrant.config import EmbeddingProviderSettings, QdrantConfig
-from mcp_server_qdrant.qdrant.embeddings.factory import create_embedding_provider
+from mcp_server_qdrant.qdrant.config import (EmbeddingProviderSettings,
+                                             QdrantConfig)
+from mcp_server_qdrant.qdrant.embeddings.factory import \
+    create_embedding_provider
 
 logger = logging.getLogger(__name__)
 

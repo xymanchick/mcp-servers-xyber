@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -60,7 +61,5 @@ def require_lurky_api_key(config: E2ETestConfig) -> str:
     if not config.lurky_api_key:
         import pytest
 
-        pytest.skip(
-            "Set MCP_LURKY_TEST_LURKY_API_KEY to run Lurky API E2E tests."
-        )
+        pytest.skip("Set MCP_LURKY_TEST_LURKY_API_KEY to run Lurky API E2E tests.")
     return config.lurky_api_key

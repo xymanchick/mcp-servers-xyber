@@ -17,4 +17,3 @@ def _isolate_voice_dir(tmp_path, monkeypatch):
     settings.media.MEDIA_HOST_DIR.mkdir(parents=True, exist_ok=True)
     settings.media.voice_output_dir.mkdir(parents=True, exist_ok=True)
     yield
-

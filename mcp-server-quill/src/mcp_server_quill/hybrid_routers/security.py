@@ -1,12 +1,12 @@
 import logging
 
 from fastapi import APIRouter, HTTPException, Path, Query
-
 from mcp_server_quill.dependencies import QuillClientDep, SearchClientDep
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 @router.get(
     "/evm/{query}",
@@ -27,7 +27,7 @@ async def get_evm_token_info(
     query: str = Path(
         ...,
         description="Token name or symbol to analyze (e.g., 'WETH', 'CAKE', 'USDC', 'DAI')",
-        example="WETH"
+        example="WETH",
     ),
     quill_chain_id: str = Query(
         "1",
@@ -42,7 +42,7 @@ async def get_evm_token_info(
         - `10` - Optimism
         - `43114` - Avalanche C-Chain
         """,
-        example="1"
+        example="1",
     ),
 ):
     # 1. Map quill_chain_id to dexscreener chain name for better search
@@ -57,23 +57,24 @@ async def get_evm_token_info(
     dex_chain = chain_map.get(quill_chain_id)
 
     if not dex_chain:
-        raise HTTPException(status_code=400, detail=f"Unsupported chain ID: {quill_chain_id}")
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported chain ID: {quill_chain_id}"
+        )
 
     # 2. Get address using search client directly
     search_result = await search_client.search_token(query, chain_id=dex_chain)
     if not search_result:
         chain_info = f" on chain '{dex_chain}'" if dex_chain else ""
-        raise HTTPException(status_code=404, detail=f"Token '{query}' not found{chain_info}")
-    
+        raise HTTPException(
+            status_code=404, detail=f"Token '{query}' not found{chain_info}"
+        )
+
     address = search_result["address"]
-    
+
     # 3. Get Quill info
     try:
         data = await quill_client.get_token_info(address, chain_id=quill_chain_id)
-        return {
-            "search_result": search_result,
-            "quill_data": data
-        }
+        return {"search_result": search_result, "quill_data": data}
     except Exception as e:
         logger.exception("Quill API error")
         raise HTTPException(status_code=500, detail="Internal server error") from e
@@ -98,23 +99,22 @@ async def get_solana_token_info(
     query: str = Path(
         ...,
         description="Token name or symbol to analyze (e.g., 'RAY', 'BONK', 'USDC', 'SOL')",
-        example="RAY"
-    )
+        example="RAY",
+    ),
 ):
     # 1. Get address using search client directly
     search_result = await search_client.search_token(query, chain_id="solana")
     if not search_result:
-        raise HTTPException(status_code=404, detail=f"Token '{query}' not found on Solana")
-    
+        raise HTTPException(
+            status_code=404, detail=f"Token '{query}' not found on Solana"
+        )
+
     address = search_result["address"]
-    
+
     # 2. Get Quill info
     try:
         data = await quill_client.get_solana_token_info(address)
-        return {
-            "search_result": search_result,
-            "quill_data": data
-        }
+        return {"search_result": search_result, "quill_data": data}
     except Exception as e:
         logger.exception("Quill API error")
         raise HTTPException(status_code=500, detail="Internal server error") from e
