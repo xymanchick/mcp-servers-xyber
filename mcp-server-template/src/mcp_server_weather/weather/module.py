@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import time
-from functools import lru_cache
 from typing import Literal
 
 import httpx
@@ -49,22 +48,6 @@ retry_api_call = retry(
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
 )
-
-
-@lru_cache(maxsize=1)
-def get_weather_client() -> WeatherClient:
-    """
-    Get a cached instance of WeatherClient.
-
-    Returns:
-        Initialized WeatherClient instance
-
-    Raises:
-        WeatherConfigError: If configuration validation fails
-
-    """
-    config = get_weather_config()
-    return WeatherClient(config)
 
 
 class WeatherClient:

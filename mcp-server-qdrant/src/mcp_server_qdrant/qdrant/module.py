@@ -1,18 +1,15 @@
 import logging
 import uuid
 from collections.abc import Sequence
-from functools import lru_cache
 from typing import Any
 
 from mcp_server_qdrant.qdrant.config import (
-    EmbeddingProviderSettings,
     PayloadIndexConfig,
     PayloadIndexType,
     QdrantAPIError,
     QdrantConfig,
 )
 from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
-from mcp_server_qdrant.qdrant.embeddings.factory import create_embedding_provider
 from pydantic import BaseModel
 from qdrant_client import AsyncQdrantClient, models
 from qdrant_client.models import CollectionInfo
@@ -385,19 +382,3 @@ class QdrantConnector:
             ) from e
 
 
-@lru_cache(maxsize=1)
-def get_qdrant_connector() -> QdrantConnector:
-    """
-    Get a singleton instance of the QdrantConnector.
-
-    The connector is created with default configuration from environment
-    variables and cached for reuse.
-
-    Returns:
-        QdrantConnector instance
-
-    """
-    config = QdrantConfig()
-    embedding_provider_settings = EmbeddingProviderSettings()
-    embedding_provider = create_embedding_provider(embedding_provider_settings)
-    return QdrantConnector(config, embedding_provider)

@@ -14,11 +14,10 @@ from mcp_server_weather.weather.errors import (
     WeatherConfigError,
 )
 from mcp_server_weather.weather.models import WeatherData
-from mcp_server_weather.weather.module import WeatherClient, get_weather_client
+from mcp_server_weather.weather.module import WeatherClient
 
 __all__ = [
     "WeatherClient",
-    "get_weather_client",
     "WeatherConfig",
     "get_weather_config",
     "WeatherApiError",

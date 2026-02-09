@@ -1,7 +1,8 @@
 """
-This module may change slightly as you adapt routing, metadata, and middleware to your own MCP server.
+Main application factory for the Weather MCP server.
 
-Main responsibility: Compose the FastAPI/MCP application and manage its lifecycle, including startup/shutdown, middleware, and router mounting.
+Main responsibility: Compose the FastAPI/MCP application and manage its lifecycle,
+including startup/shutdown, middleware, and router mounting.
 """
 
 import logging
@@ -11,49 +12,15 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_weather.api_routers import routers as api_routers
+from mcp_server_weather.dependencies import DependencyContainer
 from mcp_server_weather.hybrid_routers import routers as hybrid_routers
-from mcp_server_weather.x402_config import get_x402_settings
 from mcp_server_weather.mcp_routers import routers as mcp_routers
 from mcp_server_weather.middlewares import X402WrapperMiddleware
-from mcp_server_weather.weather import (
-    WeatherClient,
-)
-from mcp_server_weather.weather import (
-    get_weather_client as create_weather_client,
-)
+from mcp_server_weather.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
 
 
-# --- Lifespan Management ---
-@asynccontextmanager
-async def app_lifespan(app: FastAPI):
-    """
-    Manages the application's resources.
-
-    Currently manages:
-    - WeatherClient for API calls
-
-    Note: The x402 middleware manages its own HTTP client lifecycle using
-    context managers, so no external resource management is needed.
-    """
-    logger.info("Lifespan: Initializing application services...")
-
-    # Initialize weather client
-    weather_client: WeatherClient = create_weather_client()
-    app.state.weather_client = weather_client
-
-    logger.info("Lifespan: Services initialized successfully.")
-    yield
-    logger.info("Lifespan: Shutting down application services...")
-
-    # Close weather client
-    await app.state.weather_client.close()
-
-    logger.info("Lifespan: Services shut down gracefully.")
-
-
-# --- Application Factory ---
 def create_app() -> FastAPI:
     """
     Create and configure the main FastAPI application.
@@ -67,7 +34,6 @@ def create_app() -> FastAPI:
 
     Returns:
         Configured FastAPI application ready to serve requests
-
     """
     # --- MCP Server Generation ---
     # Create a FastAPI app containing only MCP-exposed endpoints
@@ -82,12 +48,17 @@ def create_app() -> FastAPI:
     mcp_app = mcp_server.http_app(path="/")
 
     # --- Combined Lifespan ---
-    # This correctly manages both our app's resources and FastMCP's internal state.
     @asynccontextmanager
     async def combined_lifespan(app: FastAPI):
-        async with app_lifespan(app):
-            async with mcp_app.lifespan(app):
-                yield
+        # Initialize all dependencies
+        DependencyContainer.initialize()
+
+        # MCP lifespan is required for StreamableHTTPSessionManager
+        async with mcp_app.lifespan(app):
+            yield
+
+        # Shutdown all dependencies
+        await DependencyContainer.shutdown()
 
     # --- Main Application ---
     app = FastAPI(

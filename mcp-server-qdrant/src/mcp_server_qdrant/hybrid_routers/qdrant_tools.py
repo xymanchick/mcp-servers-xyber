@@ -1,10 +1,11 @@
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
 
 from qdrant_client.models import CollectionInfo, ScoredPoint
 
+from mcp_server_qdrant.dependencies import get_qdrant_connector
 from mcp_server_qdrant.qdrant import Entry, QdrantConnector
 from mcp_server_qdrant.schemas import (
     QdrantStoreRequest,
@@ -23,13 +24,12 @@ router = APIRouter()
 )
 async def qdrant_store(
     request_body: QdrantStoreRequest,
-    request: Request,
+    qdrant_connector: QdrantConnector = Depends(get_qdrant_connector),
 ) -> str:
     """
     Keep the memory for later use, when you are asked to remember something.
     The collection will be created automatically with configured settings if it doesn't exist.
     """
-    qdrant_connector: QdrantConnector = request.app.state.qdrant_connector
 
     try:
         # Execute core logic using the validated request data
@@ -57,14 +57,13 @@ async def qdrant_store(
 )
 async def qdrant_find(
     request_body: QdrantFindRequest,
-    request: Request,
+    qdrant_connector: QdrantConnector = Depends(get_qdrant_connector),
 ) -> list[ScoredPoint] | str:
     """
     Look up memories in Qdrant. Use this tool when you need to find memories by their content.
     You can optionally filter by metadata fields (e.g., {"metadata.user_id": "alice", "metadata.category": "work"}).
     Filtering by tenant fields (if configured) will be much faster than filtering by other fields.
     """
-    qdrant_connector: QdrantConnector = request.app.state.qdrant_connector
 
     try:
         # Execute core logic using the validated request data
@@ -98,14 +97,13 @@ async def qdrant_find(
 )
 async def qdrant_get_collection_info(
     request_body: QdrantGetCollectionInfoRequest,
-    request: Request,
+    qdrant_connector: QdrantConnector = Depends(get_qdrant_connector),
 ) -> CollectionInfo | dict[str, str]:
     """
     Retrieves detailed configuration and schema information for a specific Qdrant collection.
     Use this to understand how a collection is set up, what fields are indexed,
     if it's configured for multi-tenancy, and its vector parameters.
     """
-    qdrant_connector: QdrantConnector = request.app.state.qdrant_connector
 
     try:
         collection_details = await qdrant_connector.get_collection_details(
@@ -134,13 +132,12 @@ async def qdrant_get_collection_info(
     operation_id="qdrant_get_collections",
 )
 async def qdrant_get_collections(
-    request: Request,
+    qdrant_connector: QdrantConnector = Depends(get_qdrant_connector),
 ) -> list[str]:
     """
     Retrieves the names of all collections in the Qdrant database.
     Use this to discover what collections are available before storing or searching data.
     """
-    qdrant_connector: QdrantConnector = request.app.state.qdrant_connector
 
     try:
         collection_names = await qdrant_connector.get_collection_names()

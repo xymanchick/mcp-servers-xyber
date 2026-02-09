@@ -5,7 +5,6 @@ from typing import Generator
 import pytest
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from mcp_server_qdrant.server import mcp_server as mcp_server_instance
 
 from mcp_server_qdrant.qdrant.config import (
     QdrantConfig,
@@ -44,17 +43,13 @@ def disable_all_logging():
     logging.disable(logging.NOTSET)
 
 
-@pytest.fixture
-def mcp_server():
-    return mcp_server_instance
-
-
 @pytest.fixture(autouse=True)
-def clear_lru_cache():
-    from mcp_server_qdrant.qdrant.module import get_qdrant_connector
-    get_qdrant_connector.cache_clear()
+def clear_dependency_container():
+    """Clear the DependencyContainer between tests."""
+    from mcp_server_qdrant.dependencies import DependencyContainer
+    DependencyContainer._qdrant_connector = None
     yield
-    get_qdrant_connector.cache_clear()
+    DependencyContainer._qdrant_connector = None
 
 
 @pytest.fixture

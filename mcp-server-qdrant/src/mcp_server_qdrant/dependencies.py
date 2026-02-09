@@ -1,13 +1,8 @@
-"""
-This module should be changed to include your server's dependencies like API clients, database session managers, etc.
-
-Main responsibility: Provide a single place to initialize, access, and shut down
-all service clients used by the application.
-"""
-
 import logging
 
-from mcp_server_weather.weather import WeatherClient, WeatherConfig, get_weather_config
+from mcp_server_qdrant.qdrant import QdrantConnector
+from mcp_server_qdrant.qdrant.config import EmbeddingProviderSettings, QdrantConfig
+from mcp_server_qdrant.qdrant.embeddings.factory import create_embedding_provider
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +19,11 @@ class DependencyContainer:
 
         # In route handlers via Depends():
         @router.post("/endpoint")
-        async def endpoint(client: WeatherClient = Depends(get_weather_client)):
+        async def endpoint(connector: QdrantConnector = Depends(get_qdrant_connector)):
             ...
     """
 
-    _weather_client: WeatherClient | None = None
+    _qdrant_connector: QdrantConnector | None = None
 
     @classmethod
     def initialize(cls) -> None:
@@ -39,8 +34,10 @@ class DependencyContainer:
         """
         logger.info("Initializing dependencies...")
 
-        config: WeatherConfig = get_weather_config()
-        cls._weather_client = WeatherClient(config)
+        config = QdrantConfig()
+        embedding_provider_settings = EmbeddingProviderSettings()
+        embedding_provider = create_embedding_provider(embedding_provider_settings)
+        cls._qdrant_connector = QdrantConnector(config, embedding_provider)
 
         logger.info("Dependencies initialized successfully.")
 
@@ -53,28 +50,26 @@ class DependencyContainer:
         """
         logger.info("Shutting down dependencies...")
 
-        if cls._weather_client:
-            await cls._weather_client.close()
-            cls._weather_client = None
+        cls._qdrant_connector = None
 
         logger.info("Dependencies shut down successfully.")
 
     @classmethod
-    def get_weather_client(cls) -> WeatherClient:
+    def get_qdrant_connector(cls) -> QdrantConnector:
         """
-        Get the WeatherClient instance.
+        Get the QdrantConnector instance.
 
         Usage as FastAPI dependency:
-            @router.get("/weather")
-            async def get_weather(client: WeatherClient = Depends(get_weather_client)):
+            @router.post("/store")
+            async def store(connector: QdrantConnector = Depends(get_qdrant_connector)):
                 ...
         """
-        if cls._weather_client is None:
+        if cls._qdrant_connector is None:
             raise RuntimeError(
                 "DependencyContainer not initialized. Call DependencyContainer.initialize() first."
             )
-        return cls._weather_client
+        return cls._qdrant_connector
 
 
 # Alias the class method for use as FastAPI dependency
-get_weather_client = DependencyContainer.get_weather_client
+get_qdrant_connector = DependencyContainer.get_qdrant_connector

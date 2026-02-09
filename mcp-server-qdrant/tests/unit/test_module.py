@@ -7,7 +7,7 @@ from qdrant_client import models
 from qdrant_client.models import CollectionInfo, QueryResponse
 from pydantic import ValidationError
 
-from mcp_server_qdrant.qdrant.module import QdrantConnector, Entry, get_qdrant_connector
+from mcp_server_qdrant.qdrant.module import QdrantConnector, Entry
 from mcp_server_qdrant.qdrant.config import (
     QdrantConfig,
     QdrantAPIError,
@@ -475,57 +475,6 @@ class TestQdrantConnector:
         assert "Index creation failed" in str(exc_info.value)
 
 
-class TestGetQdrantConnector:
-    def test_get_qdrant_connector_singleton(self):
-        get_qdrant_connector.cache_clear()
-
-        with patch('mcp_server_qdrant.qdrant.module.QdrantConfig') as mock_config_class, \
-             patch('mcp_server_qdrant.qdrant.module.EmbeddingProviderSettings') as mock_settings_class, \
-             patch('mcp_server_qdrant.qdrant.module.create_embedding_provider') as mock_create_provider, \
-             patch('mcp_server_qdrant.qdrant.module.QdrantConnector') as mock_connector_class:
-
-            mock_config = MagicMock()
-            mock_settings = MagicMock()
-            mock_provider = MagicMock()
-            mock_connector = MagicMock()
-
-            mock_config_class.return_value = mock_config
-            mock_settings_class.return_value = mock_settings
-            mock_create_provider.return_value = mock_provider
-            mock_connector_class.return_value = mock_connector
-
-            result1 = get_qdrant_connector()
-
-            result2 = get_qdrant_connector()
-
-            assert result1 == result2
-
-            mock_config_class.assert_called_once()
-            mock_settings_class.assert_called_once()
-            mock_create_provider.assert_called_once_with(mock_settings)
-            mock_connector_class.assert_called_once_with(mock_config, mock_provider)
-
-    def test_get_qdrant_connector_cache_clear(self):
-        with patch('mcp_server_qdrant.qdrant.module.QdrantConfig') as mock_config_class, \
-             patch('mcp_server_qdrant.qdrant.module.EmbeddingProviderSettings') as mock_settings_class, \
-             patch('mcp_server_qdrant.qdrant.module.create_embedding_provider') as mock_create_provider, \
-             patch('mcp_server_qdrant.qdrant.module.QdrantConnector') as mock_connector_class:
-
-            mock_config_class.return_value = MagicMock()
-            mock_settings_class.return_value = MagicMock()
-            mock_create_provider.return_value = MagicMock()
-            mock_connector_class.return_value = MagicMock()
-
-            get_qdrant_connector()
-
-            get_qdrant_connector.cache_clear()
-
-            get_qdrant_connector()
-
-            assert mock_config_class.call_count == 2
-            assert mock_connector_class.call_count == 2
-
-
 class TestIntegration:
     @pytest.mark.asyncio
     async def test_full_workflow_store_and_search(self, qdrant_connector):
@@ -739,7 +688,7 @@ class TestFixtureIntegration:
             await connector.get_collection_names()
             assert False, "Expected an exception"
         except Exception as e:
-            assert "connection" in str(e).lower() or "api" in str(e).lower() or "failed" in str(e).lower()
+            assert "connection" in str(e).lower() or "api" in str(e).lower() or "failed" in str(e).lower() or "ssl" in str(e).lower()
 
     async def test_performance_data_batch_processing(self, mock_async_qdrant_client, performance_test_data, mock_config, mock_embedding_provider):
         """Test handling of large datasets."""

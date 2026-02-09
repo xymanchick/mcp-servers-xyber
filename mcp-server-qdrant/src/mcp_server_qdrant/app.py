@@ -12,39 +12,14 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from mcp_server_qdrant.api_routers import routers as api_routers
+from mcp_server_qdrant.dependencies import DependencyContainer
 from mcp_server_qdrant.hybrid_routers import routers as hybrid_routers
-from mcp_server_qdrant.x402_config import get_x402_settings
 from mcp_server_qdrant.middlewares import X402WrapperMiddleware
-from mcp_server_qdrant.qdrant import QdrantConnector, get_qdrant_connector
+from mcp_server_qdrant.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
 
 
-# --- Lifespan Management ---
-@asynccontextmanager
-async def app_lifespan(app: FastAPI):
-    """
-    Manages the application's resources.
-
-    Currently manages:
-    - QdrantConnector for vector database operations
-
-    Note: The x402 middleware manages its own HTTP client lifecycle using
-    context managers, so no external resource management is needed.
-    """
-    logger.info("Lifespan: Initializing application services...")
-
-    # Initialize Qdrant connector
-    qdrant_connector: QdrantConnector = get_qdrant_connector()
-    app.state.qdrant_connector = qdrant_connector
-
-    logger.info("Lifespan: Services initialized successfully.")
-    yield
-    logger.info("Lifespan: Shutting down application services...")
-    logger.info("Lifespan: Services shut down gracefully.")
-
-
-# --- Application Factory ---
 def create_app() -> FastAPI:
     """
     Create and configure the main FastAPI application.
@@ -70,12 +45,15 @@ def create_app() -> FastAPI:
     mcp_app = mcp_server.http_app(path="/")
 
     # --- Combined Lifespan ---
-    # This correctly manages both our app's resources and FastMCP's internal state.
     @asynccontextmanager
     async def combined_lifespan(app: FastAPI):
-        async with app_lifespan(app):
-            async with mcp_app.lifespan(app):
-                yield
+        DependencyContainer.initialize()
+
+        # MCP lifespan is required for StreamableHTTPSessionManager
+        async with mcp_app.lifespan(app):
+            yield
+
+        await DependencyContainer.shutdown()
 
     # --- Main Application ---
     app = FastAPI(

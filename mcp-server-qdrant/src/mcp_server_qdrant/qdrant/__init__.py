@@ -14,7 +14,6 @@ from mcp_server_qdrant.qdrant.module import (
     Entry,
     Metadata,
     QdrantConnector,
-    get_qdrant_connector,
 )
 
 __all__ = [
@@ -26,6 +25,4 @@ __all__ = [
     "QdrantConnector",
     "Entry",
     "Metadata",
-    # Factory functions
-    "get_qdrant_connector",
 ]
