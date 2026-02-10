@@ -69,12 +69,12 @@ Please check the latest [Release Doc](https://github.com/Xyber-Labs/mcp-servers/
 ```bash
 # 🐙 Using Docker Compose (recommended)
 docker-compose up -d                        # All services
-docker-compose up mcp-server-youtube -d     # Specific service
+docker-compose up mcp_server_youtube -d     # Specific service
 
 # 🐳 Using Docker directly
-cd mcp-server-youtube
-docker build -t mcp-server-youtube .
-docker run -p 8000:8000 --env-file .env mcp-server-youtube
+cd mcp-server-youtube-v2
+docker build -t mcp-server-youtube-v2 .
+docker run -p 8000:8000 --env-file .env mcp-server-youtube-v2
 ```
 
 ## 📚 Documentation & Resources

@@ -162,7 +162,7 @@ services:
 
   mcp_server_youtube:
     build:
-      context: ./mcp-server-youtube
+      context: ./mcp-server-youtube-v2
       dockerfile: Dockerfile
     image: mcp_server_youtube
     container_name: mcp_server_youtube
@@ -170,7 +170,7 @@ services:
     ports:
       - "8111:8111"
     env_file:
-      - ./mcp-server-youtube/.env
+      - ./mcp-server-youtube-v2/.env
     restart: unless-stopped
 
   qdrant:

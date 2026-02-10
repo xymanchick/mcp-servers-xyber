@@ -51,7 +51,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-mcp-server-youtube-v2/.env
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -176,4 +176,9 @@ cython_debug/
 # IDEs
 .idea/
 .vscode/
-.cursorignore
+
+# Project-specific
+logs/
+*.db
+videos.db
+mcp_youtube.egg-info/
