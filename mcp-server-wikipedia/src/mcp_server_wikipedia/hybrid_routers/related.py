@@ -1,7 +1,7 @@
 import logging
-from typing import List
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
+from mcp_server_wikipedia.dependencies import get_wiki_service
 from mcp_server_wikipedia.schemas import GetRelatedTopicsRequest
 from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
                                             WikipediaAPIError,
@@ -18,8 +18,8 @@ router = APIRouter()
     operation_id="get_wikipedia_related_topics",
 )
 async def get_related_topics(
-    request: Request, params: GetRelatedTopicsRequest
-) -> List[str]:
+    wiki_service: _WikipediaService = Depends(get_wiki_service), params: GetRelatedTopicsRequest
+) -> list[str]:
     """
     Get topics related to a Wikipedia article based on its internal links.
 
@@ -27,7 +27,7 @@ async def get_related_topics(
     within Wikipedia's knowledge graph.
     """
     try:
-        wiki_service: _WikipediaService = request.app.state.wiki_service
+        
         topics = await wiki_service.get_related_topics(params.title, params.limit)
         return topics
     except PydanticValidationError as ve:

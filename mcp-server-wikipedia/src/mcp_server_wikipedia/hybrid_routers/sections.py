@@ -1,7 +1,7 @@
 import logging
-from typing import List
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
+from mcp_server_wikipedia.dependencies import get_wiki_service
 from mcp_server_wikipedia.schemas import GetSectionsRequest
 from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
                                             WikipediaAPIError,
@@ -17,7 +17,10 @@ router = APIRouter()
     tags=["Wikipedia"],
     operation_id="get_wikipedia_sections",
 )
-async def get_sections(request: Request, params: GetSectionsRequest) -> List[str]:
+async def get_sections(
+    params: GetSectionsRequest,
+    wiki_service: _WikipediaService = Depends(get_wiki_service),
+) -> list[str]:
     """
     Get the section titles of a Wikipedia article.
 
@@ -25,7 +28,6 @@ async def get_sections(request: Request, params: GetSectionsRequest) -> List[str
     navigate to specific topics within it.
     """
     try:
-        wiki_service: _WikipediaService = request.app.state.wiki_service
         sections = await wiki_service.get_sections(params.title)
         return sections
     except PydanticValidationError as ve:

@@ -1,7 +1,8 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
+from mcp_server_wikipedia.dependencies import get_wiki_service
 from mcp_server_wikipedia.schemas import GetArticleRequest
 from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
                                             WikipediaAPIError,
@@ -17,7 +18,10 @@ router = APIRouter()
     tags=["Wikipedia"],
     operation_id="get_wikipedia_article",
 )
-async def get_article(request: Request, params: GetArticleRequest) -> Dict[str, Any]:
+async def get_article(
+    params: GetArticleRequest,
+    wiki_service: _WikipediaService = Depends(get_wiki_service),
+) -> dict[str, Any]:
     """
     Get the full content and metadata of a Wikipedia article by its exact title.
 
@@ -25,7 +29,6 @@ async def get_article(request: Request, params: GetArticleRequest) -> Dict[str, 
     its full text, summary, sections, links, and URL.
     """
     try:
-        wiki_service: _WikipediaService = request.app.state.wiki_service
         article = await wiki_service.get_article(params.title)
         return article
     except PydanticValidationError as ve:

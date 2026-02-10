@@ -1,20 +1,13 @@
-"""
-This module may change slightly as you adapt routing, metadata, and middleware to your own MCP server.
-
-Main responsibility: Compose the FastAPI/MCP application and manage its lifecycle, including startup/shutdown, middleware, and router mounting.
-"""
-
 import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
 from mcp_twitter.api_routers import routers as api_routers
+from mcp_twitter.dependencies import DependencyContainer
 from mcp_twitter.hybrid_routers import routers as hybrid_routers
 from mcp_twitter.mcp_routers import routers as mcp_routers
 from mcp_twitter.middlewares import X402WrapperMiddleware
-from mcp_twitter.twitter import (QueryRegistry, TwitterScraper,
-                                 build_default_registry)
 from mcp_twitter.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
@@ -26,20 +19,14 @@ async def app_lifespan(app: FastAPI):
     """
     Manages the application's resources.
 
-    Currently manages:
-    - QueryRegistry for predefined queries
-    - TwitterScraper for API calls
+    Initializes and shuts down the DependencyContainer.
 
     Note: The x402 middleware manages its own HTTP client lifecycle using
     context managers, so no external resource management is needed.
     """
     logger.info("Lifespan: Initializing application services...")
 
-    # Initialize registry
-    registry: QueryRegistry = build_default_registry()
-    app.state.registry = registry
-
-    # Initialize scraper
+    # Initialize dependencies
     from mcp_twitter.config import AppSettings
 
     settings = AppSettings()
@@ -48,14 +35,7 @@ async def app_lifespan(app: FastAPI):
         raise RuntimeError("APIFY_TOKEN not configured. Set it in .env or environment.")
 
     actor_name = settings.apify.actor_name
-    scraper = TwitterScraper(
-        apify_token=token,
-        results_dir=None,  # Disable file-based storage, use DB cache only
-        actor_name=actor_name,
-        output_format="min",
-        use_cache=True,  # Enable database cache
-    )
-    app.state.scraper = scraper
+    DependencyContainer.initialize(apify_token=token, actor_name=actor_name)
 
     logger.info(f"Lifespan: Initialized with actor: {actor_name}")
     try:
@@ -70,9 +50,7 @@ async def app_lifespan(app: FastAPI):
     yield
     logger.info("Lifespan: Shutting down application services...")
 
-    # Cleanup (scraper doesn't have async close, but we can clear references)
-    app.state.scraper = None
-    app.state.registry = None
+    await DependencyContainer.shutdown()
 
     logger.info("Lifespan: Services shut down gracefully.")
 
@@ -91,7 +69,6 @@ def create_app() -> FastAPI:
 
     Returns:
         Configured FastAPI application ready to serve requests
-
     """
     # --- MCP Server Generation ---
     # Create a FastAPI app containing only MCP-exposed endpoints
@@ -109,12 +86,6 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def combined_lifespan(app: FastAPI):
         async with app_lifespan(app):
-            # Copy state from main app to mcp_source_app so MCP endpoints can access it
-            # This is necessary because mcp_source_app is a separate FastAPI instance
-            if hasattr(app.state, "registry"):
-                mcp_source_app.state.registry = app.state.registry
-            if hasattr(app.state, "scraper"):
-                mcp_source_app.state.scraper = app.state.scraper
             async with mcp_app.lifespan(app):
                 yield
 

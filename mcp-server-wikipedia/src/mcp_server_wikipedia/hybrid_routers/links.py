@@ -1,7 +1,7 @@
 import logging
-from typing import List
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
+from mcp_server_wikipedia.dependencies import get_wiki_service
 from mcp_server_wikipedia.schemas import GetLinksRequest
 from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
                                             WikipediaAPIError,
@@ -17,7 +17,10 @@ router = APIRouter()
     tags=["Wikipedia"],
     operation_id="get_wikipedia_links",
 )
-async def get_links(request: Request, params: GetLinksRequest) -> List[str]:
+async def get_links(
+    params: GetLinksRequest,
+    wiki_service: _WikipediaService = Depends(get_wiki_service),
+) -> list[str]:
     """
     Get the links contained within a Wikipedia article.
 
@@ -25,7 +28,6 @@ async def get_links(request: Request, params: GetLinksRequest) -> List[str]:
     connections between Wikipedia topics.
     """
     try:
-        wiki_service: _WikipediaService = request.app.state.wiki_service
         links = await wiki_service.get_links(params.title)
         return links
     except PydanticValidationError as ve:

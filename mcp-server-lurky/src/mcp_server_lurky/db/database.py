@@ -112,7 +112,7 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def save_space(self, space_data: Dict[str, Any]) -> bool:
+    def save_space(self, space_data: dict[str, Any]) -> bool:
         session = self.get_session()
         try:
             space_id = space_data.get("id")

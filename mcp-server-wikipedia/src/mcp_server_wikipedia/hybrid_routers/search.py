@@ -1,7 +1,7 @@
 import logging
-from typing import List
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
+from mcp_server_wikipedia.dependencies import get_wiki_service
 from mcp_server_wikipedia.schemas import SearchWikipediaRequest
 from mcp_server_wikipedia.wikipedia import WikipediaAPIError, _WikipediaService
 from pydantic import ValidationError as PydanticValidationError
@@ -16,15 +16,15 @@ router = APIRouter()
     operation_id="search_wikipedia",
 )
 async def search_wikipedia(
-    request: Request, params: SearchWikipediaRequest
-) -> List[str]:
+    params: SearchWikipediaRequest,
+    wiki_service: _WikipediaService = Depends(get_wiki_service),
+) -> list[str]:
     """
     Search Wikipedia for articles matching a query and return a list of titles.
 
     This tool allows AI agents to discover Wikipedia articles relevant to a search query.
     """
     try:
-        wiki_service: _WikipediaService = request.app.state.wiki_service
         results = await wiki_service.search(params.query, limit=params.limit)
         return results
     except PydanticValidationError as ve:

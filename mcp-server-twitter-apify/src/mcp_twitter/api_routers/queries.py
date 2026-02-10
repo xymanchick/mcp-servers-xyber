@@ -7,20 +7,13 @@ Main responsibility: Provide endpoints for listing query types and queries that 
 import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, Request
-from mcp_twitter.twitter import QueryRegistry, QueryType
+from fastapi import APIRouter, Depends, HTTPException, Query
+from mcp_twitter.dependencies import get_registry, get_scraper
+from mcp_twitter.twitter import QueryRegistry, QueryType, TwitterScraper
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-def _get_registry(request: Request) -> QueryRegistry:
-    """Get registry from app state."""
-    registry = getattr(request.app.state, "registry", None)
-    if not registry:
-        raise HTTPException(status_code=500, detail="Registry not initialized")
-    return registry
 
 
 class QueryTypeInfo(BaseModel):
@@ -46,10 +39,10 @@ class QueryInfo(BaseModel):
     operation_id="list_types",
     response_model=list[QueryTypeInfo],
 )
-async def list_types(http_request: Request) -> list[QueryTypeInfo]:
+async def list_types(
+    registry: QueryRegistry = Depends(get_registry),
+) -> list[QueryTypeInfo]:
     """List all available query types with descriptions."""
-    registry = _get_registry(http_request)
-
     descriptions: dict[str, str] = {
         "topic": "Search tweets by keyword/topic (supports sort Top/Latest, verified/image filters)",
         "profile": "Search tweets from a specific username (supports date range filters)",
@@ -79,12 +72,10 @@ async def list_types(http_request: Request) -> list[QueryTypeInfo]:
     response_model=list[QueryInfo],
 )
 async def list_queries(
-    http_request: Request,
+    registry: QueryRegistry = Depends(get_registry),
     query_type: QueryType | None = Query(None, description="Filter by query type"),
 ) -> list[QueryInfo]:
     """List all available queries, optionally filtered by type."""
-    registry = _get_registry(http_request)
-
     queries = registry.list_queries(query_type=query_type)
     return [QueryInfo(id=q.id, type=q.type, name=q.name) for q in queries]
 
@@ -94,7 +85,7 @@ async def list_queries(
     tags=["Queries"],
     operation_id="get_results",
 )
-async def get_results(filename: str, http_request: Request) -> dict[str, str]:
+async def get_results(filename: str) -> dict[str, str]:
     """
     Get saved search results by query key (deprecated: use search endpoints directly).
 
@@ -111,13 +102,14 @@ async def get_results(filename: str, http_request: Request) -> dict[str, str]:
     tags=["Queries"],
     operation_id="list_results",
 )
-async def list_results(http_request: Request) -> dict[str, str | bool]:
+async def list_results(
+    scraper: TwitterScraper = Depends(get_scraper),
+) -> dict[str, str | bool]:
     """
     List cache status (deprecated: file listing no longer supported).
 
     Results are now stored in Postgres database cache.
     """
-    scraper = getattr(http_request.app.state, "scraper", None)
     return {
         "message": "File-based results are deprecated. Results are cached in Postgres database.",
         "cache_enabled": scraper.use_cache if scraper else False,

@@ -1,8 +1,9 @@
 import json
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
+from mcp_server_twitter.dependencies import get_twitter_client_dep
 from mcp_server_twitter.errors import TwitterMCPError
 from mcp_server_twitter.logging_config import get_logger
 from mcp_server_twitter.metrics import async_timed
@@ -21,7 +22,7 @@ router = APIRouter()
 @async_timed("search_hashtag")
 async def search_hashtag(
     search_request: SearchHashtagRequest,
-    request: Request,
+    client: AsyncTwitterClient = Depends(get_twitter_client_dep),
 ) -> str:
     """Search hashtag with comprehensive logging."""
     operation_logger = get_logger(
@@ -35,8 +36,6 @@ async def search_hashtag(
         f"Hashtag search requested for #{search_request.hashtag}",
         extra={"max_results": search_request.max_results},
     )
-
-    client = request.app.state.twitter_client
 
     try:
         operation_logger.debug(

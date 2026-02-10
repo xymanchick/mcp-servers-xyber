@@ -1,8 +1,9 @@
 import base64
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
+from mcp_server_stability.dependencies import get_stability_service
 from mcp_server_stability.schemas import ImageGenerationRequest
 from mcp_server_stability.stable_diffusion import (
     StabilityService, StableDiffusionClientError,
@@ -19,10 +20,9 @@ router = APIRouter()
 )
 async def generate_image(
     request_body: ImageGenerationRequest,
-    request: Request,
+    stability_service: StabilityService = Depends(get_stability_service),
 ) -> str:
     """Generate an image from a prompt using Stable Diffusion and returns it as a base64 encoded string"""
-    stability_service: StabilityService = request.app.state.stability_service
 
     try:
         # Use validated data for parameters

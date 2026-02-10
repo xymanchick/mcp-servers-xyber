@@ -1,8 +1,9 @@
 import json
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
+from mcp_server_twitter.dependencies import get_twitter_client_dep
 from mcp_server_twitter.errors import TwitterMCPError
 from mcp_server_twitter.logging_config import get_logger
 from mcp_server_twitter.metrics import async_timed
@@ -21,7 +22,7 @@ router = APIRouter()
 @async_timed("get_trends")
 async def get_trends(
     trends_request: GetTrendsRequest,
-    request: Request,
+    client: AsyncTwitterClient = Depends(get_twitter_client_dep),
 ) -> str:
     """Get trends with comprehensive logging."""
     operation_logger = get_logger(
@@ -38,8 +39,6 @@ async def get_trends(
             "max_trends_per_country": trends_request.max_trends,
         },
     )
-
-    client = request.app.state.twitter_client
 
     try:
         operation_logger.debug("Calling Twitter API to retrieve trends")

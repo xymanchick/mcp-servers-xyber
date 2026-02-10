@@ -1,10 +1,3 @@
-"""
-Twitter MCP Server Application Factory.
-
-Main responsibility: Compose the FastAPI/MCP application and manage its lifecycle,
-including startup/shutdown, middleware, and router mounting.
-"""
-
 import asyncio
 import logging
 import os
@@ -13,12 +6,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastmcp import FastMCP
 from mcp_server_twitter.api_routers import routers as api_routers
+from mcp_server_twitter.dependencies import DependencyContainer
 from mcp_server_twitter.hybrid_routers import routers as hybrid_routers
 from mcp_server_twitter.logging_config import get_logger
 from mcp_server_twitter.mcp_routers import routers as mcp_routers
 from mcp_server_twitter.metrics import (get_health_checker,
                                         get_metrics_collector)
-from mcp_server_twitter.twitter import AsyncTwitterClient, get_twitter_client
 from mcp_server_twitter.x402_config import get_x402_settings
 
 logger = get_logger(__name__)
@@ -78,8 +71,7 @@ async def app_lifespan(app: FastAPI):
     try:
         # Initialize Twitter client
         logger.info("Lifespan: Initializing Twitter client...")
-        twitter_client: AsyncTwitterClient = await get_twitter_client()
-        app.state.twitter_client = twitter_client
+        await DependencyContainer.initialize()
 
         # Log initial health status
         health_checker = get_health_checker()
@@ -88,7 +80,7 @@ async def app_lifespan(app: FastAPI):
             "Server startup completed",
             extra={
                 "startup_health": health_status,
-                "client_type": type(twitter_client).__name__,
+                "client_type": type(DependencyContainer.get_twitter_client()).__name__,
             },
         )
 
@@ -120,6 +112,8 @@ async def app_lifespan(app: FastAPI):
         # Log final metrics summary
         metrics_collector = get_metrics_collector()
         metrics_collector.log_summary()
+
+        await DependencyContainer.shutdown()
 
         logger.info("Lifespan: Services shut down gracefully.")
 
@@ -156,8 +150,6 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def combined_lifespan(app: FastAPI):
         async with app_lifespan(app):
-            # Share state with mcp_source_app so MCP routers can access twitter_client
-            mcp_source_app.state.twitter_client = app.state.twitter_client
             async with mcp_app.lifespan(app):
                 yield
 

@@ -102,7 +102,7 @@ class AssetData(BaseModel):
 
     @classmethod
     def from_reserve_data(
-        cls, reserve: ReserveData, market_data: Dict[str, Any]
+        cls, reserve: ReserveData, market_data: dict[str, Any]
     ) -> AssetData:
         """Create AssetData from ReserveData and market data."""
         return cls(
@@ -144,7 +144,7 @@ class RiskData(BaseModel):
 
     @classmethod
     def from_reserve_data(
-        cls, reserve: ReserveData, market_data: Dict[str, Any]
+        cls, reserve: ReserveData, market_data: dict[str, Any]
     ) -> RiskData:
         """Create RiskData from ReserveData and market data."""
         return cls(

@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
+from mcp_server_twitter.dependencies import get_twitter_client_dep
 from mcp_server_twitter.errors import TwitterMCPError, TwitterValidationError
 from mcp_server_twitter.logging_config import get_logger
 from mcp_server_twitter.metrics import async_timed
@@ -20,7 +21,7 @@ router = APIRouter()
 @async_timed("create_tweet")
 async def create_tweet(
     create_request: CreateTweetRequest,
-    request: Request,
+    client: AsyncTwitterClient = Depends(get_twitter_client_dep),
 ) -> str:
     """Create a tweet with comprehensive logging and error handling."""
     operation_logger = get_logger(
@@ -45,8 +46,6 @@ async def create_tweet(
             "poll_duration": create_request.poll_duration,
         },
     )
-
-    client = request.app.state.twitter_client
 
     try:
         # Input validation with detailed logging

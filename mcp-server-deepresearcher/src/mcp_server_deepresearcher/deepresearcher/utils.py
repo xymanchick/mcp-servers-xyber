@@ -3,10 +3,8 @@ import json
 import logging
 import os
 import re
-from datetime import datetime
 from functools import lru_cache
-from logging import LoggerAdapter
-from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, Literal, Tuple, Type
 
 import yaml
 from langchain_core.output_parsers import JsonOutputParser
@@ -102,7 +100,7 @@ class BaseChatModel:
 def initialize_llm(
     llm_type: Literal["main", "validation", "spare", "thinking"] = "main",
     raise_on_error: bool = True,
-) -> Optional[BaseChatModel]:
+) -> BaseChatModel | None:
     """
     Initializes and returns a language model client based on the specified type.
     This function is cached to avoid reloading models on subsequent calls.
@@ -113,14 +111,14 @@ def initialize_llm(
     model_name = None
 
     # 1. Define mappings to find the correct config attributes and provider details
-    ATTRIBUTE_MAP: Dict[LLM_Type, Tuple[str, str]] = {
+    ATTRIBUTE_MAP: dict[LLM_Type, Tuple[str, str]] = {
         "main": ("MODEL_PROVIDER", "MODEL_NAME"),
         "spare": ("MODEL_PROVIDER_SPARE", "MODEL_NAME_SPARE"),
         "validation": ("MODEL_VALIDATION_PROVIDER", "MODEL_VALIDATION_NAME"),
         "thinking": ("MODEL_PROVIDER_THINKING", "MODEL_NAME_THINKING"),
     }
 
-    PROVIDER_MAP: Dict[str, Dict[str, Any]] = {
+    PROVIDER_MAP: dict[str, dict[str, Any]] = {
         "google": {
             "class": ChatGoogleGenerativeAI,
             "api_key_name": "GOOGLE_API_KEY",
@@ -193,8 +191,8 @@ def initialize_llm(
 
 
 def initialize_llm_from_config(
-    config: Optional[Dict[str, Any]],
-) -> Optional[BaseChatModel]:
+    config: dict[str, Any] | None,
+) -> BaseChatModel | None:
     """
     Initializes and returns a language model client from a configuration dictionary.
     """
@@ -206,7 +204,7 @@ def initialize_llm_from_config(
     model_provider = config.get("provider")
     model_name = config.get("model_name")
 
-    PROVIDER_MAP: Dict[str, Dict[str, Any]] = {
+    PROVIDER_MAP: dict[str, dict[str, Any]] = {
         "google": {
             "class": ChatGoogleGenerativeAI,
             "api_key_name": "GOOGLE_API_KEY",
@@ -389,19 +387,19 @@ def clean_response(response_text: str) -> str:
 
 
 def load_mcp_servers_config(
-    apify_token: Optional[str] = None,
-    mcp_telegram_url: Optional[str] = None,
-    telegram_token: Optional[str] = None,
-    telegram_channel: Optional[str] = None,
-    mcp_youtube_url: Optional[str] = None,
-    mcp_tavily_url: Optional[str] = None,
-    mcp_arxiv_url: Optional[str] = None,
-    mcp_twitter_url: Optional[str] = None,
-    apify_actors_list: Optional[list[str]] = None,
-    mcp_deepresearch_url: Optional[str] = None,
-    mcp_image_generation_url: Optional[str] = None,
-    mcp_telegram_parser_url: Optional[str] = None,
-) -> Dict[str, Any]:
+    apify_token: str | None = None,
+    mcp_telegram_url: str | None = None,
+    telegram_token: str | None = None,
+    telegram_channel: str | None = None,
+    mcp_youtube_url: str | None = None,
+    mcp_tavily_url: str | None = None,
+    mcp_arxiv_url: str | None = None,
+    mcp_twitter_url: str | None = None,
+    apify_actors_list: list[str] | None = None,
+    mcp_deepresearch_url: str | None = None,
+    mcp_image_generation_url: str | None = None,
+    mcp_telegram_parser_url: str | None = None,
+) -> dict[str, Any]:
     """
     Load and configure MCP servers based on provided environment variables.
 
@@ -581,9 +579,9 @@ def load_mcp_servers_config(
 def create_mcp_tasks(
     mcp_tools,
     search_query,
-    simplified_search_query: Optional[str] = None,
-    twitter_sources: Optional[List[str]] = None,
-    telegram_sources: Optional[List[str]] = None,
+    simplified_search_query: str | None = None,
+    twitter_sources: list[str] | None = None,
+    telegram_sources: list[str] | None = None,
 ):
     """
     Creates MCP tasks using Pydantic schemas for validation, then converts to dict format for tool calls.
@@ -767,7 +765,7 @@ def create_mcp_tasks(
     return tasks, task_names
 
 
-def filter_mcp_tools_for_deepresearcher(mcp_tools: List[Any]) -> List[Any]:
+def filter_mcp_tools_for_deepresearcher(mcp_tools: list[Any]) -> list[Any]:
     """
     Filter the tool list exposed to the DeepResearcher agent.
 
@@ -792,7 +790,7 @@ def filter_mcp_tools_for_deepresearcher(mcp_tools: List[Any]) -> List[Any]:
     return mcp_tools
 
 
-def extract_source_info(content: str, source_name: str) -> Dict[str, str]:
+def extract_source_info(content: str, source_name: str) -> dict[str, str]:
     """Extracts Title and URL from a tool's string output."""
     source_info = {"name": source_name, "title": "N/A", "url": "N/A"}
 
@@ -886,7 +884,7 @@ def extract_title_near_url(content_str: str, url: str, max_distance: int = 500) 
 
 def extract_sources_from_raw_content(
     content: Any, source_name: str
-) -> list[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Generic source extractor that looks for URLs in raw content using multiple patterns.
 
     This function replaces instrument-specific parsing for sources by looking for
@@ -1025,7 +1023,7 @@ def extract_sources_from_raw_content(
     return sources
 
 
-def filter_invalid_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]]:
+def filter_invalid_sources(sources: list[dict[str, str]]) -> list[dict[str, str]]:
     """Filter out invalid sources that indicate no results or empty responses.
 
     Removes sources with:
@@ -1098,7 +1096,7 @@ def filter_invalid_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]
     return valid_sources
 
 
-def are_sources_valid(sources: list[Dict[str, str]]) -> bool:
+def are_sources_valid(sources: list[dict[str, str]]) -> bool:
     """Check if sources list contains at least one valid source.
 
     Args:
@@ -1158,7 +1156,7 @@ def is_formatted_sources_valid(formatted_sources: str) -> bool:
     return True
 
 
-def deduplicate_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]]:
+def deduplicate_sources(sources: list[dict[str, str]]) -> list[dict[str, str]]:
     """Deduplicate sources based on URL and title combination.
 
     Sources are considered duplicates if they have the same URL (and URL is not "N/A").
@@ -1198,7 +1196,7 @@ def deduplicate_sources(sources: list[Dict[str, str]]) -> list[Dict[str, str]]:
 
 
 def format_sources(
-    sources: list[Dict[str, str]], include_source_name: bool = False
+    sources: list[dict[str, str]], include_source_name: bool = False
 ) -> str:
     """Formats a list of source dictionaries into a numbered string.
 
@@ -1359,7 +1357,7 @@ def get_telegram_sources_for_topic(topic: str, topics_file_path: str) -> list[st
 
 
 def construct_tools_yaml(
-    mcp_tools: list[Any], tool_to_server_map: Optional[Dict[str, str]] = None
+    mcp_tools: list[Any], tool_to_server_map: dict[str, str] | None = None
 ) -> str:
     """
     Constructs valid YAML specification from MCP tools.
@@ -1555,7 +1553,7 @@ def construct_tools_yaml(
 
 
 def construct_tools_description_yaml(
-    mcp_tools: list[Any], tool_to_server_map: Optional[Dict[str, str]] = None
+    mcp_tools: list[Any], tool_to_server_map: dict[str, str] | None = None
 ) -> str:
     """
     Constructs a simplified YAML with only name and description for each tool.
@@ -1595,7 +1593,7 @@ def construct_tools_description_yaml(
     return yaml_output
 
 
-def parse_tools_description_from_yaml(yaml_content: str) -> list[Dict[str, Any]]:
+def parse_tools_description_from_yaml(yaml_content: str) -> list[dict[str, Any]]:
     """
     Parse YAML content and return list of tool descriptions as dictionaries.
 

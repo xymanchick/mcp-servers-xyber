@@ -1,9 +1,10 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
 from mcp_server_aave.aave import AaveApiError, AaveClient, AaveClientError
+from mcp_server_aave.dependencies import get_aave_client
 from mcp_server_aave.schemas import (AAVE_ASSETS, AAVE_NETWORKS,
                                      ComprehensiveAaveData, NetworkAaveData)
 from pydantic import BaseModel, Field
@@ -38,7 +39,7 @@ class ComprehensiveAaveDataRequest(BaseModel):
 )
 async def get_comprehensive_aave_data(
     request_data: ComprehensiveAaveDataRequest,
-    request: Request,
+    aave_client: AaveClient = Depends(get_aave_client),
 ) -> ComprehensiveAaveData:
     """Fetch a simplified Aave view for agents.
 
@@ -50,7 +51,6 @@ async def get_comprehensive_aave_data(
       - networks: restricts to a list of networks (e.g. ["ethereum", "polygon"])
       - asset_symbols: restricts reserves to the specified token symbols
     """
-    aave_client: AaveClient = request.app.state.aave_client
 
     try:
         networks_to_query = (

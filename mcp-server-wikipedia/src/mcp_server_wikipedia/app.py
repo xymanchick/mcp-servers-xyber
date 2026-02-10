@@ -4,11 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastmcp import FastMCP
 from mcp_server_wikipedia.api_routers import routers as api_routers
+from mcp_server_wikipedia.dependencies import DependencyContainer
 from mcp_server_wikipedia.hybrid_routers import routers as hybrid_routers
 from mcp_server_wikipedia.middlewares import X402WrapperMiddleware
-from mcp_server_wikipedia.wikipedia import (WikipediaServiceError,
-                                            _WikipediaService,
-                                            get_wikipedia_service)
 from mcp_server_wikipedia.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
@@ -20,25 +18,16 @@ async def app_lifespan(app: FastAPI):
     """
     Manages the application's resources.
 
-    Currently manages:
-    - WikipediaService for API calls
+    Initializes and shuts down the DependencyContainer.
     """
     logger.info("Lifespan: Initializing application services...")
-
-    try:
-        # Initialize Wikipedia service
-        wiki_service: _WikipediaService = get_wikipedia_service()
-        app.state.wiki_service = wiki_service
-        logger.info("Lifespan: Wikipedia service initialized successfully.")
-    except WikipediaServiceError as init_err:
-        logger.error(
-            f"FATAL: Lifespan initialization failed: {init_err}", exc_info=True
-        )
-        raise init_err
-
+    DependencyContainer.initialize()
     logger.info("Lifespan: Services initialized successfully.")
+
     yield
+
     logger.info("Lifespan: Shutting down application services...")
+    await DependencyContainer.shutdown()
     logger.info("Lifespan: Services shut down gracefully.")
 
 
@@ -78,8 +67,8 @@ def create_app() -> FastAPI:
     # --- Main Application ---
     app = FastAPI(
         title="Wikipedia MCP Server",
-        description="MCP server for interacting with the Wikipedia API",
-        version="0.1.0",
+        description="MCP server for Wikipedia data retrieval and search",
+        version="1.0.0",
         lifespan=combined_lifespan,
     )
 

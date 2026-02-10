@@ -1,9 +1,5 @@
-"""
-Database manager for YouTube video caching.
-"""
-
 import logging
-from typing import Dict, List, Optional
+from typing import Any
 
 from mcp_server_youtube.config import DatabaseConfig
 from mcp_server_youtube.youtube.models import Base, YouTubeVideo
@@ -23,34 +19,32 @@ class NullDatabaseManager:
     def get_session(self) -> Session:  # pragma: no cover
         raise RuntimeError("Database is unavailable (NullDatabaseManager).")
 
-    def get_video(self, video_id: str) -> Optional[YouTubeVideo]:
+    def get_video(self, video_id: str) -> YouTubeVideo | None:
         return None
 
     def has_transcript(self, video_id: str) -> bool:
         return False
 
-    def save_video(self, video_data: Dict) -> bool:
+    def save_video(self, video_data: dict[str, Any]) -> bool:
         return False
 
-    def batch_get_videos(
-        self, video_ids: list[str]
-    ) -> Dict[str, Optional[YouTubeVideo]]:
+    def batch_get_videos(self, video_ids: list[str]) -> dict[str, YouTubeVideo | None]:
         return {video_id: None for video_id in video_ids}
 
-    def batch_check_transcripts(self, video_ids: list[str]) -> Dict[str, bool]:
+    def batch_check_transcripts(self, video_ids: list[str]) -> dict[str, bool]:
         return {video_id: False for video_id in video_ids}
 
     def video_exists(self, video_id: str) -> bool:
         return False
 
-    def batch_check_video_exists(self, video_ids: list[str]) -> Dict[str, bool]:
+    def batch_check_video_exists(self, video_ids: list[str]) -> dict[str, bool]:
         return {video_id: False for video_id in video_ids}
 
 
 class DatabaseManager:
     """Manages database connections and operations for YouTube video caching."""
 
-    def __init__(self, database_url: Optional[str] = None):
+    def __init__(self, database_url: str | None = None):
         """
         Initialize database manager.
 
@@ -142,7 +136,7 @@ class DatabaseManager:
             return True
         return False
 
-    def save_video(self, video_data: Dict) -> bool:
+    def save_video(self, video_data: dict[str, Any]) -> bool:
         """
         Save or update video data in database.
         Automatically calculates transcript_length if transcript is provided.
@@ -190,9 +184,7 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def batch_get_videos(
-        self, video_ids: list[str]
-    ) -> Dict[str, Optional[YouTubeVideo]]:
+    def batch_get_videos(self, video_ids: list[str]) -> dict[str, YouTubeVideo | None]:
         """
         Get multiple videos from database.
 
@@ -220,7 +212,7 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def batch_check_transcripts(self, video_ids: list[str]) -> Dict[str, bool]:
+    def batch_check_transcripts(self, video_ids: list[str]) -> dict[str, bool]:
         """
         Check which videos have transcripts in database.
         Also checks if video exists (even with failed transcript) to avoid retrying.
@@ -254,7 +246,7 @@ class DatabaseManager:
         video = self.get_video(video_id)
         return video is not None
 
-    def batch_check_video_exists(self, video_ids: list[str]) -> Dict[str, bool]:
+    def batch_check_video_exists(self, video_ids: list[str]) -> dict[str, bool]:
         """
         Check which videos exist in database (regardless of transcript success).
         Used to avoid retrying transcript extraction for videos we've already attempted.
@@ -270,7 +262,7 @@ class DatabaseManager:
 
 
 # Global database manager instance
-_db_manager: Optional[DatabaseManager] = None
+_db_manager: DatabaseManager | None = None
 
 
 def get_db_manager() -> DatabaseManager:
@@ -283,5 +275,5 @@ def get_db_manager() -> DatabaseManager:
             logger.warning(
                 "Postgres unavailable; starting without caching. Error: %s", e
             )
-            _db_manager = NullDatabaseManager()  # type: ignore[assignment]
+            _db_manager = NullDatabaseManager()
     return _db_manager

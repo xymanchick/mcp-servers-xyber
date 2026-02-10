@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -30,7 +30,7 @@ class ArticleResponse(BaseModel):
 
     title: str = Field(..., description="Title of the Wikipedia article")
     content: str = Field(..., description="Full content of the Wikipedia article")
-    metadata: Optional[Dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         None, description="Additional metadata about the article"
     )
 

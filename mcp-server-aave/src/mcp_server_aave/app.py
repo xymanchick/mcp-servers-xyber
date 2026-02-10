@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
-from mcp_server_aave.aave import AaveClient, AaveError, get_aave_client
 from mcp_server_aave.api_routers import routers as api_routers
+from mcp_server_aave.dependencies import DependencyContainer
 from mcp_server_aave.hybrid_routers import routers as hybrid_routers
 from mcp_server_aave.middlewares import X402WrapperMiddleware
 from mcp_server_aave.x402_config import get_x402_settings
@@ -15,51 +15,29 @@ logger = logging.getLogger(__name__)
 # --- Lifespan Management ---
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
-    """Manages the application's resources.
+    """
+    Manages the application's resources.
 
-    Currently manages:
-    - AaveClient for API calls
+    Initializes and shuts down the DependencyContainer.
 
     Note: The x402 middleware manages its own HTTP client lifecycle using
     context managers, so no external resource management is needed.
     """
-    logger.info("Lifespan: Initializing AAVE services...")
+    logger.info("Lifespan: Initializing application services...")
+    DependencyContainer.initialize()
+    logger.info("Lifespan: Services initialized successfully.")
 
-    try:
-        aave_client: AaveClient = get_aave_client()
-        app.state.aave_client = aave_client
+    yield
 
-        logger.info("Lifespan: AAVE services initialized successfully")
-        yield
-        logger.info("Lifespan: Shutting down application services...")
-
-    except AaveError as init_err:
-        logger.error(
-            f"FATAL: Lifespan initialization failed: {init_err}", exc_info=True
-        )
-        raise init_err
-
-    except Exception as startup_err:
-        logger.error(
-            f"FATAL: Unexpected error during lifespan initialization: {startup_err}",
-            exc_info=True,
-        )
-        raise startup_err
-
-    finally:
-        try:
-            await aave_client.close()
-            logger.info("Lifespan: Closed AAVE client session")
-
-        except Exception as e:
-            logger.error(f"Error closing AAVE client: {e}")
-
-        logger.info("Lifespan: Shutdown cleanup completed")
+    logger.info("Lifespan: Shutting down application services...")
+    await DependencyContainer.shutdown()
+    logger.info("Lifespan: Services shut down gracefully.")
 
 
 # --- Application Factory ---
 def create_app() -> FastAPI:
-    """Create and configure the main FastAPI application.
+    """
+    Create and configure the main FastAPI application.
 
     This factory function:
     1. Creates an MCP server from hybrid routers

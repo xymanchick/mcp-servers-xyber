@@ -11,7 +11,7 @@ class Discussion(BaseModel):
     title: str
     summary: str
     timestamp: Optional[int] = None
-    coins: list[Dict[str, Any]] = []
+    coins: list[dict[str, Any]] = []
     categories: list[str] = []
 
 

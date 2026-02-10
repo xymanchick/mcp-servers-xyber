@@ -4,11 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastmcp import FastMCP
 from mcp_server_stability.api_routers import routers as api_routers
+from mcp_server_stability.dependencies import DependencyContainer
 from mcp_server_stability.hybrid_routers import routers as hybrid_routers
 from mcp_server_stability.mcp_routers import routers as mcp_routers
-from mcp_server_stability.stable_diffusion import (StabilityService,
-                                                   StableDiffusionClientError,
-                                                   get_stability_service)
 from mcp_server_stability.x402_config import get_x402_settings
 
 logger = logging.getLogger(__name__)
@@ -20,39 +18,20 @@ async def app_lifespan(app: FastAPI):
     """
     Manages the application's resources.
 
-    Currently manages:
-    - StabilityService for Stable Diffusion API calls
+    Initializes and shuts down the DependencyContainer.
 
     Note: The x402 middleware manages its own HTTP client lifecycle using
     context managers, so no external resource management is needed.
     """
     logger.info("Lifespan: Initializing application services...")
+    await DependencyContainer.initialize()
+    logger.info("Lifespan: Services initialized successfully.")
 
-    # Initialize Stable Diffusion service
-    stability_service: StabilityService = None
-    try:
-        stability_service = await get_stability_service()
-        app.state.stability_service = stability_service
-        logger.info("Lifespan: Stable Diffusion service initialized successfully.")
+    yield
 
-        yield
-
-    except StableDiffusionClientError as init_err:
-        logger.error(
-            f"FATAL: Lifespan initialization failed: {init_err}", exc_info=True
-        )
-        raise init_err
-    except Exception as startup_err:
-        logger.error(
-            f"FATAL: Unexpected error during lifespan initialization: {startup_err}",
-            exc_info=True,
-        )
-        raise startup_err
-    finally:
-        logger.info("Lifespan: Shutting down application services...")
-        if stability_service is not None:
-            await stability_service.cleanup()
-            logger.info("Lifespan: Stable Diffusion service cleanup completed.")
+    logger.info("Lifespan: Shutting down application services...")
+    await DependencyContainer.shutdown()
+    logger.info("Lifespan: Services shut down gracefully.")
 
 
 # --- Application Factory ---

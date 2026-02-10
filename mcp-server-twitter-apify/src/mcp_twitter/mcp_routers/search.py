@@ -1,10 +1,3 @@
-"""
-This module implements MCP-only search endpoints for Twitter, designed specifically for AI agents.
-
-Main responsibility: Provide search tools that mirror the hybrid router functionality but are
-exclusively available to AI agents via MCP. These tools are not exposed as REST endpoints.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -12,7 +5,8 @@ from datetime import date
 from typing import Any
 
 import anyio
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
+from mcp_twitter.dependencies import get_registry, get_scraper
 from mcp_twitter.twitter import (OutputFormat, QueryDefinition, QueryRegistry,
                                  QueryType, SortOrder, TwitterScraper,
                                  create_profile_query, create_replies_query,
@@ -24,14 +18,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 DEFAULT_TIMEOUT_SECONDS = 600
-
-
-def _get_scraper(request: Request) -> TwitterScraper:
-    """Get scraper from app state."""
-    scraper = getattr(request.app.state, "scraper", None)
-    if not scraper:
-        raise HTTPException(status_code=500, detail="Scraper not initialized")
-    return scraper
 
 
 def _run_query_and_read(
@@ -194,14 +180,6 @@ class QueryInfo(BaseModel):
     name: str
 
 
-def _get_registry(request: Request) -> QueryRegistry:
-    """Get registry from app state."""
-    registry = getattr(request.app.state, "registry", None)
-    if not registry:
-        raise HTTPException(status_code=500, detail="Registry not initialized")
-    return registry
-
-
 # MCP-only search endpoints
 @router.post(
     "/search_topic",
@@ -211,7 +189,7 @@ def _get_registry(request: Request) -> QueryRegistry:
 )
 async def search_topic(
     request: TopicSearchRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -225,7 +203,6 @@ async def search_topic(
     This tool searches Twitter for tweets matching a specific topic or keyword.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-    scraper = _get_scraper(http_request)
 
     try:
         logger.info(
@@ -275,7 +252,7 @@ async def search_topic(
 # )
 async def search_profile(
     request: ProfileSearchRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -289,7 +266,6 @@ async def search_profile(
     This tool searches for tweets from a specific Twitter user within an optional date range.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-    scraper = _get_scraper(http_request)
 
     try:
         logger.info(
@@ -339,7 +315,7 @@ async def search_profile(
 # )
 async def search_profile_latest(
     request: ProfileLatestRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -353,7 +329,6 @@ async def search_profile_latest(
     This tool retrieves the most recent tweets from a Twitter user without requiring a date range.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-    scraper = _get_scraper(http_request)
 
     try:
         logger.info(
@@ -401,7 +376,7 @@ async def search_profile_latest(
 # )
 async def search_replies(
     request: RepliesSearchRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -415,7 +390,6 @@ async def search_replies(
     This tool retrieves replies to a specific Twitter conversation thread.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-    scraper = _get_scraper(http_request)
 
     try:
         logger.info(
@@ -464,14 +438,7 @@ async def search_replies(
 #     response_model=list[ProfileBatchResult],
 # )
 async def search_profile_batch(
-    request: ProfileBatchSearchRequest,
-    http_request: Request,
-    timeout_seconds: int = Query(
-        DEFAULT_TIMEOUT_SECONDS,
-        ge=1,
-        le=3600,
-        description="Max time to wait for the batch to finish (seconds).",
-    ),
+    request: ProfileBatchSearchRequest, scraper: TwitterScraper = Depends(get_scraper)
 ) -> list[ProfileBatchResult]:
     """
     Search tweets from multiple user profiles in one request (MCP-only).
@@ -479,7 +446,6 @@ async def search_profile_batch(
     This tool searches for tweets from multiple Twitter users within an optional date range.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-    scraper = _get_scraper(http_request)
 
     usernames: list[str] = []
     for raw in request.usernames:
@@ -551,14 +517,7 @@ async def search_profile_batch(
 #     response_model=list[ProfileBatchResult],
 # )
 async def search_profile_latest_batch(
-    request: ProfileLatestBatchRequest,
-    http_request: Request,
-    timeout_seconds: int = Query(
-        DEFAULT_TIMEOUT_SECONDS,
-        ge=1,
-        le=3600,
-        description="Max time to wait for the batch to finish (seconds).",
-    ),
+    request: ProfileLatestBatchRequest, scraper: TwitterScraper = Depends(get_scraper)
 ) -> list[ProfileBatchResult]:
     """
     Get the latest tweets from multiple user profiles in one request (MCP-only).
@@ -566,7 +525,6 @@ async def search_profile_latest_batch(
     This tool retrieves the most recent tweets from multiple Twitter users without requiring a date range.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-    scraper = _get_scraper(http_request)
 
     usernames: list[str] = []
     for raw in request.usernames:
@@ -637,7 +595,8 @@ async def search_profile_latest_batch(
 # )
 async def run_query(
     query_id: str,
-    http_request: Request,
+    registry: QueryRegistry = Depends(get_registry),
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -651,9 +610,6 @@ async def run_query(
     This tool runs a predefined query from the registry by its ID.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-    registry = _get_registry(http_request)
-    scraper = _get_scraper(http_request)
-
     query = registry.get(query_id)
     if not query:
         raise HTTPException(status_code=404, detail=f"Query '{query_id}' not found")
@@ -681,15 +637,15 @@ async def run_query(
 #     operation_id="twitter_list_types",
 #     response_model=list[QueryTypeInfo],
 # )
-async def list_types(http_request: Request) -> list[QueryTypeInfo]:
+async def list_types(
+    registry: QueryRegistry = Depends(get_registry),
+) -> list[QueryTypeInfo]:
     """
     List all available query types with descriptions (MCP-only).
 
     This tool provides information about available query types and their capabilities.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-    registry = _get_registry(http_request)
-
     descriptions: dict[str, str] = {
         "topic": "Search tweets by keyword/topic (supports sort Top/Latest, verified/image filters)",
         "profile": "Search tweets from a specific username (supports date range filters)",
@@ -720,7 +676,7 @@ async def list_types(http_request: Request) -> list[QueryTypeInfo]:
 #     response_model=list[QueryInfo],
 # )
 async def list_queries(
-    http_request: Request,
+    registry: QueryRegistry = Depends(get_registry),
     query_type: QueryType | None = Query(None, description="Filter by query type"),
 ) -> list[QueryInfo]:
     """
@@ -729,7 +685,5 @@ async def list_queries(
     This tool provides information about available predefined queries.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-    registry = _get_registry(http_request)
-
     queries = registry.list_queries(query_type=query_type)
     return [QueryInfo(id=q.id, type=q.type, name=q.name) for q in queries]

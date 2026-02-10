@@ -1,10 +1,5 @@
-"""Model registry for Together AI image generation models.
-
-This module defines model-specific schemas and capabilities using Pydantic.
-"""
-
 from enum import Enum
-from typing import Any, Dict
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -41,7 +36,7 @@ class ModelSchema(BaseModel):
     family: ModelFamily = Field(..., description="Model family")
     capabilities: ModelCapabilities = Field(..., description="Model capabilities")
 
-    def build_api_params(self, request_params: Dict[str, Any]) -> Dict[str, Any]:
+    def build_api_params(self, request_params: dict[str, Any]) -> dict[str, Any]:
         """Build API parameters based on model capabilities and request."""
         api_params = {
             "model": self.model_name,
@@ -107,7 +102,7 @@ class ModelSchema(BaseModel):
 
 
 # Model Registry - Define all supported models
-MODEL_REGISTRY: Dict[str, ModelSchema] = {
+MODEL_REGISTRY: dict[str, ModelSchema] = {
     # FLUX.1 models
     "black-forest-labs/FLUX.1-dev": ModelSchema(
         model_name="black-forest-labs/FLUX.1-dev",

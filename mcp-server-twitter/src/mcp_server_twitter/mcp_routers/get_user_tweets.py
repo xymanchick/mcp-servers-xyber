@@ -1,8 +1,9 @@
 import json
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
+from mcp_server_twitter.dependencies import get_twitter_client_dep
 from mcp_server_twitter.logging_config import get_logger
 from mcp_server_twitter.metrics import async_operation_timer, async_timed
 from mcp_server_twitter.schemas import GetUserTweetsRequest
@@ -20,7 +21,7 @@ router = APIRouter()
 @async_timed("get_user_tweets")
 async def get_user_tweets(
     get_request: GetUserTweetsRequest,
-    request: Request,
+    client: AsyncTwitterClient = Depends(get_twitter_client_dep),
 ) -> str:
     """Retrieve user tweets with comprehensive logging."""
     operation_logger = get_logger(
@@ -37,8 +38,6 @@ async def get_user_tweets(
             "max_results_per_user": get_request.max_results,
         },
     )
-
-    client = request.app.state.twitter_client
 
     try:
         tweets_dict: dict[str, list[str]] = {}

@@ -1,6 +1,7 @@
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
+from mcp_server_wikipedia.dependencies import get_wiki_service
 from mcp_server_wikipedia.schemas import GetSummaryRequest
 from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
                                             WikipediaAPIError,
@@ -16,7 +17,10 @@ router = APIRouter()
     tags=["Wikipedia"],
     operation_id="get_wikipedia_summary",
 )
-async def get_summary(request: Request, params: GetSummaryRequest) -> str:
+async def get_summary(
+    params: GetSummaryRequest,
+    wiki_service: _WikipediaService = Depends(get_wiki_service),
+) -> str:
     """
     Get a summary of a Wikipedia article.
 
@@ -24,7 +28,6 @@ async def get_summary(request: Request, params: GetSummaryRequest) -> str:
     understanding without retrieving the full content.
     """
     try:
-        wiki_service: _WikipediaService = request.app.state.wiki_service
         summary = await wiki_service.get_summary(params.title)
         return summary
     except PydanticValidationError as ve:

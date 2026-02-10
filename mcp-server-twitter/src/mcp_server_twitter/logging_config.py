@@ -4,7 +4,7 @@ import os
 import sys
 from datetime import datetime, timezone
 from logging.config import dictConfig
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ LOGGING_CONFIG = {
 class TwitterLoggerAdapter(logging.LoggerAdapter):
     """Custom logger adapter for Twitter operations with structured context."""
 
-    def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
+    def process(self, msg: str, kwargs: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         """Add extra context to log records."""
         extra = kwargs.get("extra", {})
 

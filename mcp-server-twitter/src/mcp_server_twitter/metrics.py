@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class MetricsCollector:
     """Centralized metrics collection and reporting."""
 
     def __init__(self):
-        self.operations: Dict[str, OperationMetrics] = defaultdict(
+        self.operations: dict[str, OperationMetrics] = defaultdict(
             lambda: OperationMetrics(name="unknown")
         )
         self._start_time: datetime = datetime.now(timezone.utc)
@@ -83,7 +83,7 @@ class MetricsCollector:
         """Get metrics for a specific operation."""
         return self.operations.get(operation_name, OperationMetrics(operation_name))
 
-    def get_all_metrics(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_metrics(self) -> dict[str, dict[str, Any]]:
         """Get all collected metrics as a dictionary."""
         now = datetime.now(timezone.utc)
         result = {

@@ -1,9 +1,3 @@
-"""
-This module implements hybrid (REST + MCP) endpoints for Twitter search operations.
-
-Main responsibility: Provide search endpoints that are available to both REST API consumers and AI agents via MCP.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -11,7 +5,8 @@ import logging
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from mcp_twitter.dependencies import get_registry, get_scraper
 from mcp_twitter.twitter import (OutputFormat, QueryDefinition, QueryType,
                                  SortOrder, TwitterScraper,
                                  create_profile_query, create_replies_query,
@@ -23,14 +18,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 DEFAULT_TIMEOUT_SECONDS = 600
-
-
-def _get_scraper(request: Request) -> TwitterScraper:
-    """Get scraper from app state."""
-    scraper = getattr(request.app.state, "scraper", None)
-    if not scraper:
-        raise HTTPException(status_code=500, detail="Scraper not initialized")
-    return scraper
 
 
 def _run_query_and_read(
@@ -185,7 +172,7 @@ class ProfileBatchResult(BaseModel):
 )
 async def search_topic(
     request: TopicSearchRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -194,7 +181,6 @@ async def search_topic(
     ),
 ) -> list[dict[str, Any]]:
     """Search tweets by topic/keyword."""
-    scraper = _get_scraper(http_request)
 
     try:
         logger.info(
@@ -251,7 +237,7 @@ async def search_topic(
 )
 async def search_profile(
     request: ProfileSearchRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -260,7 +246,6 @@ async def search_profile(
     ),
 ) -> list[dict[str, Any]]:
     """Search tweets from a specific user profile."""
-    scraper = _get_scraper(http_request)
 
     try:
         logger.info(
@@ -319,7 +304,7 @@ async def search_profile(
 )
 async def search_profile_latest(
     request: ProfileLatestRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -328,7 +313,6 @@ async def search_profile_latest(
     ),
 ) -> list[dict[str, Any]]:
     """Get the latest tweets from a specific user profile."""
-    scraper = _get_scraper(http_request)
 
     try:
         logger.info(
@@ -385,7 +369,7 @@ async def search_profile_latest(
 )
 async def search_replies(
     request: RepliesSearchRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -394,7 +378,6 @@ async def search_replies(
     ),
 ) -> list[dict[str, Any]]:
     """Search replies for a conversation thread."""
-    scraper = _get_scraper(http_request)
 
     try:
         logger.info(
@@ -455,7 +438,7 @@ async def search_replies(
 )
 async def search_profile_batch(
     request: ProfileBatchSearchRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -464,7 +447,6 @@ async def search_profile_batch(
     ),
 ) -> list[ProfileBatchResult]:
     """Search tweets from multiple user profiles in one request (looping per username)."""
-    scraper = _get_scraper(http_request)
 
     usernames: list[str] = []
     for raw in request.usernames:
@@ -561,7 +543,7 @@ async def search_profile_batch(
 )
 async def search_profile_latest_batch(
     request: ProfileLatestBatchRequest,
-    http_request: Request,
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -570,7 +552,6 @@ async def search_profile_latest_batch(
     ),
 ) -> list[ProfileBatchResult]:
     """Get the latest tweets from multiple user profiles in one request (looping per username)."""
-    scraper = _get_scraper(http_request)
 
     usernames: list[str] = []
     for raw in request.usernames:
@@ -667,7 +648,8 @@ async def search_profile_latest_batch(
 )
 async def run_query(
     query_id: str,
-    http_request: Request,
+    registry: QueryRegistry = Depends(get_registry),
+    scraper: TwitterScraper = Depends(get_scraper),
     timeout_seconds: int = Query(
         DEFAULT_TIMEOUT_SECONDS,
         ge=1,
@@ -676,9 +658,6 @@ async def run_query(
     ),
 ) -> list[dict[str, Any]]:
     """Run a predefined query by ID."""
-    registry = getattr(http_request.app.state, "registry", None)
-    scraper = _get_scraper(http_request)
-
     if not registry:
         raise HTTPException(status_code=500, detail="Registry not initialized")
 

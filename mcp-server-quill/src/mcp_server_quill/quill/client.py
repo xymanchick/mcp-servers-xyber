@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import httpx
 
@@ -19,7 +19,7 @@ class QuillAPI:
 
     async def get_token_info(
         self, token_address: str, chain_id: str = "1"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get security information for a specific token (Async).
 
@@ -35,7 +35,7 @@ class QuillAPI:
             response.raise_for_status()
             return response.json()
 
-    async def get_solana_token_info(self, token_address: str) -> Dict[str, Any]:
+    async def get_solana_token_info(self, token_address: str) -> dict[str, Any]:
         """
         Get security information for a Solana token (Async).
 

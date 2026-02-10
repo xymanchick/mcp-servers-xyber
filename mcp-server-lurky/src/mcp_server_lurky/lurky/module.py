@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 from mcp_server_lurky.lurky.config import LurkyServiceConfig
@@ -35,9 +35,9 @@ class LurkyClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        json_data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
         async with httpx.AsyncClient(timeout=self.config.timeout_seconds) as client:

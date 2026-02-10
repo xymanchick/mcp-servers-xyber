@@ -89,7 +89,7 @@ async def fetch_page(session: aiohttp.ClientSession, url: str) -> Optional[str]:
 
 async def crawl_gitbook(
     session: aiohttp.ClientSession, base_url: str, return_json: bool = False
-) -> Union[str, List[Dict[str, str]], None]:
+) -> Union[str, list[dict[str, str]], None]:
     logger.info("Falling back to crawling: %s", base_url)
 
     html = await fetch_page(session, base_url)
@@ -102,7 +102,7 @@ async def crawl_gitbook(
 
     seen = {base_url}
 
-    pages_data: List[Dict[str, str]] = [
+    pages_data: list[dict[str, str]] = [
         {
             "url": base_url,
             "title": extract_title(html),
@@ -110,7 +110,7 @@ async def crawl_gitbook(
         }
     ]
 
-    urls_to_fetch: List[str] = []
+    urls_to_fetch: list[str] = []
     for a in nav.find_all("a", href=True):
         href = a["href"]
         full_url = urljoin(base_url, href)

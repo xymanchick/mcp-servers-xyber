@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 from mcp_server_deepresearcher.deepresearcher.utils import (
     initialize_llm, initialize_llm_from_config)
@@ -8,7 +8,7 @@ from mcp_server_deepresearcher.deepresearcher.utils import (
 logger = logging.getLogger(__name__)
 
 
-def initialize_llms(llm_config: Optional[Dict[str, Any]] = None):
+def initialize_llms(llm_config: dict[str, Any] | None = None):
     if llm_config:
         logger.info("Initializing LLMs from provided configuration dictionary.")
         LLM = initialize_llm_from_config(llm_config.get("main"))

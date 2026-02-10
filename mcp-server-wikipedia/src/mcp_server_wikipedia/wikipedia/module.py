@@ -1,6 +1,6 @@
 import logging
 from functools import lru_cache
-from typing import Any, Dict, List
+from typing import Any
 
 import wikipedia
 import wikipediaapi
@@ -56,7 +56,7 @@ class _WikipediaService:
             )
             raise WikipediaAPIError(f"Wikipedia search failed: {e}") from e
 
-    async def get_article(self, title: str) -> Dict[str, Any]:
+    async def get_article(self, title: str) -> dict[str, Any]:
         """Get the full content and metadata of a Wikipedia article."""
         logger.info(f"Fetching full article for: '{title}'")
         page = self._get_page(title)

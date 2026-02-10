@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Dict, Generator, List
+from typing import Any, Generator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -106,7 +106,7 @@ def sample_scored_points() -> list[ScoredPoint]:
 
 
 @pytest.fixture
-def valid_store_request() -> Dict[str, Any]:
+def valid_store_request() -> dict[str, Any]:
     return {
         "collection_name": "test_collection",
         "information": "This is comprehensive test information about machine learning algorithms and their applications in real-world scenarios.",
@@ -122,7 +122,7 @@ def valid_store_request() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def valid_find_request() -> Dict[str, Any]:
+def valid_find_request() -> dict[str, Any]:
     return {
         "collection_name": "test_collection",
         "query": "machine learning algorithms neural networks",
@@ -132,7 +132,7 @@ def valid_find_request() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def valid_collection_info_request() -> Dict[str, Any]:
+def valid_collection_info_request() -> dict[str, Any]:
     return {"collection_name": "test_collection"}
 
 
@@ -155,7 +155,7 @@ def sample_collection_info() -> CollectionInfo:
 
 
 @pytest.fixture
-def invalid_requests() -> Dict[str, Dict[str, Any]]:
+def invalid_requests() -> dict[str, dict[str, Any]]:
     return {
         "store_missing_collection": {
             "information": "Test information"

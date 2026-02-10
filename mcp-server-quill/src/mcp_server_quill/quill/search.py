@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 from mcp_server_quill.config import DexScreenerConfig
@@ -22,8 +22,8 @@ class TokenSearchAPI:
         self.base_url = config.base_url
 
     async def search_token(
-        self, query: str, chain_id: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, query: str, chain_id: str | None = None
+    ) -> dict[str, Any] | None:
         """
         Search for a token by name or symbol and return the first matching address.
 
