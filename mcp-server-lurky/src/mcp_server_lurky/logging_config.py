@@ -2,7 +2,6 @@
 Logging configuration for MCP Lurky.
 """
 
-from logging.config import dictConfig
 
 from mcp_server_lurky.config import get_app_settings
 

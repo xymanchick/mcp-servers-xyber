@@ -6,13 +6,12 @@ retry count, exponential backoff timing and logging.
 
 import logging
 import time
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
-import aiohttp
 import pytest
-from aiohttp import ClientConnectionError, ClientResponseError
-from mcp_server_aave.aave.config import (AaveApiError, AaveClientError,
-                                         AaveConfig)
+from aiohttp import ClientConnectionError
+
+from mcp_server_aave.aave.config import AaveApiError, AaveClientError, AaveConfig
 from mcp_server_aave.aave.models import PoolData
 from mcp_server_aave.aave.module import AaveClient
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Set
 
 from mcp_server_hangman.hangman.models import GameState
 
@@ -26,8 +25,8 @@ class InvalidGuessError(HangmanError):
 class _HangmanGame:
     secret_word: str
     max_attempts: int
-    guessed_letters: Set[str] = field(default_factory=set)
-    incorrect_letters: Set[str] = field(default_factory=set)
+    guessed_letters: set[str] = field(default_factory=set)
+    incorrect_letters: set[str] = field(default_factory=set)
 
     @property
     def remaining_attempts(self) -> int:

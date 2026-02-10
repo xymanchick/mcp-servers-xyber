@@ -7,10 +7,13 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+
 from mcp_server_youtube.dependencies import get_youtube_service_search_only
-from mcp_server_youtube.schemas import (SearchOnlyResponse,
-                                        SearchVideosRequest,
-                                        VideoSearchResponse)
+from mcp_server_youtube.schemas import (
+    SearchOnlyResponse,
+    SearchVideosRequest,
+    VideoSearchResponse,
+)
 from mcp_server_youtube.youtube import YouTubeVideoSearchAndTranscript
 
 logger = logging.getLogger(__name__)

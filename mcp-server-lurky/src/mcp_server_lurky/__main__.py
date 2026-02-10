@@ -1,4 +1,5 @@
 import uvicorn
+
 from mcp_server_lurky.config import get_app_settings
 from mcp_server_lurky.logging_config import get_logging_config
 

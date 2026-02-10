@@ -5,13 +5,16 @@ from typing import Any, Final
 
 import httpx
 import pytest
+
 from mcp_server_weather.weather.config import WeatherConfig
-from mcp_server_weather.weather.errors import (WeatherApiError,
-                                               WeatherClientError)
+from mcp_server_weather.weather.errors import WeatherApiError, WeatherClientError
 from mcp_server_weather.weather.models import WeatherData
 from mcp_server_weather.weather.module import WeatherClient
-from tests.unit.weather.mocks import (MockHTTPResponse, MockWeatherHttpClient,
-                                      build_weather_payload)
+from tests.unit.weather.mocks import (
+    MockHTTPResponse,
+    MockWeatherHttpClient,
+    build_weather_payload,
+)
 
 LATITUDE: Final[str] = "51.5074"
 LONGITUDE: Final[str] = "-0.1278"

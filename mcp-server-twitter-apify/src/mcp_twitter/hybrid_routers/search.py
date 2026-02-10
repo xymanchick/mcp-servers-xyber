@@ -5,14 +5,21 @@ import logging
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from mcp_twitter.dependencies import get_registry, get_scraper
-from mcp_twitter.twitter import (OutputFormat, QueryDefinition, QueryType,
-                                 SortOrder, TwitterScraper,
-                                 create_profile_query, create_replies_query,
-                                 create_topic_query)
-from mcp_twitter.twitter import scraper as scraper_mod
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+
+from mcp_twitter.dependencies import get_registry, get_scraper
+from mcp_twitter.twitter import (
+    OutputFormat,
+    QueryDefinition,
+    SortOrder,
+    TwitterScraper,
+    create_profile_query,
+    create_replies_query,
+    create_topic_query,
+)
+from mcp_twitter.twitter import scraper as scraper_mod
+from mcp_twitter.twitter.registry import QueryRegistry
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -181,7 +188,6 @@ async def search_topic(
     ),
 ) -> list[dict[str, Any]]:
     """Search tweets by topic/keyword."""
-
     try:
         logger.info(
             "topic search start topic=%r sort=%s max_items=%s verified=%s image=%s lang=%s format=%s timeout=%ss",
@@ -217,7 +223,7 @@ async def search_topic(
         )
         logger.info("topic search done topic=%r items=%d", request.topic, len(items))
         return items
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(
             "topic search timeout topic=%r timeout=%ss", request.topic, timeout_seconds
         )
@@ -246,7 +252,6 @@ async def search_profile(
     ),
 ) -> list[dict[str, Any]]:
     """Search tweets from a specific user profile."""
-
     try:
         logger.info(
             "profile search start user=%r max_items=%s since=%r until=%r lang=%s format=%s timeout=%ss",
@@ -282,7 +287,7 @@ async def search_profile(
             "profile search done user=%r items=%d", request.username, len(items)
         )
         return items
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(
             "profile search timeout user=%r timeout=%ss",
             request.username,
@@ -313,7 +318,6 @@ async def search_profile_latest(
     ),
 ) -> list[dict[str, Any]]:
     """Get the latest tweets from a specific user profile."""
-
     try:
         logger.info(
             "profile latest start user=%r max_items=%s lang=%s format=%s timeout=%ss",
@@ -347,7 +351,7 @@ async def search_profile_latest(
             "profile latest done user=%r items=%d", request.username, len(items)
         )
         return items
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(
             "profile latest timeout user=%r timeout=%ss",
             request.username,
@@ -378,7 +382,6 @@ async def search_replies(
     ),
 ) -> list[dict[str, Any]]:
     """Search replies for a conversation thread."""
-
     try:
         logger.info(
             "replies search start conversation_id=%r max_items=%s lang=%s format=%s timeout=%ss",
@@ -412,7 +415,7 @@ async def search_replies(
             len(items),
         )
         return items
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(
             "replies search timeout conversation_id=%r timeout=%ss",
             request.conversation_id,
@@ -447,7 +450,6 @@ async def search_profile_batch(
     ),
 ) -> list[ProfileBatchResult]:
     """Search tweets from multiple user profiles in one request (looping per username)."""
-
     usernames: list[str] = []
     for raw in request.usernames:
         if not raw:
@@ -503,7 +505,7 @@ async def search_profile_batch(
             results.append(
                 ProfileBatchResult(username=username, items=items, error=None)
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(
                 "profile batch item timeout user=%r timeout=%ss",
                 username,
@@ -552,7 +554,6 @@ async def search_profile_latest_batch(
     ),
 ) -> list[ProfileBatchResult]:
     """Get the latest tweets from multiple user profiles in one request (looping per username)."""
-
     usernames: list[str] = []
     for raw in request.usernames:
         if not raw:
@@ -606,7 +607,7 @@ async def search_profile_latest_batch(
             results.append(
                 ProfileBatchResult(username=username, items=items, error=None)
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(
                 "profile latest batch item timeout user=%r timeout=%ss",
                 username,
@@ -679,7 +680,7 @@ async def run_query(
         )
         logger.info("preset run done id=%s items=%d", query.id, len(items))
         return items
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error("preset run timeout id=%s timeout=%ss", query_id, timeout_seconds)
         raise HTTPException(
             status_code=504,

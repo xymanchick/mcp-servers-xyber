@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+
 from mcp_server_lurky.dependencies import get_db, get_lurky_client
-from mcp_server_lurky.lurky.errors import (LurkyAPIError, LurkyAuthError,
-                                           LurkyNotFoundError)
+from mcp_server_lurky.lurky.errors import (
+    LurkyAPIError,
+    LurkyAuthError,
+    LurkyNotFoundError,
+)
 from mcp_server_lurky.lurky.module import LurkyClient
 from mcp_server_lurky.schemas import SearchResponseSchema, SpaceDetailsSchema
 

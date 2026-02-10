@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+
 from mcp_server_weather.dependencies import get_weather_client
 from mcp_server_weather.hybrid_routers.current_weather import (
-    API_KEY_HEADER, get_current_weather)
-from mcp_server_weather.hybrid_routers.current_weather import \
-    router as current_router
+    API_KEY_HEADER,
+    get_current_weather,
+)
+from mcp_server_weather.hybrid_routers.current_weather import router as current_router
 from mcp_server_weather.hybrid_routers.forecast import get_weather_forecast
-from mcp_server_weather.hybrid_routers.forecast import \
-    router as forecast_router
-from mcp_server_weather.schemas import (ForecastResponse, LocationRequest,
-                                        WeatherResponse)
+from mcp_server_weather.hybrid_routers.forecast import router as forecast_router
+from mcp_server_weather.schemas import (
+    ForecastResponse,
+    LocationRequest,
+    WeatherResponse,
+)
 from mcp_server_weather.weather.models import WeatherData
 
 

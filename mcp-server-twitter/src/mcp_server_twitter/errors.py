@@ -216,7 +216,6 @@ class TwitterClientError(TwitterMCPError):
 
 def create_final_retry_exception(retry_state, base_exception_class=TwitterAPIError):
     """Create a descriptive exception after all retry attempts are exhausted."""
-
     attempt_number = retry_state.attempt_number
     outcome = retry_state.outcome
     operation_name = getattr(retry_state.fn, "__name__", "unknown_operation")

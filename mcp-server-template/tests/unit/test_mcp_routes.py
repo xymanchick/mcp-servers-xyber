@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from mcp_server_weather.mcp_routers.analysis import get_weather_analysis
 from mcp_server_weather.mcp_routers.geolocation import geolocate_city
 from mcp_server_weather.weather.models import WeatherData

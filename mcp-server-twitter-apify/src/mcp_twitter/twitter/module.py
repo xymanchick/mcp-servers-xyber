@@ -11,8 +11,9 @@ from functools import lru_cache
 from typing import Any
 
 from mcp_twitter.twitter.config import TwitterConfig, get_twitter_config
-from mcp_twitter.twitter.errors import TwitterApiError, TwitterClientError
+from mcp_twitter.twitter.errors import TwitterClientError
 from mcp_twitter.twitter.models import TwitterData
+
 # Import the existing scraper to wrap it
 from mcp_twitter.twitter.scraper import TwitterScraper
 

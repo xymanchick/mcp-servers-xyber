@@ -3,7 +3,9 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from mcp_server_deepresearcher.deepresearcher.utils import (
-    create_mcp_tasks, filter_mcp_tools_for_deepresearcher)
+    create_mcp_tasks,
+    filter_mcp_tools_for_deepresearcher,
+)
 
 
 def _tool(name: str) -> MagicMock:

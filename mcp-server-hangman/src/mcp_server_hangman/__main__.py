@@ -2,6 +2,7 @@ import argparse
 import logging
 
 import uvicorn
+
 from mcp_server_hangman.config import get_app_settings
 from mcp_server_hangman.logging_config import get_logging_config
 

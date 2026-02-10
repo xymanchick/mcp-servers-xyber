@@ -1,10 +1,12 @@
 import asyncio
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from mcp_server_qdrant.qdrant import QdrantConnector
 from qdrant_client.models import CollectionInfo, ScoredPoint
+
+from mcp_server_qdrant.qdrant import QdrantConnector
 
 
 @pytest.fixture(scope="session")

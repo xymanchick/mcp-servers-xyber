@@ -2,12 +2,15 @@ import logging
 
 from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
+from qdrant_client.models import CollectionInfo, ScoredPoint
+
 from mcp_server_qdrant.dependencies import get_qdrant_connector
 from mcp_server_qdrant.qdrant import Entry, QdrantConnector
-from mcp_server_qdrant.schemas import (QdrantFindRequest,
-                                       QdrantGetCollectionInfoRequest,
-                                       QdrantStoreRequest)
-from qdrant_client.models import CollectionInfo, ScoredPoint
+from mcp_server_qdrant.schemas import (
+    QdrantFindRequest,
+    QdrantGetCollectionInfoRequest,
+    QdrantStoreRequest,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -26,7 +29,6 @@ async def qdrant_store(
     Keep the memory for later use, when you are asked to remember something.
     The collection will be created automatically with configured settings if it doesn't exist.
     """
-
     try:
         # Execute core logic using the validated request data
         entry = Entry(content=request_body.information, metadata=request_body.metadata)
@@ -58,7 +60,6 @@ async def qdrant_find(
     You can optionally filter by metadata fields (e.g., {"metadata.user_id": "alice", "metadata.category": "work"}).
     Filtering by tenant fields (if configured) will be much faster than filtering by other fields.
     """
-
     try:
         # Execute core logic using the validated request data
         search_results = await qdrant_connector.search(
@@ -98,7 +99,6 @@ async def qdrant_get_collection_info(
     Use this to understand how a collection is set up, what fields are indexed,
     if it's configured for multi-tenancy, and its vector parameters.
     """
-
     try:
         collection_details = await qdrant_connector.get_collection_details(
             request_body.collection_name
@@ -132,7 +132,6 @@ async def qdrant_get_collections(
     Retrieves the names of all collections in the Qdrant database.
     Use this to discover what collections are available before storing or searching data.
     """
-
     try:
         collection_names = await qdrant_connector.get_collection_names()
         logger.info(f"Successfully retrieved {len(collection_names)} collection names")

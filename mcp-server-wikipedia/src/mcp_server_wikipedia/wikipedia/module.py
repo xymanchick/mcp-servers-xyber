@@ -4,10 +4,13 @@ from typing import Any
 
 import wikipedia
 import wikipediaapi
+
 from mcp_server_wikipedia.wikipedia.config import WikipediaConfig
-from mcp_server_wikipedia.wikipedia.models import (ArticleNotFoundError,
-                                                   WikipediaAPIError,
-                                                   WikipediaConfigError)
+from mcp_server_wikipedia.wikipedia.models import (
+    ArticleNotFoundError,
+    WikipediaAPIError,
+    WikipediaConfigError,
+)
 
 logger = logging.getLogger(__name__)
 

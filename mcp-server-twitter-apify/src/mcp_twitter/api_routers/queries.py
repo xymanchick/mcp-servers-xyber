@@ -5,12 +5,12 @@ Main responsibility: Provide endpoints for listing query types and queries that 
 """
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+
 from mcp_twitter.dependencies import get_registry, get_scraper
 from mcp_twitter.twitter import QueryRegistry, QueryType, TwitterScraper
-from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

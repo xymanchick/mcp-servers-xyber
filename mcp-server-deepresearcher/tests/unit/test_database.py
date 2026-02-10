@@ -8,10 +8,10 @@ from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from mcp_server_deepresearcher.db.database import Database, get_db_instance
-from mcp_server_deepresearcher.db.models import Base, ResearchReport
-from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+
+from mcp_server_deepresearcher.db.database import Database, get_db_instance
+from mcp_server_deepresearcher.db.models import ResearchReport
 
 
 @pytest.fixture
@@ -129,7 +129,6 @@ async def test_database_initialization_with_custom_url(monkeypatch):
 @pytest.mark.asyncio
 async def test_database_initialization_retry_logic(monkeypatch):
     """Test database initialization retry logic."""
-    import time
 
     call_count = 0
 
@@ -186,7 +185,6 @@ async def test_research_report_model_fields():
 @pytest.mark.asyncio
 async def test_research_report_timestamps(mock_database):
     """Test that research reports have timestamps."""
-    from datetime import datetime
 
     report = ResearchReport(
         research_topic="test",

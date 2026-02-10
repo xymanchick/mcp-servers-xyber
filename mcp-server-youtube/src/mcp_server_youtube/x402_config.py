@@ -119,6 +119,7 @@ class X402Config(BaseSettings):
 
         Logs warnings for:
             - pricing_mode='off' when pricing config exists (payments disabled but config present)
+
         """
         has_pricing = bool(self.pricing)
 

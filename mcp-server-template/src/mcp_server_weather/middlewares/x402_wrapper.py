@@ -19,19 +19,25 @@ from typing import Any
 import httpx
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
-from mcp_server_weather.x402_config import (CHAIN_ID_TO_NETWORK,
-                                            PaymentOptionConfig, X402Config,
-                                            get_x402_settings)
-from starlette.middleware.base import (BaseHTTPMiddleware,
-                                       RequestResponseEndpoint)
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.routing import Match
-from x402.http import (PAYMENT_REQUIRED_HEADER, HTTPFacilitatorClient,
-                       encode_payment_required_header, safe_base64_decode,
-                       safe_base64_encode)
+from x402.http import (
+    PAYMENT_REQUIRED_HEADER,
+    HTTPFacilitatorClient,
+    encode_payment_required_header,
+    safe_base64_decode,
+    safe_base64_encode,
+)
 from x402.mechanisms.evm.exact import ExactEvmServerScheme
-from x402.schemas import (Network, PaymentPayload, PaymentRequired,
-                          PaymentRequirements)
+from x402.schemas import Network, PaymentPayload, PaymentRequired, PaymentRequirements
 from x402.server import x402ResourceServer
+
+from mcp_server_weather.x402_config import (
+    CHAIN_ID_TO_NETWORK,
+    PaymentOptionConfig,
+    X402Config,
+    get_x402_settings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -248,7 +254,8 @@ class X402WrapperMiddleware(BaseHTTPMiddleware):
     def _create_402_response(
         self, requirements: list[PaymentRequirements], error: str
     ) -> JSONResponse:
-        """Constructs a 402 Payment Required response (v2 format).
+        """
+        Constructs a 402 Payment Required response (v2 format).
 
         In v2, the payment requirements are sent in the PAYMENT-REQUIRED header
         (base64 encoded) as well as in the JSON body for backward compatibility.

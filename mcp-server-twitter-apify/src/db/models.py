@@ -9,8 +9,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import (BigInteger, DateTime, ForeignKey, Index, Integer,
-                        String, Text, func)
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
@@ -26,7 +34,6 @@ def _json_type() -> type[JSON]:
     Postgres will store this as JSON; if you want JSONB specifically later, we can
     introduce dialect-specific types via migrations.
     """
-
     return JSON
 
 
@@ -54,7 +61,7 @@ class QueryCacheEntry(Base):
     )
 
     # Relationship
-    items: Mapped[list["QueryCacheItem"]] = relationship(
+    items: Mapped[list[QueryCacheItem]] = relationship(
         "QueryCacheItem", back_populates="cache_entry", cascade="all, delete-orphan"
     )
 
@@ -83,7 +90,7 @@ class TweetAuthor(Base):
     )
 
     # Relationship
-    tweets: Mapped[list["Tweet"]] = relationship("Tweet", back_populates="author")
+    tweets: Mapped[list[Tweet]] = relationship("Tweet", back_populates="author")
 
 
 class Tweet(Base):
@@ -112,7 +119,7 @@ class Tweet(Base):
         nullable=True,
         index=True,
     )
-    author: Mapped["TweetAuthor | None"] = relationship(
+    author: Mapped[TweetAuthor | None] = relationship(
         "TweetAuthor", back_populates="tweets"
     )
 
@@ -140,7 +147,7 @@ class Tweet(Base):
     )  # Full tweet JSON for max format
 
     # Relationship to query cache items
-    cache_items: Mapped[list["QueryCacheItem"]] = relationship(
+    cache_items: Mapped[list[QueryCacheItem]] = relationship(
         "QueryCacheItem", back_populates="tweet"
     )
 
@@ -170,8 +177,8 @@ class QueryCacheItem(Base):
     )  # Order within the query result
 
     # Relationships
-    tweet: Mapped["Tweet"] = relationship("Tweet", back_populates="cache_items")
-    cache_entry: Mapped["QueryCacheEntry"] = relationship(
+    tweet: Mapped[Tweet] = relationship("Tweet", back_populates="cache_items")
+    cache_entry: Mapped[QueryCacheEntry] = relationship(
         "QueryCacheEntry", back_populates="items"
     )
 

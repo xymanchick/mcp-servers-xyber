@@ -1,8 +1,7 @@
 import json
 import logging
 import os
-import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from logging.config import dictConfig
 from typing import Any, Literal
 
@@ -20,7 +19,7 @@ class StructuredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         # Base log structure
         log_entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
             "module": record.module,
@@ -116,7 +115,6 @@ class TwitterLoggerAdapter(logging.LoggerAdapter):
 
 def log_retry_attempt(retry_state):
     """Enhanced retry logging with comprehensive context and rate limiting."""
-
     # Extract retry context
     attempt_number = retry_state.attempt_number
     outcome = retry_state.outcome

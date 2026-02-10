@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
+
 from mcp_server_youtube.api_routers import routers as api_routers
 from mcp_server_youtube.config import get_app_settings
 from mcp_server_youtube.dependencies import DependencyContainer
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
 
     Returns:
         Configured FastAPI application ready to serve requests
+
     """
     # --- MCP Server Generation ---
     mcp_source_app = FastAPI(title="MCP Source")

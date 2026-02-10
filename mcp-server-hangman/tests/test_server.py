@@ -1,18 +1,15 @@
 """Test cases for hangman MCP server tools."""
 
-from unittest.mock import MagicMock
 
 import pytest
 from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
+
 from mcp_server_hangman.dependencies import get_hangman_service
-from mcp_server_hangman.hangman.models import GameState
 from mcp_server_hangman.hangman.module import HangmanService
 from mcp_server_hangman.hybrid_routers.guess_letter import guess_letter
-from mcp_server_hangman.hybrid_routers.guess_letter import \
-    router as guess_letter_router
-from mcp_server_hangman.hybrid_routers.start_game import \
-    router as start_game_router
+from mcp_server_hangman.hybrid_routers.guess_letter import router as guess_letter_router
+from mcp_server_hangman.hybrid_routers.start_game import router as start_game_router
 from mcp_server_hangman.hybrid_routers.start_game import start_game
 from mcp_server_hangman.schemas import GuessLetterRequest, StartGameRequest
 

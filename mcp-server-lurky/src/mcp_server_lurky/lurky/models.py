@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class Discussion(BaseModel):
@@ -10,38 +10,38 @@ class Discussion(BaseModel):
     space_id: str
     title: str
     summary: str
-    timestamp: Optional[int] = None
+    timestamp: int | None = None
     coins: list[dict[str, Any]] = []
     categories: list[str] = []
 
 
 class SpaceDetails(BaseModel):
     id: str
-    creator_id: Optional[str] = None
-    creator_handle: Optional[str] = None
-    title: Optional[str] = None
-    summary: Optional[str] = None
-    minimized_summary: Optional[str] = None
-    state: Optional[str] = None
-    language: Optional[str] = None
-    overall_sentiment: Optional[str] = None
+    creator_id: str | None = None
+    creator_handle: str | None = None
+    title: str | None = None
+    summary: str | None = None
+    minimized_summary: str | None = None
+    state: str | None = None
+    language: str | None = None
+    overall_sentiment: str | None = None
     participant_count: int = 0
     subscriber_count: int = 0
     likes: int = 0
     categories: list[str] = []
-    created_at: Optional[int] = None
-    started_at: Optional[int] = None
-    scheduled_at: Optional[int] = None
-    ended_at: Optional[int] = None
-    analyzed_at: Optional[int] = None
+    created_at: int | None = None
+    started_at: int | None = None
+    scheduled_at: int | None = None
+    ended_at: int | None = None
+    analyzed_at: int | None = None
     discussions: list[Discussion] = []
 
 
 class MindMapNode(BaseModel):
     id: str
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
     title: str
-    summary: Optional[str] = None
+    summary: str | None = None
 
 
 class MindMap(BaseModel):

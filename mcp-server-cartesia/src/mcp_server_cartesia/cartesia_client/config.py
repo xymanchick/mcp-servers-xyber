@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional
+from typing import Any
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -24,8 +24,8 @@ class CartesiaApiError(CartesiaClientError):
     def __init__(
         self,
         message: str,
-        status_code: Optional[int] = None,
-        details: Optional[Any] = None,
+        status_code: int | None = None,
+        details: Any | None = None,
     ):
         super().__init__(message)
         self.status_code = status_code  # Store status if available from API response

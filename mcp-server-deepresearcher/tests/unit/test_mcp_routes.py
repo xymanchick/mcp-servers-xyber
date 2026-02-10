@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
+
 from mcp_server_deepresearcher.app import get_mcp_server
 from mcp_server_deepresearcher.schemas import DeepResearchRequest
 

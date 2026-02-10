@@ -9,14 +9,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastmcp import FastMCP
 from langchain_mcp_adapters.client import MultiServerMCPClient
+
 from mcp_server_deepresearcher.api_routers import routers as api_routers
-from mcp_server_deepresearcher.deepresearcher.config import (LLM_Config,
-                                                             SearchMCP_Config)
+from mcp_server_deepresearcher.deepresearcher.config import LLM_Config, SearchMCP_Config
 from mcp_server_deepresearcher.deepresearcher.state import ToolDescription
 from mcp_server_deepresearcher.deepresearcher.utils import (
-    construct_tools_description_yaml, filter_mcp_tools_for_deepresearcher,
-    initialize_llm, load_mcp_servers_config, parse_tools_description_from_yaml,
-    setup_llm, setup_spare_llm)
+    construct_tools_description_yaml,
+    filter_mcp_tools_for_deepresearcher,
+    initialize_llm,
+    load_mcp_servers_config,
+    parse_tools_description_from_yaml,
+    setup_llm,
+    setup_spare_llm,
+)
 from mcp_server_deepresearcher.dependencies import DependencyContainer
 from mcp_server_deepresearcher.hybrid_routers import routers as hybrid_routers
 from mcp_server_deepresearcher.logging_config import configure_logging
@@ -48,7 +53,6 @@ async def app_lifespan(app: FastAPI):
 
     try:
         # Load configurations
-        llm_config = LLM_Config()
         search_mcp_config = SearchMCP_Config()
 
         # Initialize LLMs
@@ -121,7 +125,7 @@ async def app_lifespan(app: FastAPI):
                         f"✓ Connected to {server_name} but no tools returned"
                     )
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 error_msg = (
                     f"Timeout connecting to {server_name} MCP server after 30 seconds"
                 )
@@ -255,6 +259,7 @@ def create_app() -> FastAPI:
 
     Returns:
         Configured FastAPI application ready to serve requests
+
     """
     # --- MCP Server Generation ---
     # Create a FastAPI app containing only MCP-exposed endpoints

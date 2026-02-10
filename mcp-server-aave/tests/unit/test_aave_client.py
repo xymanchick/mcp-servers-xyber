@@ -1,16 +1,14 @@
 """Test cases for AaveClient module."""
 
-import json
 import time
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import aiohttp
 import pytest
 from aioresponses import aioresponses
-from mcp_server_aave.aave.config import (AaveApiError, AaveClientError,
-                                         AaveConfigError, get_aave_config)
-from mcp_server_aave.aave.models import (AssetData, PoolData, ReserveData,
-                                         RiskData)
+
+from mcp_server_aave.aave.config import AaveApiError
+from mcp_server_aave.aave.models import PoolData
 from mcp_server_aave.aave.module import AaveClient, get_aave_client
 
 

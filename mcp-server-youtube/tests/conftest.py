@@ -3,12 +3,12 @@ Pytest configuration and shared fixtures.
 """
 
 import os
-from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
 from mcp_server_youtube.app import create_app
 from mcp_server_youtube.youtube import YouTubeVideoSearchAndTranscript
 

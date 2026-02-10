@@ -8,4 +8,3 @@ _env_file = _tests_dir / ".env.tests"
 if _env_file.exists():
     load_dotenv(_env_file, override=True)
 
-import pytest

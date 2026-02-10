@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, Field, HttpUrl
 
 
@@ -30,7 +28,7 @@ class ConvertGithubRequest(BaseModel):
         description="The GitHub repository URL to convert.",
         examples=["https://github.com/coderamp-labs/gitingest"],
     )
-    token: Optional[str] = Field(
+    token: str | None = Field(
         None, description="GitHub Personal Access Token for private repositories."
     )
     include_submodules: bool = Field(
@@ -52,4 +50,4 @@ class ConvertResponse(BaseModel):
 class ErrorResponse(BaseModel):
     success: bool = Field(False, description="Always false for errors.")
     error: str = Field(..., description="Error message.")
-    url: Optional[str] = Field(None, description="The URL that caused the error.")
+    url: str | None = Field(None, description="The URL that caused the error.")

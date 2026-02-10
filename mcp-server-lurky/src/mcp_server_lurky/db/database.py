@@ -1,12 +1,13 @@
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from mcp_server_lurky.config import get_app_settings
-from mcp_server_lurky.db.models import Base, LurkyDiscussion, LurkySpace
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload, sessionmaker
+
+from mcp_server_lurky.config import get_app_settings
+from mcp_server_lurky.db.models import Base, LurkyDiscussion, LurkySpace
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 class DatabaseManager:
     """Manages database connections and operations for Lurky space caching."""
 
-    def __init__(self, database_url: Optional[str] = None):
+    def __init__(self, database_url: str | None = None):
         if database_url is None:
             settings = get_app_settings()
             database_url = settings.database.DATABASE_URL
@@ -92,7 +93,7 @@ class DatabaseManager:
     def get_session(self) -> Session:
         return self.SessionLocal()
 
-    def get_space(self, space_id: str) -> Optional[LurkySpace]:
+    def get_space(self, space_id: str) -> LurkySpace | None:
         session = self.get_session()
         try:
             space = (
@@ -130,7 +131,7 @@ class DatabaseManager:
                 val = space_data.get(field)
                 if isinstance(val, (int, float)):
                     space_data[field] = datetime.fromtimestamp(
-                        val / 1000, tz=timezone.utc
+                        val / 1000, tz=UTC
                     )
 
             discussions_data = space_data.pop("discussions", [])
@@ -158,14 +159,14 @@ class DatabaseManager:
                     d_ts = d_data.get("timestamp")
                     if isinstance(d_ts, (int, float)):
                         d_data["timestamp"] = datetime.fromtimestamp(
-                            d_ts / 1000, tz=timezone.utc
+                            d_ts / 1000, tz=UTC
                         )
 
                     # Convert started_at if present (should be epoch milliseconds)
                     d_started_at = d_data.get("started_at")
                     if isinstance(d_started_at, (int, float)):
                         d_data["started_at"] = datetime.fromtimestamp(
-                            d_started_at / 1000, tz=timezone.utc
+                            d_started_at / 1000, tz=UTC
                         )
                     elif d_started_at is None:
                         # Ensure None is explicitly set
@@ -190,7 +191,7 @@ class DatabaseManager:
             session.close()
 
 
-_db_manager: Optional[DatabaseManager] = None
+_db_manager: DatabaseManager | None = None
 
 
 def get_db_manager() -> DatabaseManager:

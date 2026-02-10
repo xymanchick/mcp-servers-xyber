@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException, Path, Query
+
 from mcp_server_quill.dependencies import QuillClientDep, SearchClientDep
 
 logger = logging.getLogger(__name__)

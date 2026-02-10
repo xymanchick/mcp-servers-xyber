@@ -6,9 +6,14 @@ from pathlib import Path
 from typing import Any
 
 from apify_client import ApifyClient
+
 from mcp_twitter.config import AppSettings
-from mcp_twitter.twitter.models import (OutputFormat, QueryDefinition,
-                                        QueryType, TwitterScraperInput)
+from mcp_twitter.twitter.models import (
+    OutputFormat,
+    QueryDefinition,
+    QueryType,
+    TwitterScraperInput,
+)
 
 # Import moved to _get_db method to avoid circular import
 
@@ -42,7 +47,7 @@ class TwitterScraper:
         self.use_cache = use_cache
 
         # Database instance (lazy-loaded)
-        self._db: "Database | None" = None
+        self._db: Database | None = None
 
         # Store last run items for API access
         self._last_items: list[dict[str, Any]] | None = None
@@ -57,7 +62,6 @@ class TwitterScraper:
     @staticmethod
     def _minimize_item(item: dict[str, Any]) -> dict[str, Any]:
         """Keep only the highest-signal tweet fields."""
-
         author = item.get("author") or {}
         if isinstance(author, dict):
             author_min = {
@@ -85,13 +89,13 @@ class TwitterScraper:
         }
         return {k: v for k, v in out.items() if v is not None}
 
-    def _get_db(self) -> "Database | None":
+    def _get_db(self) -> Database | None:
         """Get database instance, initializing if needed."""
         if not self.use_cache:
             return None
         if self._db is None:
             try:
-                from db import Database, get_db_instance
+                from db import get_db_instance
 
                 self._db = get_db_instance()
             except Exception as e:
@@ -115,6 +119,7 @@ class TwitterScraper:
 
         Returns:
             Path object (for backward compatibility, but data is stored in DB)
+
         """
         db = self._get_db()
         run_dict: dict[str, Any] = run_input.model_dump(exclude_none=True)

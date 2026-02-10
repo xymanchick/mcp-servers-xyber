@@ -1,5 +1,6 @@
-from mcp_server_arxiv.xy_arxiv.models import ArxivSearchResult
 from pydantic import BaseModel, Field, model_validator
+
+from mcp_server_arxiv.xy_arxiv.models import ArxivSearchResult
 
 
 class SearchRequest(BaseModel):

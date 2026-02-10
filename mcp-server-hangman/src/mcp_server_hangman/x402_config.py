@@ -137,6 +137,7 @@ class X402Config(BaseSettings):
 
         Raises:
             ValueError: If pricing_mode='on' but no pricing configuration exists.
+
         """
         has_pricing = bool(self.pricing)
 

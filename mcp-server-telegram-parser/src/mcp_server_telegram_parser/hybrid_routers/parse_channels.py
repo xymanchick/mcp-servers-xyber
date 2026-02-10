@@ -1,9 +1,10 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
 from mcp_server_telegram_parser.schemas import TelegramParseResult
 from mcp_server_telegram_parser.telegram.module import get_parser_service
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

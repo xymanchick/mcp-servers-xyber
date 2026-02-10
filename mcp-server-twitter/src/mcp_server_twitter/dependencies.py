@@ -12,13 +12,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         await DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(client: AsyncTwitterClient = Depends(get_twitter_client_dep)):
             ...
+
     """
 
     _twitter_client: AsyncTwitterClient | None = None

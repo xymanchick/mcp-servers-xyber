@@ -6,13 +6,21 @@ from typing import Any
 
 import anyio
 from fastapi import APIRouter, Depends, HTTPException, Query
-from mcp_twitter.dependencies import get_registry, get_scraper
-from mcp_twitter.twitter import (OutputFormat, QueryDefinition, QueryRegistry,
-                                 QueryType, SortOrder, TwitterScraper,
-                                 create_profile_query, create_replies_query,
-                                 create_topic_query)
-from mcp_twitter.twitter import scraper as scraper_mod
 from pydantic import BaseModel, ConfigDict, Field
+
+from mcp_twitter.dependencies import get_registry, get_scraper
+from mcp_twitter.twitter import (
+    OutputFormat,
+    QueryDefinition,
+    QueryRegistry,
+    QueryType,
+    SortOrder,
+    TwitterScraper,
+    create_profile_query,
+    create_replies_query,
+    create_topic_query,
+)
+from mcp_twitter.twitter import scraper as scraper_mod
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -203,7 +211,6 @@ async def search_topic(
     This tool searches Twitter for tweets matching a specific topic or keyword.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-
     try:
         logger.info(
             "MCP topic search start topic=%r max_items=%s sort=%s verified=%s image=%s lang=%s format=%s timeout=%ss",
@@ -266,7 +273,6 @@ async def search_profile(
     This tool searches for tweets from a specific Twitter user within an optional date range.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-
     try:
         logger.info(
             "MCP profile search start user=%r max_items=%s since=%r until=%r lang=%s format=%s timeout=%ss",
@@ -329,7 +335,6 @@ async def search_profile_latest(
     This tool retrieves the most recent tweets from a Twitter user without requiring a date range.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-
     try:
         logger.info(
             "MCP profile latest start user=%r max_items=%s lang=%s format=%s timeout=%ss",
@@ -390,7 +395,6 @@ async def search_replies(
     This tool retrieves replies to a specific Twitter conversation thread.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-
     try:
         logger.info(
             "MCP replies search start conversation_id=%r max_items=%s lang=%s format=%s timeout=%ss",
@@ -446,7 +450,6 @@ async def search_profile_batch(
     This tool searches for tweets from multiple Twitter users within an optional date range.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-
     usernames: list[str] = []
     for raw in request.usernames:
         if not raw:
@@ -525,7 +528,6 @@ async def search_profile_latest_batch(
     This tool retrieves the most recent tweets from multiple Twitter users without requiring a date range.
     It is available exclusively to AI agents via MCP and not exposed as a REST endpoint.
     """
-
     usernames: list[str] = []
     for raw in request.usernames:
         if not raw:

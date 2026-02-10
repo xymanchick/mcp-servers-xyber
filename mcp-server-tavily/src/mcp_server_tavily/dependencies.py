@@ -1,8 +1,7 @@
 import logging
 
 from mcp_server_tavily.tavily import _TavilyService
-from mcp_server_tavily.tavily import \
-    get_tavily_service as create_tavily_service
+from mcp_server_tavily.tavily import get_tavily_service as create_tavily_service
 
 logger = logging.getLogger(__name__)
 
@@ -14,13 +13,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(tavily_service: _TavilyService = Depends(get_tavily_service)):
             ...
+
     """
 
     _tavily_service: _TavilyService | None = None

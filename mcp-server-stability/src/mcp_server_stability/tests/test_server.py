@@ -1,14 +1,16 @@
 import base64
 from unittest.mock import AsyncMock, Mock, patch
 
-import httpx
 import pytest
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from mcp_server_stability.server import app_lifespan, mcp_server
+
 from mcp_server_stability.stable_diffusion import (
-    StabilityService, StableDiffusionClientError,
-    StableDiffusionServerConnectionError)
+    StabilityService,
+    StableDiffusionClientError,
+    StableDiffusionServerConnectionError,
+)
 
 tools = mcp_server._tool_manager._tools
 generate_image_tool = tools.get("generate_image")

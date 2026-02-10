@@ -4,14 +4,14 @@ import base64
 import json
 
 import httpx
-import pytest
 import pytest_asyncio
 from eth_account import Account
-from tests.e2e.config import load_e2e_config, require_base_url, require_wallet
 from x402.client import x402Client
 from x402.http.clients import x402HttpxClient
 from x402.mechanisms.evm.exact import register_exact_evm_client
 from x402.mechanisms.evm.signers import EthAccountSigner
+
+from tests.e2e.config import load_e2e_config, require_base_url, require_wallet
 
 
 def print_payment_info(response):

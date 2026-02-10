@@ -1,5 +1,4 @@
 from functools import lru_cache
-from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -40,7 +39,8 @@ class AaveContractError(AaveError):
 
 
 class AaveConfig(BaseSettings):
-    """Configuration for the AAVE DeFi protocol service.
+    """
+    Configuration for the AAVE DeFi protocol service.
 
     Attributes:
         rpc_url: Ethereum RPC URL for blockchain interactions
@@ -50,6 +50,7 @@ class AaveConfig(BaseSettings):
         cache_ttl_seconds: Cache time-to-live in seconds
         max_retries: Maximum number of retry attempts
         retry_delay: Delay between retries in seconds
+
     """
 
     # Pydantic Settings configuration
@@ -90,13 +91,15 @@ class AaveConfig(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_aave_config() -> AaveConfig:
-    """Get a cached instance of AaveConfig.
+    """
+    Get a cached instance of AaveConfig.
 
     Returns:
         Validated AaveConfig instance
 
     Raises:
         AaveConfigError: If configuration validation fails
+
     """
     try:
         config = AaveConfig()

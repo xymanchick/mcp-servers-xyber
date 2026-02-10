@@ -87,11 +87,12 @@ class X402Config(BaseSettings):
             # See: https://docs.cdp.coinbase.com/x402/docs/facilitator
             logger.info("CDP API keys found, configuring for mainnet facilitator.")
             try:
-                from cdp.auth.utils.http import (GetAuthHeadersOptions,
-                                                 get_auth_headers)
-                from cdp.x402.x402 import (COINBASE_FACILITATOR_BASE_URL,
-                                           COINBASE_FACILITATOR_V2_ROUTE,
-                                           X402_VERSION)
+                from cdp.auth.utils.http import GetAuthHeadersOptions, get_auth_headers
+                from cdp.x402.x402 import (
+                    COINBASE_FACILITATOR_BASE_URL,
+                    COINBASE_FACILITATOR_V2_ROUTE,
+                    X402_VERSION,
+                )
 
                 api_key_id = self.cdp_api_key_id
                 api_key_secret = self.cdp_api_key_secret
@@ -262,6 +263,7 @@ class X402Config(BaseSettings):
 
         Logs warnings for:
             - pricing_mode='off' when pricing config exists (payments disabled but config present)
+
         """
         has_pricing = bool(self.pricing)
 

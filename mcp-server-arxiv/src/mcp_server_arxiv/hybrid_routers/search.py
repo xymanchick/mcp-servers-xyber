@@ -1,10 +1,10 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+
 from mcp_server_arxiv.dependencies import get_arxiv_service
 from mcp_server_arxiv.schemas import ArxivPaperResponse, SearchRequest
-from mcp_server_arxiv.xy_arxiv import (ArxivApiError, ArxivServiceError,
-                                       _ArxivService)
+from mcp_server_arxiv.xy_arxiv import ArxivApiError, ArxivServiceError, _ArxivService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

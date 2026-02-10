@@ -9,7 +9,7 @@ class FixedDatetime:
     """Simple datetime stub for deterministic filenames in tests."""
 
     @classmethod
-    def now(cls) -> "FixedDatetime":  # noqa: D102
+    def now(cls) -> FixedDatetime:  # noqa: D102
         return cls()
 
     def strftime(self, fmt: str) -> str:  # noqa: D102

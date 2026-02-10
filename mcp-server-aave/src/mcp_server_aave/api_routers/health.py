@@ -12,7 +12,8 @@ router = APIRouter()
     operation_id="aave_get_server_health",
 )
 async def get_server_health():
-    """Returns the operational status of the server.
+    """
+    Returns the operational status of the server.
 
     This endpoint is useful for health checks, load balancers, and monitoring
     systems. It is not exposed to MCP because AI agents don't need to check

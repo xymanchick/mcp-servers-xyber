@@ -7,9 +7,12 @@ from unittest.mock import AsyncMock
 import pytest
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
-from mcp_server_cartesia.cartesia_client import (CartesiaApiError,
-                                                 CartesiaClientError,
-                                                 CartesiaConfigError)
+
+from mcp_server_cartesia.cartesia_client import (
+    CartesiaApiError,
+    CartesiaClientError,
+    CartesiaConfigError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +49,7 @@ async def generate_cartesia_tts_helper(
         logger.error(f"Cartesia service error: {cartesia_err}", exc_info=True)
         raise ToolError(f"Cartesia service error: {cartesia_err}") from cartesia_err
 
-    except IOError as io_err:
+    except OSError as io_err:
         logger.error(f"File system error saving audio: {io_err}", exc_info=True)
         raise ToolError(f"File system error saving audio: {io_err}") from io_err
 
@@ -118,7 +121,7 @@ async def test_generate_cartesia_tts_cartesia_client_error(mock_context):
 async def test_generate_cartesia_tts_io_error(mock_context):
     mock_context.request_context.lifespan_context[
         "cartesia_service"
-    ].generate_speech.side_effect = IOError("Disk full")
+    ].generate_speech.side_effect = OSError("Disk full")
     with pytest.raises(ToolError) as exc:
         await generate_cartesia_tts_helper(mock_context, text="Test", voice=None)
     assert "File system error saving audio" in str(exc.value)

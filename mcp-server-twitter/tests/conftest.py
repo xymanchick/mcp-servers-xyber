@@ -6,10 +6,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastmcp import Context
-from mcp_server_twitter.schemas import (CreateTweetRequest, FollowUserRequest,
-                                        GetTrendsRequest, GetUserTweetsRequest,
-                                        RetweetTweetRequest,
-                                        SearchHashtagRequest)
+
+from mcp_server_twitter.schemas import (
+    CreateTweetRequest,
+    FollowUserRequest,
+    GetTrendsRequest,
+    GetUserTweetsRequest,
+    RetweetTweetRequest,
+    SearchHashtagRequest,
+)
 
 
 class MockTwitterResponse:

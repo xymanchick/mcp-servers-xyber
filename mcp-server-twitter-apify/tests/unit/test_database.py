@@ -6,15 +6,16 @@ Uses SQLite in-memory database for fast, isolated tests.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from db import Database, generate_query_key
 from db.models import Base, QueryCacheEntry, QueryCacheItem, Tweet, TweetAuthor
-from mcp_twitter.twitter import OutputFormat, QueryType
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from mcp_twitter.twitter import QueryType
 
 
 @pytest.fixture
@@ -205,7 +206,7 @@ def test_get_cached_query_expired(
             query_type="topic",
             params=params,
             item_count=len(sample_tweet_data),
-            expires_at=datetime.now(timezone.utc)
+            expires_at=datetime.now(UTC)
             - timedelta(hours=1),  # Expired 1 hour ago
         )
         session.add(entry)
@@ -346,7 +347,7 @@ def test_parse_twitter_date() -> None:
     assert parsed.hour == 13
     assert parsed.minute == 49
     assert parsed.second == 2
-    assert parsed.tzinfo == timezone.utc
+    assert parsed.tzinfo == UTC
 
     # Test ISO format
     iso_date = "2025-12-25T13:49:02+00:00"

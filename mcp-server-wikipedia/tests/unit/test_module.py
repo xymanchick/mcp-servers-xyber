@@ -1,13 +1,17 @@
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 import wikipediaapi
-from mcp_server_wikipedia.wikipedia.config import WikipediaConfig
-from mcp_server_wikipedia.wikipedia.models import (ArticleNotFoundError,
-                                                   WikipediaAPIError,
-                                                   WikipediaConfigError)
-from mcp_server_wikipedia.wikipedia.module import (_WikipediaService,
-                                                   get_wikipedia_service)
+
+from mcp_server_wikipedia.wikipedia.models import (
+    ArticleNotFoundError,
+    WikipediaAPIError,
+    WikipediaConfigError,
+)
+from mcp_server_wikipedia.wikipedia.module import (
+    _WikipediaService,
+    get_wikipedia_service,
+)
 
 
 class TestWikipediaServiceInitialization:

@@ -7,8 +7,7 @@ all service clients used by the application.
 
 import logging
 
-from mcp_server_weather.weather import (WeatherClient, WeatherConfig,
-                                        get_weather_config)
+from mcp_server_weather.weather import WeatherClient, WeatherConfig, get_weather_config
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +19,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(client: WeatherClient = Depends(get_weather_client)):
             ...
+
     """
 
     _weather_client: WeatherClient | None = None

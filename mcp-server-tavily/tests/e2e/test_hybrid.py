@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from tests.e2e.config import require_tavily_api_key
 
 API_KEY_HEADER = "Tavily-Api-Key"

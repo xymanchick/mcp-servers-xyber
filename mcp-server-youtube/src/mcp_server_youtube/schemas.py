@@ -2,7 +2,6 @@
 Pydantic schemas for request/response models.
 """
 
-from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,26 +26,26 @@ class VideoResponse(BaseModel):
 
     title: str
     channel: str
-    channel_id: Optional[str] = None
-    channel_url: Optional[str] = None
+    channel_id: str | None = None
+    channel_url: str | None = None
     video_url: str
     video_id: str
-    duration: Optional[int] = None
-    views: Optional[int] = None
-    likes: Optional[int] = None
-    comments: Optional[int] = None
-    upload_date: Optional[str] = None
-    description: Optional[str] = None
-    thumbnail: Optional[str] = None
+    duration: int | None = None
+    views: int | None = None
+    likes: int | None = None
+    comments: int | None = None
+    upload_date: str | None = None
+    description: str | None = None
+    thumbnail: str | None = None
     transcript_success: bool
-    transcript: Optional[str] = None
-    transcript_length: Optional[int] = None
-    transcript_preview: Optional[str] = Field(
+    transcript: str | None = None
+    transcript_length: int | None = None
+    transcript_preview: str | None = Field(
         None, description="First 300 characters of transcript"
     )
-    error: Optional[str] = None
-    is_auto_generated: Optional[bool] = None
-    language: Optional[str] = None
+    error: str | None = None
+    is_auto_generated: bool | None = None
+    language: str | None = None
 
     @classmethod
     def from_video(
@@ -110,17 +109,17 @@ class VideoSearchResponse(BaseModel):
 
     title: str
     channel: str
-    channel_id: Optional[str] = None
-    channel_url: Optional[str] = None
+    channel_id: str | None = None
+    channel_url: str | None = None
     video_url: str
     video_id: str
-    duration: Optional[int] = None
-    views: Optional[int] = None
-    likes: Optional[int] = None
-    comments: Optional[int] = None
-    upload_date: Optional[str] = None
-    description: Optional[str] = None
-    thumbnail: Optional[str] = None
+    duration: int | None = None
+    views: int | None = None
+    likes: int | None = None
+    comments: int | None = None
+    upload_date: str | None = None
+    description: str | None = None
+    thumbnail: str | None = None
 
     @classmethod
     def from_video(cls, video: dict) -> "VideoSearchResponse":

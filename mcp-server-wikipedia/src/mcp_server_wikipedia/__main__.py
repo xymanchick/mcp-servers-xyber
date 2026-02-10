@@ -3,9 +3,8 @@ import logging
 import os
 
 import uvicorn
-from mcp_server_wikipedia.app import create_app
-from mcp_server_wikipedia.logging_config import (configure_logging,
-                                                 logging_level)
+
+from mcp_server_wikipedia.logging_config import configure_logging, logging_level
 
 configure_logging()
 logger = logging.getLogger(__name__)

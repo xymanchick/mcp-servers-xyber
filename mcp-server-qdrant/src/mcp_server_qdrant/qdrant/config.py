@@ -2,9 +2,10 @@ import logging
 from enum import Enum
 from typing import Any
 
-from mcp_server_qdrant.qdrant.embeddings.types import EmbeddingProviderType
 from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from mcp_server_qdrant.qdrant.embeddings.types import EmbeddingProviderType
 
 logger = logging.getLogger(__name__)
 

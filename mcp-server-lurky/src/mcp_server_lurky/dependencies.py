@@ -15,13 +15,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(lurky_client: LurkyClient = Depends(get_lurky_client)):
             ...
+
     """
 
     _lurky_client: LurkyClient | None = None

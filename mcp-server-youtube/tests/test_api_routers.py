@@ -4,13 +4,8 @@ Tests for REST API endpoints.
 
 from unittest.mock import AsyncMock, Mock, patch
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from mcp_server_youtube.app import create_app
-from mcp_server_youtube.schemas import (ExtractTranscriptsResponse,
-                                        SearchOnlyResponse,
-                                        SearchTranscriptsResponse)
 
 
 class TestHealthEndpoint:
@@ -41,8 +36,7 @@ class TestSearchEndpoint:
         self, app: FastAPI, mock_youtube_client: Mock, sample_videos_list
     ):
         """Test successful search request."""
-        from mcp_server_youtube.dependencies import \
-            get_youtube_service_search_only
+        from mcp_server_youtube.dependencies import get_youtube_service_search_only
 
         mock_youtube_client.search_videos = AsyncMock(return_value=sample_videos_list)
         app.dependency_overrides[get_youtube_service_search_only] = (
@@ -68,8 +62,7 @@ class TestSearchEndpoint:
         self, app: FastAPI, mock_youtube_client: Mock
     ):
         """Test search endpoint with no results."""
-        from mcp_server_youtube.dependencies import \
-            get_youtube_service_search_only
+        from mcp_server_youtube.dependencies import get_youtube_service_search_only
 
         mock_youtube_client.search_videos = AsyncMock(return_value=[])
         app.dependency_overrides[get_youtube_service_search_only] = (
@@ -97,8 +90,7 @@ class TestSearchEndpoint:
         self, app: FastAPI, mock_youtube_client: Mock, sample_video_data
     ):
         """Test search endpoint with default max_results."""
-        from mcp_server_youtube.dependencies import \
-            get_youtube_service_search_only
+        from mcp_server_youtube.dependencies import get_youtube_service_search_only
 
         mock_youtube_client.search_videos = AsyncMock(return_value=[sample_video_data])
         app.dependency_overrides[get_youtube_service_search_only] = (

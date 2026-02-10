@@ -7,11 +7,15 @@ import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+
 from mcp_server_youtube.dependencies import get_db_manager, get_youtube_service
-from mcp_server_youtube.schemas import (ExtractTranscriptsRequest,
-                                        ExtractTranscriptsResponse,
-                                        SearchTranscriptsResponse,
-                                        SearchVideosRequest, VideoResponse)
+from mcp_server_youtube.schemas import (
+    ExtractTranscriptsRequest,
+    ExtractTranscriptsResponse,
+    SearchTranscriptsResponse,
+    SearchVideosRequest,
+    VideoResponse,
+)
 from mcp_server_youtube.youtube import YouTubeVideoSearchAndTranscript
 from mcp_server_youtube.youtube.methods import DatabaseManager
 

@@ -2,14 +2,14 @@
 Tests for YouTube client functionality.
 """
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
-from mcp_server_youtube.youtube import (YouTubeVideoSearchAndTranscript,
-                                        get_youtube_client)
-from mcp_server_youtube.youtube.client import \
-    YouTubeVideoSearchAndTranscript as ClientClass
+
+from mcp_server_youtube.youtube import (
+    YouTubeVideoSearchAndTranscript,
+    get_youtube_client,
+)
 
 
 class TestYouTubeVideoSearchAndTranscript:

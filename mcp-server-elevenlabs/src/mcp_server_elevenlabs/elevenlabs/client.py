@@ -3,6 +3,7 @@ import logging
 import os
 
 from elevenlabs.client import ElevenLabs
+
 from mcp_server_elevenlabs.config import ElevenLabsSettings
 
 logger = logging.getLogger(__name__)

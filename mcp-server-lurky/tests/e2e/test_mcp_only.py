@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import pytest
-from tests.e2e.config import (load_e2e_config, require_base_url,
-                              require_lurky_api_key)
-from tests.e2e.utils import (call_mcp_tool, initialize_mcp_session,
-                             negotiate_mcp_session_id)
+
+from tests.e2e.config import load_e2e_config, require_base_url
+from tests.e2e.utils import (
+    call_mcp_tool,
+    initialize_mcp_session,
+    negotiate_mcp_session_id,
+)
 
 
 @pytest.mark.asyncio

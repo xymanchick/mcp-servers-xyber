@@ -12,13 +12,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(client: AaveClient = Depends(get_aave_client)):
             ...
+
     """
 
     _aave_client: AaveClient | None = None

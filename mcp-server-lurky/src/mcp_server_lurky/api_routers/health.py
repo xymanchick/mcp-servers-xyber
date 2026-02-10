@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from mcp_server_lurky.schemas import HealthResponse
 
 router = APIRouter(tags=["Health"])

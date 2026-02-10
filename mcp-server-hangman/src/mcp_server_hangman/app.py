@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
+
 from mcp_server_hangman.api_routers import routers as api_routers
 from mcp_server_hangman.dependencies import DependencyContainer
 from mcp_server_hangman.hybrid_routers import routers as hybrid_routers

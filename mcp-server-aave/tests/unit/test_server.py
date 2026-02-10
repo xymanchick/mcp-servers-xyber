@@ -5,11 +5,13 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from fastapi import Request
 from fastmcp.exceptions import ToolError
-from mcp_server_aave.aave import AaveApiError, AaveClientError
-from mcp_server_aave.mcp_routers.available_networks import \
-    get_available_networks
+from mcp_server_aave.mcp_routers.available_networks import get_available_networks
 from mcp_server_aave.mcp_routers.comprehensive_data import (
-    ComprehensiveAaveDataRequest, get_comprehensive_aave_data)
+    ComprehensiveAaveDataRequest,
+    get_comprehensive_aave_data,
+)
+
+from mcp_server_aave.aave import AaveApiError, AaveClientError
 from mcp_server_aave.schemas import ComprehensiveAaveData
 
 

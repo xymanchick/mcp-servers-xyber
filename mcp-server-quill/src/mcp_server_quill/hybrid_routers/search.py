@@ -1,7 +1,7 @@
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
+
 from mcp_server_quill.dependencies import SearchClientDep
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ async def search_token_address(
         description="Token name or symbol to search for (e.g., 'WETH', 'CAKE', 'RAY', 'PEPE')",
         example="WETH",
     ),
-    chain: Optional[str] = Query(
+    chain: str | None = Query(
         None,
         description="""
         Optional chain filter to narrow down search results.

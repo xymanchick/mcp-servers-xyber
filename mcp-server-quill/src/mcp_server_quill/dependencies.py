@@ -14,13 +14,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(quill_client: QuillAPI = Depends(get_quill_client)):
             ...
+
     """
 
     _quill_client: QuillAPI | None = None

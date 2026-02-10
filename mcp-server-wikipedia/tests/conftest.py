@@ -1,11 +1,13 @@
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import wikipediaapi
-from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
-                                            WikipediaAPIError,
-                                            WikipediaServiceError)
+
+from mcp_server_wikipedia.wikipedia import (
+    ArticleNotFoundError,
+    WikipediaAPIError,
+    WikipediaServiceError,
+)
 from mcp_server_wikipedia.wikipedia.module import _WikipediaService
 
 

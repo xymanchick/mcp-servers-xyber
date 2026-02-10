@@ -3,11 +3,11 @@ REST-only endpoints for retrieving research reports from the database.
 """
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from mcp_server_deepresearcher.db.database import get_db_instance
 from pydantic import BaseModel
+
+from mcp_server_deepresearcher.db.database import get_db_instance
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -21,8 +21,8 @@ class ReportResponse(BaseModel):
     title: str
     executive_summary: str
     key_findings: list[str]
-    sources: Optional[str] = None
-    report_data: Optional[dict] = None
+    sources: str | None = None
+    report_data: dict | None = None
     research_loop_count: int
     created_at: str
     updated_at: str
@@ -52,7 +52,7 @@ async def get_reports(
         le=100,
         description="Maximum number of reports to retrieve (1-100)",
     ),
-    topic: Optional[str] = Query(
+    topic: str | None = Query(
         default=None,
         description="Filter reports by research topic",
     ),
@@ -70,6 +70,7 @@ async def get_reports(
 
     Returns:
         List of research reports with metadata
+
     """
     logger.info(f"Retrieving reports: limit={limit}, topic={topic}")
 
@@ -140,6 +141,7 @@ async def get_reports_by_topic(
 
     Returns:
         List of research reports for the specified topic
+
     """
     logger.info(f"Retrieving reports for topic '{topic}': limit={limit}")
 
@@ -203,6 +205,7 @@ async def get_report_by_id(report_id: int) -> ReportResponse:
 
     Raises:
         HTTPException: If the report is not found
+
     """
     logger.info(f"Retrieving report with ID {report_id}")
 

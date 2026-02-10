@@ -3,6 +3,7 @@ import logging
 import os
 
 import uvicorn
+
 from mcp_server_aave.logging_config import configure_logging, logging_level
 
 # Configure logging first thing

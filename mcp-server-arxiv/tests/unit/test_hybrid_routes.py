@@ -4,6 +4,7 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+
 from mcp_server_arxiv.dependencies import get_arxiv_client
 from mcp_server_arxiv.hybrid_routers.search import arxiv_search
 from mcp_server_arxiv.hybrid_routers.search import router as search_router

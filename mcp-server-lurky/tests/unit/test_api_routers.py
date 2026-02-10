@@ -2,14 +2,12 @@
 Tests for REST API endpoints.
 """
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from mcp_server_lurky.app import create_app
-from mcp_server_lurky.lurky.models import (Discussion, SearchResponse,
-                                           SpaceDetails)
+
+from mcp_server_lurky.lurky.models import SearchResponse, SpaceDetails
 
 
 class TestHealthEndpoint:

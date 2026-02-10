@@ -1,14 +1,12 @@
-import asyncio
-import json
 from functools import lru_cache
 
 import httpx
 from loguru import logger
+from together import AsyncTogether
+
 from mcp_server_together_imgen.schemas import ImageGenerationRequest
 from mcp_server_together_imgen.together_ai.config import TogetherSettings
-from mcp_server_together_imgen.together_ai.model_registry import \
-    get_model_schema
-from together import AsyncTogether
+from mcp_server_together_imgen.together_ai.model_registry import get_model_schema
 
 
 class TogetherClient:
@@ -127,7 +125,7 @@ class TogetherClient:
                 response.raise_for_status()
                 result = response.json()
 
-            logger.info(f"Together API call successful, received response")
+            logger.info("Together API call successful, received response")
 
             if not result or "data" not in result:
                 raise ValueError("Invalid response structure from API")
@@ -156,7 +154,7 @@ class TogetherClient:
             logger.info(f"Image generated successfully, base64 length: {len(b64)}")
             return b64.replace("\n", "")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("Together API call timed out after 300 seconds")
             logger.error(
                 "Possible causes: network issues, API overload, invalid API key, or model unavailable"

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+
 from mcp_server_tavily.dependencies import get_tavily_client
-from mcp_server_tavily.hybrid_routers.search import API_KEY_HEADER
+from mcp_server_tavily.hybrid_routers.search import API_KEY_HEADER, tavily_search
 from mcp_server_tavily.hybrid_routers.search import router as search_router
-from mcp_server_tavily.hybrid_routers.search import tavily_search
 from mcp_server_tavily.schemas import SearchRequest
 from mcp_server_tavily.tavily.models import TavilySearchResult
 

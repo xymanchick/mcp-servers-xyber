@@ -2,39 +2,38 @@
 BaseModels for capturing external YouTube API responses.
 """
 
-from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class YouTubeSearchResult(BaseModel):
     """BaseModel for YouTube search result from Apify YouTube Search actor."""
 
-    id: Optional[str] = None
-    video_id: Optional[str] = None
-    display_id: Optional[str] = None
-    title: Optional[str] = None
-    channel: Optional[str] = None
-    channel_id: Optional[str] = None
-    channel_url: Optional[str] = None
-    uploader: Optional[str] = None
-    uploader_id: Optional[str] = None
-    webpage_url: Optional[str] = None
-    url: Optional[str] = None
-    link: Optional[str] = None
-    link_suffix: Optional[str] = None
-    duration: Optional[int] = None
-    view_count: Optional[int] = None
-    like_count: Optional[int] = None
-    comment_count: Optional[int] = None
+    id: str | None = None
+    video_id: str | None = None
+    display_id: str | None = None
+    title: str | None = None
+    channel: str | None = None
+    channel_id: str | None = None
+    channel_url: str | None = None
+    uploader: str | None = None
+    uploader_id: str | None = None
+    webpage_url: str | None = None
+    url: str | None = None
+    link: str | None = None
+    link_suffix: str | None = None
+    duration: int | None = None
+    view_count: int | None = None
+    like_count: int | None = None
+    comment_count: int | None = None
     # Normalized fields
-    views: Optional[int] = None
-    likes: Optional[int] = None
-    comments: Optional[int] = None
-    upload_date: Optional[str] = None
-    description: Optional[str] = None
-    thumbnail: Optional[str] = None
-    thumbnails: Optional[list[dict]] = None
+    views: int | None = None
+    likes: int | None = None
+    comments: int | None = None
+    upload_date: str | None = None
+    description: str | None = None
+    thumbnail: str | None = None
+    thumbnails: list[dict] | None = None
 
     @classmethod
     def from_dict(cls, entry: dict) -> "YouTubeSearchResult":
@@ -63,10 +62,10 @@ class ApifyTranscriptResult(BaseModel):
 
     success: bool
     video_id: str
-    transcript: Optional[str] = None
-    is_generated: Optional[bool] = None
-    language: Optional[str] = None
-    error: Optional[str] = None
+    transcript: str | None = None
+    is_generated: bool | None = None
+    language: str | None = None
+    error: str | None = None
 
     @classmethod
     def from_apify_response(

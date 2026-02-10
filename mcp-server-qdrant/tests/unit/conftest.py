@@ -1,13 +1,15 @@
 import logging
-from typing import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import Request
-from fastapi.responses import JSONResponse
-from mcp_server_qdrant.qdrant.config import (CollectionConfig, HnswConfig,
-                                             PayloadIndexConfig,
-                                             PayloadIndexType, QdrantConfig)
+
+from mcp_server_qdrant.qdrant.config import (
+    CollectionConfig,
+    HnswConfig,
+    PayloadIndexConfig,
+    PayloadIndexType,
+    QdrantConfig,
+)
 from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
 from mcp_server_qdrant.qdrant.module import QdrantConnector
 

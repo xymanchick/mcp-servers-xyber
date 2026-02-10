@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
+
 from mcp_server_aave.aave import AaveClient, AaveError
 from mcp_server_aave.dependencies import get_aave_client
 
@@ -17,7 +18,8 @@ router = APIRouter()
 async def get_available_networks(
     aave_client: AaveClient = Depends(get_aave_client),
 ) -> list[str]:
-    """Return a list of supported Aave networks.
+    """
+    Return a list of supported Aave networks.
 
     The list is sourced from the upstream Aave GraphQL API and may vary over time.
     """

@@ -4,11 +4,12 @@ Tests for the main FastAPI application factory.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
 from langchain_core.runnables import Runnable
+
 from mcp_server_deepresearcher.app import app_lifespan, create_app
 
 

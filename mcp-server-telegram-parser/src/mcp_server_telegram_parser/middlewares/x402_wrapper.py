@@ -13,20 +13,25 @@ from typing import Any
 import httpx
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
-from mcp_server_telegram_parser.x402_config import (CHAIN_ID_TO_NETWORK,
-                                                    PaymentOptionConfig,
-                                                    X402Config,
-                                                    get_x402_settings)
-from starlette.middleware.base import (BaseHTTPMiddleware,
-                                       RequestResponseEndpoint)
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.routing import Match
-from x402.http import (PAYMENT_REQUIRED_HEADER, HTTPFacilitatorClient,
-                       encode_payment_required_header, safe_base64_decode,
-                       safe_base64_encode)
+from x402.http import (
+    PAYMENT_REQUIRED_HEADER,
+    HTTPFacilitatorClient,
+    encode_payment_required_header,
+    safe_base64_decode,
+    safe_base64_encode,
+)
 from x402.mechanisms.evm.exact import ExactEvmServerScheme
-from x402.schemas import (Network, PaymentPayload, PaymentRequired,
-                          PaymentRequirements)
+from x402.schemas import Network, PaymentPayload, PaymentRequired, PaymentRequirements
 from x402.server import x402ResourceServer
+
+from mcp_server_telegram_parser.x402_config import (
+    CHAIN_ID_TO_NETWORK,
+    PaymentOptionConfig,
+    X402Config,
+    get_x402_settings,
+)
 
 logger = logging.getLogger(__name__)
 

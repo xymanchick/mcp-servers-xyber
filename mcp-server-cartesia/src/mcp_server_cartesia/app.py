@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
+
 from mcp_server_cartesia.api_routers import routers as api_routers
 from mcp_server_cartesia.dependencies import DependencyContainer
 from mcp_server_cartesia.hybrid_routers import routers as hybrid_routers
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
 
     Returns:
         Configured FastAPI application ready to serve requests
+
     """
     # --- MCP Server Generation ---
     # Create a FastAPI app containing only MCP-exposed endpoints

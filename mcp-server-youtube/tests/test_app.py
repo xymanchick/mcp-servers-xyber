@@ -2,11 +2,11 @@
 Tests for application factory and lifespan management.
 """
 
-from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from fastapi import FastAPI
+
 from mcp_server_youtube.app import app_lifespan, create_app
 from mcp_server_youtube.youtube import YouTubeVideoSearchAndTranscript
 

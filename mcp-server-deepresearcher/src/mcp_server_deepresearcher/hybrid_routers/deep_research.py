@@ -9,8 +9,11 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from langchain_core.runnables import RunnableConfig
+
 from mcp_server_deepresearcher.deepresearcher.config import (
-    DeepResearcherConfig, LangfuseConfig)
+    DeepResearcherConfig,
+    LangfuseConfig,
+)
 from mcp_server_deepresearcher.deepresearcher.graph import DeepResearcher
 from mcp_server_deepresearcher.dependencies import get_research_resources
 from mcp_server_deepresearcher.schemas import DeepResearchRequest

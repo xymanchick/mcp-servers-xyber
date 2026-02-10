@@ -7,8 +7,7 @@ Main responsibility: Provide dependency injection for Telegram service clients.
 import logging
 
 from mcp_server_telegram.telegram import _TelegramService
-from mcp_server_telegram.telegram import \
-    get_telegram_service as create_telegram_service
+from mcp_server_telegram.telegram import get_telegram_service as create_telegram_service
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +67,7 @@ class DependencyContainer:
 
         Returns:
             Cached TelegramService instance
+
         """
         return create_telegram_service(token=token, channel=channel)
 

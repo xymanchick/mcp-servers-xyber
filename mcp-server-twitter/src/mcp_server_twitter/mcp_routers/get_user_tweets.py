@@ -3,11 +3,12 @@ import logging
 
 from fastapi import APIRouter, Depends
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
+
 from mcp_server_twitter.dependencies import get_twitter_client_dep
 from mcp_server_twitter.logging_config import get_logger
 from mcp_server_twitter.metrics import async_operation_timer, async_timed
 from mcp_server_twitter.schemas import GetUserTweetsRequest
-from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

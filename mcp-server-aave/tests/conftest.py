@@ -2,13 +2,22 @@
 
 import json
 from decimal import Decimal
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
+
 from mcp_server_aave.aave.config import AaveConfig
-from mcp_server_aave.aave.models import (AssetData, AToken, BorrowInfo, Chain,
-                                         PoolData, ReserveData, RiskData,
-                                         SupplyInfo, UnderlyingToken)
+from mcp_server_aave.aave.models import (
+    AssetData,
+    AToken,
+    BorrowInfo,
+    Chain,
+    PoolData,
+    ReserveData,
+    RiskData,
+    SupplyInfo,
+    UnderlyingToken,
+)
 
 
 @pytest.fixture

@@ -1,18 +1,15 @@
-import uuid
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
-from mcp_server_qdrant.qdrant.config import (CollectionConfig,
-                                             EmbeddingProviderSettings,
-                                             HnswConfig, PayloadIndexConfig,
-                                             PayloadIndexType, QdrantAPIError,
-                                             QdrantConfig)
-from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
-from mcp_server_qdrant.qdrant.module import Entry, QdrantConnector
 from pydantic import ValidationError
 from qdrant_client import models
-from qdrant_client.models import CollectionInfo, QueryResponse
+
+from mcp_server_qdrant.qdrant.config import (
+    PayloadIndexConfig,
+    PayloadIndexType,
+    QdrantAPIError,
+)
+from mcp_server_qdrant.qdrant.module import Entry, QdrantConnector
 
 
 class TestEntry:
@@ -693,7 +690,6 @@ class TestEdgeCases:
         assert call_args["limit"] == -1
 
     def test_entry_with_none_content(self):
-        from pydantic import ValidationError
 
         with pytest.raises(ValidationError):
             Entry(content=None)

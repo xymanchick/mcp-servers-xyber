@@ -1,11 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from loguru import logger
+from together.error import InvalidRequestError
+
 from mcp_server_together_imgen.schemas import ImageGenerationRequest
 from mcp_server_together_imgen.together_ai.model_registry import (
-    get_model_schema, list_available_models)
+    get_model_schema,
+    list_available_models,
+)
 from mcp_server_together_imgen.together_ai.together_client import (
-    TogetherClient, get_together_client)
-from together.error import InvalidRequestError
+    TogetherClient,
+    get_together_client,
+)
 
 router = APIRouter()
 

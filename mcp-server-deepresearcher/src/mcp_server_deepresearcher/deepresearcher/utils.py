@@ -4,12 +4,12 @@ import logging
 import os
 import re
 from functools import lru_cache
-from typing import Any, Literal, Tuple, Type
+from typing import Any, Literal
 
 import yaml
-from langchain_core.output_parsers import JsonOutputParser
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_mistralai import ChatMistralAI
+
 from mcp_server_deepresearcher.deepresearcher.config import LLM_Config
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def load_json(file_path, create_file=False):
                 return {}
             return {}
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
             if not content:
                 logger.warning(
@@ -60,7 +60,7 @@ def load_yaml(file_path):
             logger.warning(f"YAML file does not exist at path: {file_path}")
             return []
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
             if not content:
                 logger.warning(
@@ -111,7 +111,7 @@ def initialize_llm(
     model_name = None
 
     # 1. Define mappings to find the correct config attributes and provider details
-    ATTRIBUTE_MAP: dict[LLM_Type, Tuple[str, str]] = {
+    ATTRIBUTE_MAP: dict[LLM_Type, tuple[str, str]] = {
         "main": ("MODEL_PROVIDER", "MODEL_NAME"),
         "spare": ("MODEL_PROVIDER_SPARE", "MODEL_NAME_SPARE"),
         "validation": ("MODEL_VALIDATION_PROVIDER", "MODEL_VALIDATION_NAME"),
@@ -170,7 +170,7 @@ def initialize_llm(
 
     # 5. Initialize and return the model
     try:
-        ModelClass: Type[BaseChatModel] = provider_details["class"]
+        ModelClass: type[BaseChatModel] = provider_details["class"]
         init_kwargs = {
             provider_details["init_arg"]: api_key_value,
             "model": model_name,
@@ -193,9 +193,7 @@ def initialize_llm(
 def initialize_llm_from_config(
     config: dict[str, Any] | None,
 ) -> BaseChatModel | None:
-    """
-    Initializes and returns a language model client from a configuration dictionary.
-    """
+    """Initializes and returns a language model client from a configuration dictionary."""
     if not config:
         return None
 
@@ -242,7 +240,7 @@ def initialize_llm_from_config(
         return None
 
     try:
-        ModelClass: Type[BaseChatModel] = provider_details["class"]
+        ModelClass: type[BaseChatModel] = provider_details["class"]
         init_kwargs = {
             provider_details["init_arg"]: api_key_value,
             "model": model_name,
@@ -278,7 +276,7 @@ def clean_response(response_text: str) -> str:
         # Handle case where response_text is a list (extract first string element)
         if isinstance(response_text, list):
             logger.warning(
-                f"clean_response received a list instead of string, extracting first element"
+                "clean_response received a list instead of string, extracting first element"
             )
             if len(response_text) > 0:
                 response_text = str(response_text[0])
@@ -417,6 +415,7 @@ def load_mcp_servers_config(
 
     Returns:
         Dictionary containing MCP server configurations
+
     """
     mcp_servers_config = {}
 
@@ -595,6 +594,7 @@ def create_mcp_tasks(
 
     Returns:
         Tuple of (tasks, task_names) where tasks are coroutines with validated parameters
+
     """
 
     def _tool_args_schema_has_field(tool_obj: Any, field_name: str) -> bool:
@@ -832,7 +832,8 @@ def extract_source_info(content: str, source_name: str) -> dict[str, str]:
 
 
 def extract_title_near_url(content_str: str, url: str, max_distance: int = 500) -> str:
-    """Extract title from content near a given URL.
+    """
+    Extract title from content near a given URL.
 
     Searches for title patterns in the content around the URL location.
 
@@ -843,6 +844,7 @@ def extract_title_near_url(content_str: str, url: str, max_distance: int = 500) 
 
     Returns:
         Extracted title or empty string if not found
+
     """
     # Find the position of the URL in the content
     url_pos = content_str.find(url)
@@ -885,7 +887,8 @@ def extract_title_near_url(content_str: str, url: str, max_distance: int = 500) 
 def extract_sources_from_raw_content(
     content: Any, source_name: str
 ) -> list[dict[str, str]]:
-    """Generic source extractor that looks for URLs in raw content using multiple patterns.
+    """
+    Generic source extractor that looks for URLs in raw content using multiple patterns.
 
     This function replaces instrument-specific parsing for sources by looking for
     common URL keys in JSON or text patterns. It also extracts titles from the content
@@ -897,6 +900,7 @@ def extract_sources_from_raw_content(
 
     Returns:
         List of source dictionaries with 'name', 'title', and 'url' keys
+
     """
     sources = []
 
@@ -1024,7 +1028,8 @@ def extract_sources_from_raw_content(
 
 
 def filter_invalid_sources(sources: list[dict[str, str]]) -> list[dict[str, str]]:
-    """Filter out invalid sources that indicate no results or empty responses.
+    """
+    Filter out invalid sources that indicate no results or empty responses.
 
     Removes sources with:
     - Titles indicating no results (e.g., "No Results", "No search results found")
@@ -1097,13 +1102,15 @@ def filter_invalid_sources(sources: list[dict[str, str]]) -> list[dict[str, str]
 
 
 def are_sources_valid(sources: list[dict[str, str]]) -> bool:
-    """Check if sources list contains at least one valid source.
+    """
+    Check if sources list contains at least one valid source.
 
     Args:
         sources: List of source dictionaries
 
     Returns:
         True if at least one valid source exists, False otherwise
+
     """
     if not sources:
         return False
@@ -1113,13 +1120,15 @@ def are_sources_valid(sources: list[dict[str, str]]) -> bool:
 
 
 def is_formatted_sources_valid(formatted_sources: str) -> bool:
-    """Check if formatted sources string contains valid sources.
+    """
+    Check if formatted sources string contains valid sources.
 
     Args:
         formatted_sources: Formatted sources string (e.g., "1. Title (URL)")
 
     Returns:
         True if sources appear valid, False if they contain "No Results" or are empty
+
     """
     if not formatted_sources or formatted_sources.strip() == "":
         return False
@@ -1157,7 +1166,8 @@ def is_formatted_sources_valid(formatted_sources: str) -> bool:
 
 
 def deduplicate_sources(sources: list[dict[str, str]]) -> list[dict[str, str]]:
-    """Deduplicate sources based on URL and title combination.
+    """
+    Deduplicate sources based on URL and title combination.
 
     Sources are considered duplicates if they have the same URL (and URL is not "N/A").
     If URL is "N/A", sources are considered duplicates if they have the same title.
@@ -1198,11 +1208,13 @@ def deduplicate_sources(sources: list[dict[str, str]]) -> list[dict[str, str]]:
 def format_sources(
     sources: list[dict[str, str]], include_source_name: bool = False
 ) -> str:
-    """Formats a list of source dictionaries into a numbered string.
+    """
+    Formats a list of source dictionaries into a numbered string.
 
     Args:
         sources: List of source dictionaries with 'name', 'title', and 'url' keys
         include_source_name: If True, includes [source_name] prefix. Default False.
+
     """
     if not sources:
         return "No valid sources found."
@@ -1241,6 +1253,7 @@ def clean_apify_tweet_data(data: str) -> str:
     Returns:
         A formatted string with the cleaned tweet text, including username and timestamp,
         with each tweet on a new line.
+
     """
     logger.info(f"Raw Apify data received for cleaning:\n{data}")
 
@@ -1306,6 +1319,7 @@ def get_twitter_sources_for_topic(topic: str, topics_file_path: str) -> list[str
 
     Returns:
         A list of twitter source URLs.
+
     """
     try:
         topics_data = load_yaml(topics_file_path)
@@ -1336,6 +1350,7 @@ def get_telegram_sources_for_topic(topic: str, topics_file_path: str) -> list[st
 
     Returns:
         A list of telegram source URLs.
+
     """
     try:
         topics_data = load_yaml(topics_file_path)
@@ -1368,6 +1383,7 @@ def construct_tools_yaml(
 
     Returns:
         Valid YAML string containing tool specifications
+
     """
     tools_spec = []
 
@@ -1564,6 +1580,7 @@ def construct_tools_description_yaml(
 
     Returns:
         Valid YAML string containing simplified tool specifications (name and description only)
+
     """
     tools_spec = []
 
@@ -1602,6 +1619,7 @@ def parse_tools_description_from_yaml(yaml_content: str) -> list[dict[str, Any]]
 
     Returns:
         List of dictionaries with tool information (name, description, server)
+
     """
     try:
         data = yaml.safe_load(yaml_content)
@@ -1631,6 +1649,7 @@ def save_tools_yaml_to_file(yaml_content: str, file_path: str) -> None:
     Args:
         yaml_content: YAML string content to save
         file_path: Path to the output YAML file
+
     """
     import os
 

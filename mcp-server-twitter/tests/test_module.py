@@ -1,14 +1,15 @@
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
 import requests
-from mcp_server_twitter.twitter.module import (AsyncTwitterClient,
-                                               get_twitter_client,
-                                               is_retryable_tweepy_error)
-from tenacity import retry, stop_after_attempt
 from tweepy.errors import TweepyException
+
+from mcp_server_twitter.twitter.module import (
+    AsyncTwitterClient,
+    get_twitter_client,
+    is_retryable_tweepy_error,
+)
 
 # --- Retry Logic Tests (slower, but necessary) ---
 

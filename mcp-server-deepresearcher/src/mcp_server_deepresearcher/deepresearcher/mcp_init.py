@@ -3,9 +3,9 @@ import logging
 import sys
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
+
 from mcp_server_deepresearcher.deepresearcher.config import Settings
-from mcp_server_deepresearcher.deepresearcher.utils import \
-    load_mcp_servers_config
+from mcp_server_deepresearcher.deepresearcher.utils import load_mcp_servers_config
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,7 @@ async def initialize_mcp_servers():
         tuple: (mcp_tools, tool_to_server_map) where:
             - mcp_tools: List of tool objects
             - tool_to_server_map: Dict mapping tool names to MCP server names
+
     """
     settings = Settings()
     MCP_SERVERS_CONFIG = load_mcp_servers_config(
@@ -71,7 +72,7 @@ async def initialize_mcp_servers():
                     f"[{server_name.upper()}] ⚠ Connected but no tools returned"
                 )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             failed_servers.append(server_name.upper())
             logger.error(f"[{server_name.upper()}] ✗ Timeout (30s)")
             continue

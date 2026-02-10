@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urljoin, urlparse
 
 import aiohttp
@@ -37,7 +36,7 @@ def get_base_url(url: str) -> str:
 
 async def fetch_llms_full(
     session: aiohttp.ClientSession, base_url: str
-) -> Optional[str]:
+) -> str | None:
     llm_url = f"{base_url}/llms-full.txt"
     logger.info("Checking for native LLM support at: %s", llm_url)
     try:
@@ -75,7 +74,7 @@ def extract_title(html: str) -> str:
     return "Untitled Page"
 
 
-async def fetch_page(session: aiohttp.ClientSession, url: str) -> Optional[str]:
+async def fetch_page(session: aiohttp.ClientSession, url: str) -> str | None:
     try:
         async with session.get(
             url, timeout=aiohttp.ClientTimeout(total=10)
@@ -89,7 +88,7 @@ async def fetch_page(session: aiohttp.ClientSession, url: str) -> Optional[str]:
 
 async def crawl_gitbook(
     session: aiohttp.ClientSession, base_url: str, return_json: bool = False
-) -> Union[str, list[dict[str, str]], None]:
+) -> str | list[dict[str, str]] | None:
     logger.info("Falling back to crawling: %s", base_url)
 
     html = await fetch_page(session, base_url)

@@ -1,7 +1,8 @@
 from typing import Any, Literal
 
-from mcp_server_aave.aave.models import PoolData, ReserveData
 from pydantic import BaseModel, Field
+
+from mcp_server_aave.aave.models import PoolData, ReserveData
 
 # --- Output Schema Models --- #
 

@@ -3,7 +3,6 @@ Logging configuration for the MCP YouTube server.
 """
 
 from logging.config import dictConfig
-from pathlib import Path
 
 from mcp_server_youtube.config import get_app_settings
 

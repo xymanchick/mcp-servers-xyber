@@ -1,12 +1,15 @@
 import logging
 
 from fastapi import APIRouter, Depends
+from pydantic import ValidationError as PydanticValidationError
+
 from mcp_server_wikipedia.dependencies import get_wiki_service
 from mcp_server_wikipedia.schemas import GetSummaryRequest
-from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
-                                            WikipediaAPIError,
-                                            _WikipediaService)
-from pydantic import ValidationError as PydanticValidationError
+from mcp_server_wikipedia.wikipedia import (
+    ArticleNotFoundError,
+    WikipediaAPIError,
+    _WikipediaService,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

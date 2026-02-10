@@ -339,10 +339,10 @@ async def main():
                     )
                     print(f"  Error: {error_text[:200]}...")
                 else:
-                    print(f"✓ Extract transcripts successful")
+                    print("✓ Extract transcripts successful")
                     print(f"  Response: {json.dumps(result, indent=2)[:500]}...")
             else:
-                print(f"✓ Extract transcripts successful")
+                print("✓ Extract transcripts successful")
                 print(f"  Response: {json.dumps(result, indent=2)[:500]}...")
         else:
             print(f"  Response: {json.dumps(result, indent=2)}")

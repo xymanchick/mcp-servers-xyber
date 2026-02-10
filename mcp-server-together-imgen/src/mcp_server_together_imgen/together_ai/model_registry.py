@@ -173,7 +173,8 @@ MODEL_REGISTRY: dict[str, ModelSchema] = {
 
 
 def get_model_schema(model_name: str) -> ModelSchema:
-    """Get model schema from registry.
+    """
+    Get model schema from registry.
 
     Args:
         model_name: Full model identifier (e.g., "black-forest-labs/FLUX.2-dev")
@@ -183,6 +184,7 @@ def get_model_schema(model_name: str) -> ModelSchema:
 
     Raises:
         ValueError: If model is not found in registry
+
     """
     if model_name not in MODEL_REGISTRY:
         # Try to infer model family from name

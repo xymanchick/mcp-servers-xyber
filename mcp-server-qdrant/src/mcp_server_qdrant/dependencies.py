@@ -1,10 +1,8 @@
 import logging
 
 from mcp_server_qdrant.qdrant import QdrantConnector
-from mcp_server_qdrant.qdrant.config import (EmbeddingProviderSettings,
-                                             QdrantConfig)
-from mcp_server_qdrant.qdrant.embeddings.factory import \
-    create_embedding_provider
+from mcp_server_qdrant.qdrant.config import EmbeddingProviderSettings, QdrantConfig
+from mcp_server_qdrant.qdrant.embeddings.factory import create_embedding_provider
 
 logger = logging.getLogger(__name__)
 
@@ -16,13 +14,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(connector: QdrantConnector = Depends(get_qdrant_connector)):
             ...
+
     """
 
     _qdrant_connector: QdrantConnector | None = None

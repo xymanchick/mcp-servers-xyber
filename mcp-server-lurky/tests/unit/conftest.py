@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
 from mcp_server_lurky.app import create_app
 
 

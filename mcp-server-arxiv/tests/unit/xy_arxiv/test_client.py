@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import arxiv
 import pytest
+
 from mcp_server_arxiv.xy_arxiv.config import ArxivConfig
-from mcp_server_arxiv.xy_arxiv.errors import ArxivApiError, ArxivServiceError
-from mcp_server_arxiv.xy_arxiv.models import ArxivSearchResult
+from mcp_server_arxiv.xy_arxiv.errors import ArxivApiError
 from mcp_server_arxiv.xy_arxiv.module import _ArxivService
 
 

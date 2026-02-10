@@ -1,15 +1,14 @@
-import asyncio
 from unittest.mock import Mock, patch
 
 import pytest
-import requests
-from mcp_server_telegram.telegram.config import (TelegramConfig,
-                                                 TelegramConfigError)
-from mcp_server_telegram.telegram.module import (MAX_MESSAGE_LENGTH,
-                                                 _TelegramService,
-                                                 get_telegram_service)
-from requests.exceptions import (ConnectionError, HTTPError, JSONDecodeError,
-                                 Timeout)
+from requests.exceptions import ConnectionError, HTTPError, JSONDecodeError, Timeout
+
+from mcp_server_telegram.telegram.config import TelegramConfigError
+from mcp_server_telegram.telegram.module import (
+    MAX_MESSAGE_LENGTH,
+    _TelegramService,
+    get_telegram_service,
+)
 
 
 class TestTelegramService:

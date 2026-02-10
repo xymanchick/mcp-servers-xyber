@@ -5,11 +5,9 @@ FastAPI dependencies for YouTube service.
 import logging
 
 from mcp_server_youtube.youtube import YouTubeVideoSearchAndTranscript
-from mcp_server_youtube.youtube import \
-    get_youtube_client as create_youtube_client
+from mcp_server_youtube.youtube import get_youtube_client as create_youtube_client
 from mcp_server_youtube.youtube.methods import DatabaseManager
-from mcp_server_youtube.youtube.methods import \
-    get_db_manager as create_db_manager
+from mcp_server_youtube.youtube.methods import get_db_manager as create_db_manager
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +19,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(youtube_service: YouTubeVideoSearchAndTranscript = Depends(get_youtube_service)):
             ...
+
     """
 
     _youtube_service: YouTubeVideoSearchAndTranscript | None = None

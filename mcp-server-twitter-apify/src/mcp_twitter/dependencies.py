@@ -1,7 +1,6 @@
 import logging
 
-from mcp_twitter.twitter import (QueryRegistry, TwitterScraper,
-                                 build_default_registry)
+from mcp_twitter.twitter import QueryRegistry, TwitterScraper, build_default_registry
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +12,8 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
@@ -23,6 +23,7 @@ class DependencyContainer:
             scraper: TwitterScraper = Depends(get_scraper),
         ):
             ...
+
     """
 
     _registry: QueryRegistry | None = None
@@ -38,6 +39,7 @@ class DependencyContainer:
         Args:
             apify_token: Apify API token
             actor_name: Name of the Apify actor to use
+
         """
         logger.info("Initializing dependencies...")
 

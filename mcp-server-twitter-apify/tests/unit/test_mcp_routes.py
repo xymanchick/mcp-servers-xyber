@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from mcp_twitter.app import create_app
+
 from mcp_twitter.twitter import build_default_registry
 
 
@@ -97,6 +97,7 @@ async def mcp_client(monkeypatch, tmp_results_dir: Path) -> AsyncClient:
     """Create test client with mocked scraper."""
     # Create app without lifespan to avoid anyio/Python 3.14 compatibility issues
     from fastapi import FastAPI
+
     from mcp_twitter.hybrid_routers import routers as hybrid_routers
     from mcp_twitter.mcp_routers import routers as mcp_routers
 

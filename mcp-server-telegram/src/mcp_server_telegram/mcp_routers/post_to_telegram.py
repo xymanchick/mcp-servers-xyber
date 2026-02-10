@@ -7,9 +7,9 @@ Main responsibility: Define the post_to_telegram MCP tool that sends messages to
 import logging
 
 from fastapi import APIRouter, Header, HTTPException
+
 from mcp_server_telegram.schemas import PostToTelegramRequest
-from mcp_server_telegram.telegram import (TelegramServiceError,
-                                          get_telegram_service)
+from mcp_server_telegram.telegram import TelegramServiceError, get_telegram_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -42,6 +42,7 @@ async def post_to_telegram(
 
     Raises:
         HTTPException: If the token or channel is missing, or if posting fails
+
     """
     logger.info(
         f"Received request to post to channel '{x_telegram_channel}' with a provided token."

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from tests.e2e.config import require_lurky_api_key
 
 

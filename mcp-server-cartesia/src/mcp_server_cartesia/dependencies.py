@@ -7,8 +7,9 @@ Main responsibility: Provide dependency injection functions for shared resources
 import logging
 
 from mcp_server_cartesia.cartesia_client import _CartesiaService
-from mcp_server_cartesia.cartesia_client import \
-    get_cartesia_service as create_cartesia_service
+from mcp_server_cartesia.cartesia_client import (
+    get_cartesia_service as create_cartesia_service,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +21,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(cartesia_service: _CartesiaService = Depends(get_cartesia_service)):
             ...
+
     """
 
     _cartesia_service: _CartesiaService | None = None

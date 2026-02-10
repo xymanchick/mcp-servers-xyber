@@ -1,17 +1,23 @@
-from typing import Any, Dict, List
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+
 # Import helper functions from conftest
-from conftest import (_test_get_article, _test_get_links,
-                      _test_get_related_topics, _test_get_sections,
-                      _test_get_summary, _test_search_wikipedia)
-from fastmcp import Context, FastMCP
-from fastmcp.exceptions import ToolError
-from mcp_server_wikipedia.server import _get_service, app_lifespan, mcp_server
-from mcp_server_wikipedia.wikipedia import (ArticleNotFoundError,
-                                            WikipediaAPIError,
-                                            WikipediaServiceError)
+from conftest import (
+    _test_get_article,
+    _test_get_links,
+    _test_get_related_topics,
+    _test_get_sections,
+    _test_get_summary,
+    _test_search_wikipedia,
+)
+from mcp_server_wikipedia.server import _get_service, app_lifespan
+
+from mcp_server_wikipedia.wikipedia import (
+    ArticleNotFoundError,
+    WikipediaAPIError,
+    WikipediaServiceError,
+)
 
 # === Test Classes ===
 

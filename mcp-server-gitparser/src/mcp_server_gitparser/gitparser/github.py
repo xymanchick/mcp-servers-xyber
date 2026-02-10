@@ -5,7 +5,6 @@ Async parser for converting GitHub repositories to Markdown using gitingest.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 from urllib.parse import urlparse
 
 from gitingest import ingest_async
@@ -31,7 +30,7 @@ def clean_github_url(url: str) -> str:
 
 async def convert_repo_to_markdown(
     repo_url: str,
-    token: Optional[str] = None,
+    token: str | None = None,
     include_submodules: bool = False,
     include_gitignored: bool = False,
 ) -> str:

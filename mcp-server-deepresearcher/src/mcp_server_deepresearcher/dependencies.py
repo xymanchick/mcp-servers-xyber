@@ -16,11 +16,13 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         await DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via helper function:
         resources = get_research_resources()
+
     """
 
     _llm = None

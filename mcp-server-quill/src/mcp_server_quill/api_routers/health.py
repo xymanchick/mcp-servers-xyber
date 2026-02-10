@@ -10,5 +10,6 @@ async def health_check():
 
     Returns:
         dict: Status indicator showing API is healthy
+
     """
     return {"status": "healthy"}

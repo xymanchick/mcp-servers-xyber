@@ -3,25 +3,32 @@ import base64
 import io
 import os
 import ssl
-from typing import Dict, List
 
 import aiohttp
 import anyio
 import requests
-from mcp_server_twitter.errors import (TwitterAPIError,
-                                       TwitterAuthenticationError,
-                                       TwitterClientError,
-                                       TwitterMediaUploadError,
-                                       map_aiohttp_error, map_tweepy_error,
-                                       on_final_retry_failure)
-from mcp_server_twitter.logging_config import get_logger, log_retry_attempt
-from mcp_server_twitter.metrics import async_operation_timer, async_timed
-from tenacity import (before_sleep_log, retry, retry_if_exception,
-                      retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
+from tenacity import (
+    retry,
+    retry_if_exception,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 from tweepy import API, OAuth1UserHandler
 from tweepy.asynchronous import AsyncClient
 from tweepy.errors import TweepyException
+
+from mcp_server_twitter.errors import (
+    TwitterAPIError,
+    TwitterAuthenticationError,
+    TwitterClientError,
+    TwitterMediaUploadError,
+    map_aiohttp_error,
+    map_tweepy_error,
+    on_final_retry_failure,
+)
+from mcp_server_twitter.logging_config import get_logger, log_retry_attempt
+from mcp_server_twitter.metrics import async_operation_timer, async_timed
 
 logger = get_logger(__name__)
 
@@ -38,7 +45,7 @@ def is_retryable_tweepy_error(exception: Exception) -> bool:
     is_retryable = 500 <= response.status_code < 600
 
     logger.debug(
-        f"Checking if Tweepy error is retryable",
+        "Checking if Tweepy error is retryable",
         extra={
             "error_type": type(exception).__name__,
             "status_code": response.status_code,
@@ -314,7 +321,7 @@ class AsyncTwitterClient:
     @async_timed("retweet_tweet")
     async def retweet_tweet(self, tweet_id: str):
         """Retweet an existing tweet with comprehensive logging."""
-        logger.info(f"Retweeting tweet", extra={"tweet_id": tweet_id})
+        logger.info("Retweeting tweet", extra={"tweet_id": tweet_id})
 
         try:
             await self.client.retweet(tweet_id=tweet_id)
@@ -325,7 +332,7 @@ class AsyncTwitterClient:
 
         except Exception as e:
             logger.error(
-                f"Failed to retweet tweet",
+                "Failed to retweet tweet",
                 extra={"tweet_id": tweet_id, "error_type": type(e).__name__},
                 exc_info=True,
             )
@@ -400,7 +407,7 @@ class AsyncTwitterClient:
     @async_timed("follow_user")
     async def follow_user(self, user_id: str):
         """Follow another Twitter user with comprehensive logging."""
-        logger.info(f"Following user", extra={"user_id": user_id})
+        logger.info("Following user", extra={"user_id": user_id})
 
         try:
             await self.client.follow_user(user_id=user_id)
@@ -646,7 +653,7 @@ class AsyncTwitterClient:
             tweet_texts = [t.text for t in tweets]
 
             logger.info(
-                f"Hashtag search completed",
+                "Hashtag search completed",
                 extra={"hashtag": hashtag, "tweets_found": len(tweet_texts)},
             )
 
@@ -654,7 +661,7 @@ class AsyncTwitterClient:
 
         except Exception as e:
             logger.error(
-                f"Hashtag search failed",
+                "Hashtag search failed",
                 extra={"hashtag": hashtag, "error_type": type(e).__name__},
                 exc_info=True,
             )

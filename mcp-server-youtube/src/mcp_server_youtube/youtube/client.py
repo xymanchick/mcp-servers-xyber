@@ -11,9 +11,12 @@ from functools import lru_cache
 
 from apify_client import ApifyClient
 from apify_client.errors import ApifyApiError
+
 from mcp_server_youtube.config import get_app_settings
-from mcp_server_youtube.youtube.api_models import (ApifyTranscriptResult,
-                                                   YouTubeSearchResult)
+from mcp_server_youtube.youtube.api_models import (
+    ApifyTranscriptResult,
+    YouTubeSearchResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,7 @@ def get_youtube_client() -> YouTubeVideoSearchAndTranscript:
 
     Returns:
         Initialized YouTubeVideoSearchAndTranscript instance
+
     """
     settings = get_app_settings()
     return YouTubeVideoSearchAndTranscript(
@@ -48,6 +52,7 @@ class YouTubeVideoSearchAndTranscript:
             apify_api_token: Apify API token. Defaults to config value if not provided.
             require_apify: If False, skip Apify initialization (for search-only mode).
                           Note: Search now requires Apify, so this only affects transcript extraction.
+
         """
         settings = get_app_settings()
         self.delay = delay_between_requests or settings.youtube.delay_between_requests
@@ -119,6 +124,7 @@ class YouTubeVideoSearchAndTranscript:
 
         Returns:
             List of YouTubeSearchResult BaseModels
+
         """
         settings = get_app_settings()
         if max_results is None:
@@ -411,6 +417,7 @@ class YouTubeVideoSearchAndTranscript:
 
         Returns:
             List of dictionaries with video info and transcripts
+
         """
         settings = get_app_settings()
         if num_videos is None:
@@ -497,6 +504,7 @@ class YouTubeVideoSearchAndTranscript:
 
         Returns:
             List of dictionaries with video info and transcripts
+
         """
         if not video_ids:
             logger.warning("No video IDs provided")
@@ -554,7 +562,6 @@ class YouTubeVideoSearchAndTranscript:
 def get_db_manager():
     # Delegate to the shared DB manager which can fall back to a no-op manager
     # if Postgres is unavailable.
-    from mcp_server_youtube.youtube.methods import \
-        get_db_manager as _get_db_manager
+    from mcp_server_youtube.youtube.methods import get_db_manager as _get_db_manager
 
     return _get_db_manager()

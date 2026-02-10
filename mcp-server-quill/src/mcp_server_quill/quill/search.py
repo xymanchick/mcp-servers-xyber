@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 import httpx
+
 from mcp_server_quill.config import DexScreenerConfig
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ class TokenSearchAPI:
 
         Args:
             config: DexScreenerConfig instance. If None, creates a new instance.
+
         """
         if config is None:
             config = DexScreenerConfig()
@@ -33,6 +35,7 @@ class TokenSearchAPI:
 
         Returns:
             A dictionary with 'address' and 'chain_id' if found, else None.
+
         """
         # Known major token addresses as fallback
         known_tokens = {

@@ -3,6 +3,7 @@ import logging
 
 from fastembed import TextEmbedding
 from fastembed.common.model_description import DenseModelDescription
+
 from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
 
 # Get module-level logger

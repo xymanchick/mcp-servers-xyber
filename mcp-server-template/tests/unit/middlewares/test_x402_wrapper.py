@@ -8,9 +8,10 @@ import pytest_asyncio
 from eth_account import Account
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from x402.http import safe_base64_encode
+
 from mcp_server_weather.middlewares import X402WrapperMiddleware
 from mcp_server_weather.x402_config import PaymentOptionConfig
-from x402.http import safe_base64_encode
 
 
 class DummyServer:

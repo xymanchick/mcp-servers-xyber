@@ -1,11 +1,9 @@
 # src/mcp_server_cartesia/cartesia_client/client.py
 
-import asyncio
 import logging
 import os
 import uuid
 from functools import lru_cache
-from typing import Optional
 
 import aiofiles
 
@@ -18,8 +16,12 @@ except ImportError:
 
 
 # Import local config and error classes
-from .config import (CartesiaApiError, CartesiaClientError, CartesiaConfig,
-                     CartesiaConfigError)
+from .config import (
+    CartesiaApiError,
+    CartesiaClientError,
+    CartesiaConfig,
+    CartesiaConfigError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +29,8 @@ logger = logging.getLogger(__name__)
 async def generate_voice_async(
     config: CartesiaConfig,
     text: str,
-    voice_id: Optional[str] = None,
-    model_id: Optional[str] = None,
+    voice_id: str | None = None,
+    model_id: str | None = None,
 ) -> str:
     """
     Asynchronously generates voice using Cartesia API and saves it as a WAV file.
@@ -111,7 +113,7 @@ async def generate_voice_async(
                 f"Received {len(audio_bytes)} bytes of audio data from Cartesia."
             )
 
-    except asyncio.TimeoutError as timeout_err:  # Catch potential timeouts if underlying library uses asyncio timeouts
+    except TimeoutError as timeout_err:  # Catch potential timeouts if underlying library uses asyncio timeouts
         logger.error(
             f"Timeout error during Cartesia API call: {timeout_err}", exc_info=True
         )
@@ -132,7 +134,7 @@ async def generate_voice_async(
         logger.info(f"Audio successfully saved to {output_file_path}")
         return output_file_path  # Return the full path string on success
 
-    except IOError as e:
+    except OSError as e:
         logger.error(
             f"Error writing audio data to file {output_file_path}: {e}", exc_info=True
         )
@@ -161,8 +163,8 @@ class _CartesiaService:
     async def generate_speech(
         self,
         text: str,
-        voice_id: Optional[str] = None,
-        model_id: Optional[str] = None,
+        voice_id: str | None = None,
+        model_id: str | None = None,
     ) -> str:
         """
         Generates speech using the configured Cartesia client.

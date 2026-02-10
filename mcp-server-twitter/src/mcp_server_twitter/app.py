@@ -1,17 +1,16 @@
 import asyncio
-import logging
 import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
+
 from mcp_server_twitter.api_routers import routers as api_routers
 from mcp_server_twitter.dependencies import DependencyContainer
 from mcp_server_twitter.hybrid_routers import routers as hybrid_routers
 from mcp_server_twitter.logging_config import get_logger
 from mcp_server_twitter.mcp_routers import routers as mcp_routers
-from mcp_server_twitter.metrics import (get_health_checker,
-                                        get_metrics_collector)
+from mcp_server_twitter.metrics import get_health_checker, get_metrics_collector
 from mcp_server_twitter.x402_config import get_x402_settings
 
 logger = get_logger(__name__)
@@ -132,6 +131,7 @@ def create_app() -> FastAPI:
 
     Returns:
         Configured FastAPI application ready to serve requests
+
     """
     # --- MCP Server Generation ---
     # Create a FastAPI app containing only MCP-exposed endpoints

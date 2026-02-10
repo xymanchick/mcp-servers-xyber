@@ -1,26 +1,33 @@
 import asyncio
-import concurrent.futures
 import json
 import logging
-import os
 import re
-from typing import List, Literal, Union
+from typing import Literal
 
-from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import StructuredTool, Tool
 from langgraph.graph import END, START, StateGraph
+
 from mcp_server_deepresearcher.db.database import get_db_instance
 from mcp_server_deepresearcher.deepresearcher.prompts import (
-    final_report_instructions, get_current_date, query_writer_instructions,
-    reflection_instructions, summarizer_instructions,
-    web_research_instructions)
-from mcp_server_deepresearcher.deepresearcher.state import (ResearchState,
-                                                            ToolDescription)
+    final_report_instructions,
+    get_current_date,
+    query_writer_instructions,
+    reflection_instructions,
+    summarizer_instructions,
+)
+from mcp_server_deepresearcher.deepresearcher.state import (
+    ResearchState,
+    ToolDescription,
+)
 from mcp_server_deepresearcher.deepresearcher.utils import (
-    clean_response, create_mcp_tasks, deduplicate_sources,
-    extract_sources_from_raw_content, format_sources)
+    clean_response,
+    create_mcp_tasks,
+    deduplicate_sources,
+    extract_sources_from_raw_content,
+    format_sources,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +43,7 @@ class ResearchGraph:
         self,
         LLM,
         LLM_THINKING,
-        tools: list[Union[Tool, StructuredTool]],
+        tools: list[Tool | StructuredTool],
         research_topic: str,
         research_loop_max: int,
         tools_description: list[ToolDescription] = None,
@@ -96,11 +103,11 @@ class ResearchGraph:
 
     # Generate Query Node
     async def generate_query(self, state: ResearchState, config: RunnableConfig):
-        """LangGraph node that generates a search query based on the research topic.
+        """
+        LangGraph node that generates a search query based on the research topic.
         This node is called to provide agent with the state of the art research.
         It generates the query for the following node to perform web research.
         """
-
         logger.info("--- Starting Generate Query Node ---")
 
         # logger.info(f"Tools description: {self.tools_description}")
@@ -526,7 +533,7 @@ class ResearchGraph:
         # Handle case where raw_content is a list (extract first string element)
         if isinstance(raw_content, list):
             logger.warning(
-                f"LLM returned a list instead of string in reflect_on_summary, extracting first element"
+                "LLM returned a list instead of string in reflect_on_summary, extracting first element"
             )
             if len(raw_content) > 0:
                 raw_content = str(raw_content[0])
@@ -594,7 +601,7 @@ class ResearchGraph:
         # Handle case where raw_content is a list (extract first string element)
         if isinstance(raw_content, list):
             logger.warning(
-                f"LLM returned a list instead of string in reflect_on_summary, extracting first element"
+                "LLM returned a list instead of string in reflect_on_summary, extracting first element"
             )
             if len(raw_content) > 0:
                 raw_content = str(raw_content[0])
@@ -669,7 +676,7 @@ class ResearchGraph:
         # Handle case where raw_content is a list (extract first string element)
         if isinstance(raw_content, list):
             logger.warning(
-                f"LLM returned a list instead of string in finalize_summary, extracting first element"
+                "LLM returned a list instead of string in finalize_summary, extracting first element"
             )
             if len(raw_content) > 0:
                 raw_content = str(raw_content[0])
@@ -766,7 +773,8 @@ class ResearchGraph:
     async def route_research(
         self, state: ResearchState, config: RunnableConfig
     ) -> Literal["generate_report", "web_research"]:
-        """LangGraph routing function that determines the next step in the research flow.
+        """
+        LangGraph routing function that determines the next step in the research flow.
 
         Controls the research loop by deciding whether to continue gathering information
         or to finalize the summary based on the configured maximum number of research loops.
@@ -777,6 +785,7 @@ class ResearchGraph:
 
         Returns:
             String literal indicating the next node to visit ("web_research" or "generate_report")
+
         """
         logger.info("--- Starting Route Research Node ---")
 
@@ -790,7 +799,7 @@ class ResearchGraph:
         # Check if agent decided to stop research
         if state.stop_research:
             logger.info(
-                f"Agent decided to stop research (summary is good enough), returning to generate_report"
+                "Agent decided to stop research (summary is good enough), returning to generate_report"
             )
             return "generate_report"
 

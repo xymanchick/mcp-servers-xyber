@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timezone
 from typing import Any
 
-from mcp_server_deepresearcher.db.models import Base, ResearchReport
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
+
+from mcp_server_deepresearcher.db.models import Base, ResearchReport
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +49,10 @@ class Database:
             db_url: Optional database URL. If None, reads from config
             max_retries: Maximum number of connection retry attempts
             retry_delay: Initial delay between retries in seconds (exponential backoff)
+
         """
         if db_url is None:
-            from mcp_server_deepresearcher.deepresearcher.config import \
-                Settings
+            from mcp_server_deepresearcher.deepresearcher.config import Settings
 
             settings = Settings()
             db_config = settings.database
@@ -160,6 +160,7 @@ class Database:
 
         Returns:
             The ID of the created report
+
         """
         if not self.Session:
             raise RuntimeError("Database session not initialized")
@@ -193,6 +194,7 @@ class Database:
 
         Returns:
             ResearchReport object if found, None otherwise
+
         """
         if not self.Session:
             return None
@@ -217,6 +219,7 @@ class Database:
 
         Returns:
             List of ResearchReport objects
+
         """
         if not self.Session:
             return []
@@ -240,6 +243,7 @@ class Database:
 
         Returns:
             List of ResearchReport objects ordered by creation date (newest first)
+
         """
         if not self.Session:
             return []

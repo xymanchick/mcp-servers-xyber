@@ -3,7 +3,9 @@ import sys
 from typing import Any
 
 from mcp_server_deepresearcher.deepresearcher.utils import (
-    initialize_llm, initialize_llm_from_config)
+    initialize_llm,
+    initialize_llm_from_config,
+)
 
 logger = logging.getLogger(__name__)
 

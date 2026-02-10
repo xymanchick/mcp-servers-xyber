@@ -1,11 +1,12 @@
 import logging
 import time
 from collections import defaultdict, deque
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class MetricsCollector:
         self.operations: dict[str, OperationMetrics] = defaultdict(
             lambda: OperationMetrics(name="unknown")
         )
-        self._start_time: datetime = datetime.now(timezone.utc)
+        self._start_time: datetime = datetime.now(UTC)
 
     def record_operation(
         self,
@@ -72,7 +73,7 @@ class MetricsCollector:
         metrics.min_duration_ms = min(metrics.min_duration_ms, duration_ms)
         metrics.max_duration_ms = max(metrics.max_duration_ms, duration_ms)
         metrics.recent_durations.append(duration_ms)
-        metrics.last_called = datetime.now(timezone.utc)
+        metrics.last_called = datetime.now(UTC)
 
         if success:
             metrics.success_count += 1
@@ -85,7 +86,7 @@ class MetricsCollector:
 
     def get_all_metrics(self) -> dict[str, dict[str, Any]]:
         """Get all collected metrics as a dictionary."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         result = {
             "server_uptime_seconds": (now - self._start_time).total_seconds(),
             "operations": {},
@@ -224,11 +225,11 @@ class HealthChecker:
 
     def __init__(self, metrics: MetricsCollector):
         self.metrics = metrics
-        self._start_time: datetime = datetime.now(timezone.utc)
+        self._start_time: datetime = datetime.now(UTC)
 
     def get_health_status(self) -> dict[str, Any]:
         """Get comprehensive health status."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         uptime = (now - self._start_time).total_seconds()
 
         health_status = {

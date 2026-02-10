@@ -1,7 +1,6 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -42,10 +41,10 @@ class LLM_Config(BaseModel):
     MODEL_NAME: str = "gemini-2.0-flash"
     MODEL_PROVIDER_SPARE: str = "google"
     MODEL_NAME_SPARE: str = "gemini-2.0-flash"
-    MODEL_PROVIDER_THINKING: Optional[str] = "google"
-    MODEL_NAME_THINKING: Optional[str] = "gemini-2.5-pro"
-    MODEL_VALIDATION_PROVIDER: Optional[str] = "google"
-    MODEL_VALIDATION_NAME: Optional[str] = "gemini-2.0-flash"
+    MODEL_PROVIDER_THINKING: str | None = "google"
+    MODEL_NAME_THINKING: str | None = "gemini-2.5-pro"
+    MODEL_VALIDATION_PROVIDER: str | None = "google"
+    MODEL_VALIDATION_NAME: str | None = "gemini-2.0-flash"
 
 
 class DeepResearcherConfig(BaseModel):
@@ -62,7 +61,7 @@ class DeepResearcherConfig(BaseModel):
 class SearchMCP_Config(BaseModel):
     """Configuration settings for the dependent search MCP servers."""
 
-    APIFY_TOKEN: Optional[str] = os.getenv("APIFY_TOKEN")
+    APIFY_TOKEN: str | None = os.getenv("APIFY_TOKEN")
     MCP_TAVILY_URL: str = os.getenv("MCP_TAVILY_URL")
     MCP_ARXIV_URL: str = os.getenv("MCP_ARXIV_URL")
     MCP_TWITTER_APIFY_URL: str = os.getenv("MCP_TWITTER_APIFY_URL")
@@ -70,8 +69,8 @@ class SearchMCP_Config(BaseModel):
     MCP_YOUTUBE_APIFY_URL: str = os.getenv("MCP_YOUTUBE_APIFY_URL") or os.getenv(
         "MCP_YOUTUBE_URL"
     )
-    MCP_TELEGRAM_PARSER_URL: Optional[str] = os.getenv("MCP_TELEGRAM_PARSER_URL")
-    MCP_DEEPRESEARCH_URL: Optional[str] = os.getenv("MCP_DEEPRESEARCH_URL")
+    MCP_TELEGRAM_PARSER_URL: str | None = os.getenv("MCP_TELEGRAM_PARSER_URL")
+    MCP_DEEPRESEARCH_URL: str | None = os.getenv("MCP_DEEPRESEARCH_URL")
 
 
 class LangfuseConfig(BaseSettings):
@@ -111,7 +110,7 @@ class LangfuseConfig(BaseSettings):
 
 class Settings(BaseSettings):
     # For host-container path mapping
-    MEDIA_HOST_DIR: Optional[str] = Field(default=None)
+    MEDIA_HOST_DIR: str | None = Field(default=None)
 
     # API Keys
     GOOGLE_API_KEY: str | None = Field(default=None)

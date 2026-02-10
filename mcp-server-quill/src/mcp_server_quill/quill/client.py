@@ -26,6 +26,7 @@ class QuillAPI:
         Args:
             token_address: The contract address of the token.
             chain_id: The network chain ID (default "1" for Ethereum).
+
         """
         url = f"{self.base_url}/tokens/information/{token_address}"
         params = {"chainId": chain_id}
@@ -41,6 +42,7 @@ class QuillAPI:
 
         Args:
             token_address: The Solana mint address of the token.
+
         """
         url = f"{self.base_url}/tokens/solana/{token_address}"
 

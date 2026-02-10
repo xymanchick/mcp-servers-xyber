@@ -11,12 +11,17 @@ import time
 from typing import Literal
 
 import httpx
-from mcp_server_weather.weather.config import WeatherConfig, get_weather_config
-from mcp_server_weather.weather.errors import (WeatherApiError,
-                                               WeatherClientError)
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from mcp_server_weather.weather.config import WeatherConfig
+from mcp_server_weather.weather.errors import WeatherApiError, WeatherClientError
 from mcp_server_weather.weather.models import WeatherData
-from tenacity import (before_sleep_log, retry, retry_if_exception,
-                      stop_after_attempt, wait_exponential)
 
 # --- Logger Setup --- #
 
@@ -94,6 +99,7 @@ class WeatherClient:
 
         Raises:
             WeatherClientError: If no API key is available from either source
+
         """
         key = api_key or self.config.api_key
         if not key:

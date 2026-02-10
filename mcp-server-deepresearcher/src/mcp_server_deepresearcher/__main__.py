@@ -7,7 +7,6 @@ import logging
 import os
 
 import uvicorn
-from mcp_server_deepresearcher.logging_config import LOGGING_LEVEL
 
 # The configure_logging() call is removed from here.
 # Uvicorn will handle the logging configuration.

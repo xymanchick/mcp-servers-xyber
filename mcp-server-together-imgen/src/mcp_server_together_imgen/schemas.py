@@ -1,10 +1,11 @@
-from mcp_server_together_imgen.together_ai.model_registry import (
-    MODEL_REGISTRY, list_available_models)
 from pydantic import BaseModel, ConfigDict, Field
+
+from mcp_server_together_imgen.together_ai.model_registry import list_available_models
 
 
 class ImageGenerationRequest(BaseModel):
-    """Request schema for image generation with dynamic model support.
+    """
+    Request schema for image generation with dynamic model support.
 
     Example request:
     {
@@ -105,8 +106,9 @@ class ImageGenerationRequest(BaseModel):
         """Get information about the selected model's capabilities."""
         if self.model:
             try:
-                from mcp_server_together_imgen.together_ai.model_registry import \
-                    get_model_schema
+                from mcp_server_together_imgen.together_ai.model_registry import (
+                    get_model_schema,
+                )
 
                 schema = get_model_schema(self.model)
                 return {

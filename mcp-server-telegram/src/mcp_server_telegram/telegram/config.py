@@ -1,6 +1,6 @@
 # mcp_server_telegram/telegram/config.py
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -26,8 +26,8 @@ class TelegramApiError(TelegramServiceError):
     def __init__(
         self,
         message: str,
-        status_code: Optional[int] = None,
-        details: Optional[Any] = None,
+        status_code: int | None = None,
+        details: Any | None = None,
     ):
         super().__init__(message)
         self.status_code = status_code

@@ -2,13 +2,13 @@
 Caching middleware for YouTube transcript caching.
 """
 
-import asyncio
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
-from mcp_server_youtube.youtube.methods import DatabaseManager
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from mcp_server_youtube.youtube.methods import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class TranscriptCachingMiddleware(BaseHTTPMiddleware):
         Args:
             app: The FastAPI application
             db_manager: Database manager instance for cache operations
+
         """
         super().__init__(app)
         self.db_manager = db_manager

@@ -13,13 +13,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(arxiv_service: _ArxivService = Depends(get_arxiv_service)):
             ...
+
     """
 
     _arxiv_service: _ArxivService | None = None

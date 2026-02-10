@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 from unittest.mock import patch
 
 import pytest
 import yaml
+
 from mcp_server_weather.config import AppSettings
 from mcp_server_weather.x402_config import PaymentOptionConfig, X402Config
 

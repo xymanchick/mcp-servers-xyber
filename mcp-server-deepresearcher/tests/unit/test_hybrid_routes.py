@@ -10,10 +10,11 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from mcp_server_deepresearcher.hybrid_routers.deep_research import \
-    perform_deep_research
-from mcp_server_deepresearcher.hybrid_routers.deep_research import \
-    router as deep_research_router
+
+from mcp_server_deepresearcher.hybrid_routers.deep_research import perform_deep_research
+from mcp_server_deepresearcher.hybrid_routers.deep_research import (
+    router as deep_research_router,
+)
 from mcp_server_deepresearcher.schemas import DeepResearchRequest
 
 
@@ -100,7 +101,6 @@ async def test_perform_deep_research_error_handling(stub_resources):
 @pytest_asyncio.fixture
 async def hybrid_client(monkeypatch) -> AsyncClient:
     """Create a test client for hybrid routes with mocked dependencies."""
-    from fastapi import Request
     from mcp_server_deepresearcher.dependencies import get_research_resources
 
     # Mock the dependencies - ensure it returns the expected dict structure

@@ -1,7 +1,6 @@
 import logging
 
-from mcp_server_wikipedia.wikipedia import (_WikipediaService,
-                                            get_wikipedia_service)
+from mcp_server_wikipedia.wikipedia import _WikipediaService, get_wikipedia_service
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +12,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(service: _WikipediaService = Depends(get_wiki_service)):
             ...
+
     """
 
     _wiki_service: _WikipediaService | None = None

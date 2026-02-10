@@ -10,13 +10,14 @@ import hashlib
 import json
 import logging
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from mcp_twitter.config import AppSettings, DatabaseConfig
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
+
+from mcp_twitter.config import AppSettings
 
 logger = logging.getLogger(__name__)
 from mcp_twitter.twitter import OutputFormat, QueryType
@@ -46,6 +47,7 @@ def generate_query_key(query_type: QueryType, params: dict[str, Any]) -> str:
 
     Returns:
         SHA256 hash hex string (64 chars)
+
     """
     # Normalize params: sort keys, exclude None values, convert to JSON
     normalized = {
@@ -76,6 +78,7 @@ class Database:
             db_url: Optional database URL. If None, reads from DatabaseConfig
             max_retries: Maximum number of connection retry attempts
             retry_delay: Initial delay between retries in seconds (exponential backoff)
+
         """
         if db_url is None:
             settings = AppSettings()
@@ -169,6 +172,7 @@ class Database:
 
         Returns:
             TTL in seconds
+
         """
         settings = AppSettings()
         db_config = settings.database
@@ -198,6 +202,7 @@ class Database:
 
         Returns:
             List of tweet dicts if cache hit and valid, None if miss or expired
+
         """
         if not self.Session:
             return None
@@ -212,11 +217,11 @@ class Database:
                 return None
 
             # Check if expired
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             # Handle SQLite which may return naive datetimes
             expires_at = entry.expires_at
             if expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
+                expires_at = expires_at.replace(tzinfo=UTC)
             if expires_at < now:
                 log.debug(f"Cache expired for query_key={query_key[:16]}...")
                 return None
@@ -327,13 +332,14 @@ class Database:
             items: List of tweet dicts from Apify
             dataset_id: Optional Apify dataset ID
             output_format: Format of items (min/max)
+
         """
         if not self.Session:
             raise RuntimeError("Database session not initialized")
 
         settings = AppSettings()
         ttl_seconds = self.get_cache_ttl(query_type, params.get("sort"))
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
+        expires_at = datetime.now(UTC) + timedelta(seconds=ttl_seconds)
 
         with self.Session() as session:
             # Create or update cache entry
@@ -483,7 +489,7 @@ class Database:
                     date_part = f"{parts[1]} {parts[2]} {parts[5]} {parts[3]}"
                     # Parse without timezone, then add UTC
                     dt = datetime.strptime(date_part, "%b %d %Y %H:%M:%S")
-                    return dt.replace(tzinfo=timezone.utc)
+                    return dt.replace(tzinfo=UTC)
                 except (ValueError, IndexError) as parse_error:
                     log.warning(
                         f"Failed to parse Twitter date format '{date_str}': {parse_error}"

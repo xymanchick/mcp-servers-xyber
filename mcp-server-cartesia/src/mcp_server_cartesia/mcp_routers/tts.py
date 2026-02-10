@@ -7,13 +7,16 @@ Main responsibility: Provide the generate_cartesia_tts tool for AI agents.
 import logging
 
 from fastapi import APIRouter, Depends
-from mcp_server_cartesia.cartesia_client import (CartesiaApiError,
-                                                 CartesiaClientError,
-                                                 CartesiaConfigError,
-                                                 _CartesiaService)
+from pydantic import ValidationError as PydanticValidationError
+
+from mcp_server_cartesia.cartesia_client import (
+    CartesiaApiError,
+    CartesiaClientError,
+    CartesiaConfigError,
+    _CartesiaService,
+)
 from mcp_server_cartesia.dependencies import get_cartesia_service
 from mcp_server_cartesia.schemas import GenerateCartesiaTTSRequest
-from pydantic import ValidationError as PydanticValidationError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -59,6 +62,7 @@ async def generate_cartesia_tts(
         CartesiaApiError: For API-side errors
         CartesiaConfigError: For configuration errors
         IOError: If file writing fails
+
     """
     try:
         # Log the input parameters
@@ -100,7 +104,7 @@ async def generate_cartesia_tts(
         logger.error(f"Cartesia service error: {cartesia_err}", exc_info=True)
         raise
 
-    except IOError as io_err:
+    except OSError as io_err:
         logger.error(f"File system error saving audio: {io_err}", exc_info=True)
         raise
 

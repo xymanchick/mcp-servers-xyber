@@ -1,8 +1,9 @@
 import logging
 
 from mcp_server_hangman.hangman.module import HangmanService
-from mcp_server_hangman.hangman.module import \
-    get_hangman_service as create_hangman_service
+from mcp_server_hangman.hangman.module import (
+    get_hangman_service as create_hangman_service,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,13 +15,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(hangman_service: HangmanService = Depends(get_hangman_service)):
             ...
+
     """
 
     _hangman_service: HangmanService | None = None

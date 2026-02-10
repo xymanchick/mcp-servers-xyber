@@ -1,6 +1,6 @@
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
 from langchain_core.runnables import Runnable
+
 from mcp_server_deepresearcher.app import app_lifespan, get_mcp_server
 from mcp_server_deepresearcher.schemas import DeepResearchRequest
 
@@ -135,6 +136,7 @@ async def test_app_lifespan_initialization(monkeypatch):
         lambda llm_type, raise_on_error: None,
     )
     from fastapi import FastAPI
+
     from mcp_server_deepresearcher.app import app_lifespan
 
     server = MagicMock(spec=FastAPI)

@@ -3,7 +3,7 @@ import logging
 import os
 
 import uvicorn
-from mcp_server_twitter.app import create_app
+
 from mcp_server_twitter.logging_config import configure_logging, logging_level
 
 configure_logging()

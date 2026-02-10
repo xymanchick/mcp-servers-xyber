@@ -8,9 +8,13 @@ import pytest
 def get_stability_module():
     try:
         from mcp_server_stability.stable_diffusion.config import (
-            StableDiffusionClientError, StableDiffusionServerConnectionError)
+            StableDiffusionClientError,
+            StableDiffusionServerConnectionError,
+        )
         from mcp_server_stability.stable_diffusion.module import (
-            StabilityService, get_stability_service)
+            StabilityService,
+            get_stability_service,
+        )
 
         return (
             StabilityService,

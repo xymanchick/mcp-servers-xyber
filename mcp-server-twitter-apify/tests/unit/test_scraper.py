@@ -4,9 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-import mcp_twitter.twitter.scraper as scraper_mod
-from mcp_twitter.twitter import (QueryDefinition, TwitterScraper,
-                                 TwitterScraperInput)
+from mcp_twitter.twitter import QueryDefinition, TwitterScraper, TwitterScraperInput
 from tests.unit.fakes import FakeApifyClient
 
 

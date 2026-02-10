@@ -3,13 +3,17 @@ import uuid
 from collections.abc import Sequence
 from typing import Any
 
-from mcp_server_qdrant.qdrant.config import (PayloadIndexConfig,
-                                             PayloadIndexType, QdrantAPIError,
-                                             QdrantConfig)
-from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
 from pydantic import BaseModel
 from qdrant_client import AsyncQdrantClient, models
 from qdrant_client.models import CollectionInfo
+
+from mcp_server_qdrant.qdrant.config import (
+    PayloadIndexConfig,
+    PayloadIndexType,
+    QdrantAPIError,
+    QdrantConfig,
+)
+from mcp_server_qdrant.qdrant.embeddings.base import EmbeddingProvider
 
 logger = logging.getLogger(__name__)
 

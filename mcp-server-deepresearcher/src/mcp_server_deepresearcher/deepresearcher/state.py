@@ -1,6 +1,6 @@
 import operator
 from dataclasses import dataclass, field
-from typing import Annotated, List, Optional
+from typing import Annotated
 
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
@@ -12,7 +12,7 @@ class ToolDescription(BaseModel):
 
     name: str
     description: str
-    server: Optional[str] = None
+    server: str | None = None
 
     model_config = ConfigDict(frozen=True)  # Make immutable
 

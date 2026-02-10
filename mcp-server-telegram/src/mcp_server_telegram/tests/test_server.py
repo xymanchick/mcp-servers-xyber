@@ -1,9 +1,10 @@
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi import Request
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
+
 from mcp_server_telegram.telegram import TelegramServiceError
 
 

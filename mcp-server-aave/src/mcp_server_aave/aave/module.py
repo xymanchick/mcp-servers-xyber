@@ -2,18 +2,25 @@ from __future__ import annotations
 
 import logging
 import time
-from decimal import Decimal
 from functools import lru_cache
-from typing import Any, Dict, List, Literal
+from typing import Any
 
 import aiohttp
-from mcp_server_aave.aave.config import (AaveApiError, AaveClientError,
-                                         AaveConfig, AaveContractError,
-                                         get_aave_config)
-from mcp_server_aave.aave.models import (AssetData, PoolData, ReserveData,
-                                         RiskData)
-from tenacity import (before_sleep_log, retry, retry_if_exception_type,
-                      stop_after_attempt, wait_exponential)
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from mcp_server_aave.aave.config import (
+    AaveApiError,
+    AaveClientError,
+    AaveConfig,
+    get_aave_config,
+)
+from mcp_server_aave.aave.models import PoolData
 
 # --- Logger Setup --- #
 
@@ -31,32 +38,37 @@ retry_api_call = retry(
 
 @lru_cache(maxsize=1)
 def get_aave_client() -> AaveClient:
-    """Get a cached instance of AaveClient.
+    """
+    Get a cached instance of AaveClient.
 
     Returns:
         Initialized AaveClient instance
 
     Raises:
         AaveConfigError: If configuration validation fails
+
     """
     config = get_aave_config()
     return AaveClient(config)
 
 
 class AaveClient:
-    """AAVE v3 GraphQL client.
+    """
+    AAVE v3 GraphQL client.
 
     Provides minimal, normalized market data with retry and in-memory caching.
     """
 
     def __init__(self, config: AaveConfig) -> None:
-        """Initialize the AaveClient.
+        """
+        Initialize the AaveClient.
 
         Args:
             config: AAVE configuration settings
 
         Raises:
             AaveConfigError: If configuration validation fails
+
         """
         self.config = config
         self._cache: dict[str, tuple[float, Any]] = {}
@@ -65,10 +77,12 @@ class AaveClient:
         logger.info("AaveClient initialized")
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
-        """Ensure HTTP session exists.
+        """
+        Ensure HTTP session exists.
 
         Returns:
             Active aiohttp ClientSession
+
         """
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession(
@@ -77,7 +91,8 @@ class AaveClient:
         return self._session
 
     def _get_cache_key(self, method: str, **kwargs: Any) -> str:
-        """Generate cache key for a method call.
+        """
+        Generate cache key for a method call.
 
         Args:
             method: Method name
@@ -85,18 +100,21 @@ class AaveClient:
 
         Returns:
             Cache key string
+
         """
         params = ":".join(f"{k}={v}" for k, v in sorted(kwargs.items()))
         return f"{method}:{params}"
 
     def _get_from_cache(self, cache_key: str) -> Any | None:
-        """Try to get data from cache.
+        """
+        Try to get data from cache.
 
         Args:
             cache_key: Cache key
 
         Returns:
             Cached data if found and not expired, None otherwise
+
         """
         if not self.config.enable_caching:
             return None
@@ -114,11 +132,13 @@ class AaveClient:
         return data
 
     def _store_in_cache(self, cache_key: str, data: Any) -> None:
-        """Store data in cache.
+        """
+        Store data in cache.
 
         Args:
             cache_key: Cache key
             data: Data to cache
+
         """
         if not self.config.enable_caching:
             return
@@ -186,7 +206,8 @@ class AaveClient:
         self,
         chain_ids: list[int] | None = None,
     ) -> list[PoolData]:
-        """Fetch markets from Aave GraphQL and normalize nested values.
+        """
+        Fetch markets from Aave GraphQL and normalize nested values.
 
         - Queries `markets` with a minimal selection set
         - Normalizes nested percentage/amount objects into flat numeric strings
@@ -194,6 +215,7 @@ class AaveClient:
 
         Args:
             chain_ids: Optional list of chain IDs to query. If None, resolves from available networks.
+
         """
         if chain_ids is None:
             available_networks = await self.get_available_networks()

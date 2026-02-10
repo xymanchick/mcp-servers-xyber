@@ -11,7 +11,6 @@ os.environ["MCP_TELEGRAM_PARSER_X402_PRICING_MODE"] = "off"
 
 from mcp_server_telegram_parser.__main__ import create_app
 from mcp_server_telegram_parser.hybrid_routers import routers
-from mcp_server_telegram_parser.middlewares import X402WrapperMiddleware
 from mcp_server_telegram_parser.x402_config import get_x402_settings
 
 print("=" * 60)
@@ -23,7 +22,7 @@ print("\n[Test 1] Verifying imports...")
 print("✓ All imports successful")
 
 # Test 2: Hybrid routers
-print(f"\n[Test 2] Hybrid routers...")
+print("\n[Test 2] Hybrid routers...")
 print(f"✓ Found {len(routers)} hybrid router(s)")
 for i, router in enumerate(routers, 1):
     print(
@@ -31,17 +30,17 @@ for i, router in enumerate(routers, 1):
     )
 
 # Test 3: x402 settings
-print(f"\n[Test 3] x402 settings...")
+print("\n[Test 3] x402 settings...")
 settings = get_x402_settings()
-print(f"✓ Settings loaded:")
+print("✓ Settings loaded:")
 print(f"  - pricing_mode: {settings.pricing_mode}")
-print(f"  - env_prefix: MCP_TELEGRAM_PARSER_X402_")
+print("  - env_prefix: MCP_TELEGRAM_PARSER_X402_")
 print(f"  - pricing_config_path: {settings.pricing_config_path}")
 
 # Test 4: App creation
-print(f"\n[Test 4] App creation...")
+print("\n[Test 4] App creation...")
 app = create_app()
-print(f"✓ App created successfully:")
+print("✓ App created successfully:")
 print(f"  - Title: {app.title}")
 print(f"  - Total routes: {len(app.routes)}")
 
@@ -50,7 +49,7 @@ hybrid_routes = [r for r in app.routes if hasattr(r, "path") and "/hybrid" in r.
 print(f"  - Hybrid routes: {len(hybrid_routes)}")
 
 # Test 5: Verify middleware configuration
-print(f"\n[Test 5] Middleware configuration...")
+print("\n[Test 5] Middleware configuration...")
 middleware_classes = [type(m).__name__ for m in app.user_middleware]
 print(
     f"✓ Middleware stack: {middleware_classes if middleware_classes else 'Empty (expected with pricing_mode=off)'}"

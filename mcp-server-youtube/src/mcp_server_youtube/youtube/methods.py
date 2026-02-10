@@ -1,11 +1,12 @@
 import logging
 from typing import Any
 
-from mcp_server_youtube.config import DatabaseConfig
-from mcp_server_youtube.youtube.models import Base, YouTubeVideo
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
+
+from mcp_server_youtube.config import DatabaseConfig
+from mcp_server_youtube.youtube.models import Base, YouTubeVideo
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ class DatabaseManager:
 
         Raises:
             ValueError: If DATABASE_URL is not configured or connection cannot be established.
+
         """
         if database_url is None:
             db_config = DatabaseConfig()
@@ -101,7 +103,7 @@ class DatabaseManager:
         """Get a database session."""
         return self.SessionLocal()
 
-    def get_video(self, video_id: str) -> Optional[YouTubeVideo]:
+    def get_video(self, video_id: str) -> YouTubeVideo | None:
         """
         Get video from database by video_id.
 
@@ -110,6 +112,7 @@ class DatabaseManager:
 
         Returns:
             YouTubeVideo object if found, None otherwise
+
         """
         session = self.get_session()
         try:
@@ -130,6 +133,7 @@ class DatabaseManager:
 
         Returns:
             True if transcript exists and is successful, False otherwise
+
         """
         video = self.get_video(video_id)
         if video and video.transcript_success and video.transcript:
@@ -193,6 +197,7 @@ class DatabaseManager:
 
         Returns:
             Dictionary mapping video_id to YouTubeVideo object (or None if not found)
+
         """
         session = self.get_session()
         try:
@@ -242,6 +247,7 @@ class DatabaseManager:
 
         Returns:
             True if video exists in database, False otherwise
+
         """
         video = self.get_video(video_id)
         return video is not None
@@ -256,6 +262,7 @@ class DatabaseManager:
 
         Returns:
             Dictionary mapping video_id to boolean (True if video exists in DB)
+
         """
         videos = self.batch_get_videos(video_ids)
         return {video_id: video is not None for video_id, video in videos.items()}

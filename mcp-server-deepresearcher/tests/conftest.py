@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 from fastmcp import Context, FastMCP
-from fastmcp.exceptions import ToolError
 from langchain_core.runnables import Runnable
+
 from mcp_server_deepresearcher.schemas import DeepResearchRequest
 
 

@@ -1,7 +1,9 @@
 import logging
 
-from mcp_server_stability.stable_diffusion import (StabilityService,
-                                                   StableDiffusionClientConfig)
+from mcp_server_stability.stable_diffusion import (
+    StabilityService,
+    StableDiffusionClientConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +15,15 @@ class DependencyContainer:
     Usage:
         # In app.py lifespan:
         DependencyContainer.initialize()
-        yield
+
+    Yield:
         await DependencyContainer.shutdown()
 
         # In route handlers via Depends():
         @router.post("/endpoint")
         async def endpoint(service: StabilityService = Depends(get_stability_service)):
             ...
+
     """
 
     _stability_service: StabilityService | None = None

@@ -1,8 +1,8 @@
 import logging
 
 from fastapi import APIRouter
-from mcp_server_twitter.metrics import (get_health_checker,
-                                        get_metrics_collector)
+
+from mcp_server_twitter.metrics import get_health_checker, get_metrics_collector
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
