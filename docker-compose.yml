@@ -1,6 +1,6 @@
 x-qdrant-config: &qdrant-config
   # Qdrant connection settings for debugging
-  QDRANT_HOST: qdrant
+  QDRANT_HOST: http://qdrant
   QDRANT_PORT: 6333
   QDRANT_GRPC_PORT: 6334
   QDRANT_API_KEY: ""  # No API key needed for local development
