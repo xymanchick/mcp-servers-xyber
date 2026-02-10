@@ -10,49 +10,39 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from mcp_server_youtube.app import create_app
+from mcp_server_youtube.dependencies import DependencyContainer
 from mcp_server_youtube.youtube import YouTubeVideoSearchAndTranscript
-
-# Patch DatabaseManager and get_db_manager globally before any imports that might use it
-_mock_db_manager = MagicMock()
-_mock_db_manager.batch_check_transcripts = Mock(return_value={})
-_mock_db_manager.get_video = Mock(return_value=None)
-_mock_db_manager.has_transcript = Mock(return_value=False)
-_mock_db_manager.save_video = Mock(return_value=True)
-_mock_db_manager.batch_get_videos = Mock(return_value={})
-
-# Patch both DatabaseManager (to prevent instantiation) and get_db_manager (to return mock)
-_db_manager_class_patcher = None
-_db_manager_func_patcher = None
+from mcp_server_youtube.youtube.api_models import ApifyTranscriptResult, YouTubeSearchResult
 
 
-def pytest_configure(config):
-    """Configure pytest - patch database manager before any tests run."""
-    global _db_manager_class_patcher, _db_manager_func_patcher
+@pytest.fixture(autouse=True)
+def initialize_dependency_container():
+    """Initialize DependencyContainer with mocks before each test."""
+    # Create mock YouTube client
+    mock_youtube = Mock(spec=YouTubeVideoSearchAndTranscript)
+    mock_youtube.search_videos = AsyncMock(return_value=[])
+    mock_youtube.get_transcript_safe = AsyncMock(return_value=None)
+    mock_youtube.search_and_get_transcripts = AsyncMock(return_value=[])
+    mock_youtube.extract_transcripts_for_video_ids = AsyncMock(return_value=[])
 
-    # Clear any existing cache
-    from mcp_server_youtube.dependencies import get_db_manager
+    # Create mock DB manager
+    mock_db = MagicMock()
+    mock_db.batch_check_transcripts = Mock(return_value={})
+    mock_db.batch_check_video_exists = Mock(return_value={})
+    mock_db.get_video = Mock(return_value=None)
+    mock_db.has_transcript = Mock(return_value=False)
+    mock_db.save_video = Mock(return_value=True)
+    mock_db.batch_get_videos = Mock(return_value={})
 
-    get_db_manager.cache_clear()
+    # Set the mocks directly on DependencyContainer
+    DependencyContainer._youtube_service = mock_youtube
+    DependencyContainer._db_manager = mock_db
 
-    # Patch DatabaseManager class to return mock instance
-    _db_manager_class_patcher = patch(
-        "mcp_server_youtube.youtube.methods.DatabaseManager",
-        return_value=_mock_db_manager,
-    )
-    _db_manager_func_patcher = patch(
-        "mcp_server_youtube.dependencies.get_db_manager", return_value=_mock_db_manager
-    )
-    _db_manager_class_patcher.start()
-    _db_manager_func_patcher.start()
+    yield
 
-
-def pytest_unconfigure(config):
-    """Cleanup after tests."""
-    global _db_manager_class_patcher, _db_manager_func_patcher
-    if _db_manager_class_patcher:
-        _db_manager_class_patcher.stop()
-    if _db_manager_func_patcher:
-        _db_manager_func_patcher.stop()
+    # Cleanup after test
+    DependencyContainer._youtube_service = None
+    DependencyContainer._db_manager = None
 
 
 @pytest.fixture
@@ -68,7 +58,7 @@ def mock_youtube_client() -> Mock:
 
 @pytest.fixture
 def sample_video_data() -> dict:
-    """Sample video data for testing."""
+    """Sample video data for testing (as dict for backward compatibility)."""
     return {
         "id": "test_video_id",
         "video_id": "test_video_id",
@@ -94,13 +84,37 @@ def sample_video_data() -> dict:
 
 
 @pytest.fixture
+def sample_video_model(sample_video_data: dict) -> YouTubeSearchResult:
+    """Sample video as YouTubeSearchResult Pydantic model."""
+    return YouTubeSearchResult.model_validate(sample_video_data)
+
+
+@pytest.fixture
 def sample_videos_list(sample_video_data: dict) -> list[dict]:
-    """List of sample videos."""
+    """List of sample videos (as dicts for backward compatibility)."""
     video2 = sample_video_data.copy()
     video2["id"] = "test_video_id_2"
     video2["video_id"] = "test_video_id_2"
     video2["title"] = "Test Video Title 2"
     return [sample_video_data, video2]
+
+
+@pytest.fixture
+def sample_videos_models(sample_videos_list: list[dict]) -> list[YouTubeSearchResult]:
+    """List of sample videos as YouTubeSearchResult models."""
+    return [YouTubeSearchResult.model_validate(v) for v in sample_videos_list]
+
+
+@pytest.fixture
+def sample_transcript_result() -> ApifyTranscriptResult:
+    """Sample successful transcript result."""
+    return ApifyTranscriptResult(
+        success=True,
+        video_id="test_video_id",
+        transcript="This is a test transcript.",
+        is_generated=False,
+        language="en",
+    )
 
 
 @pytest.fixture
@@ -141,17 +155,15 @@ def set_test_database_url(monkeypatch):
 @pytest.fixture(autouse=True)
 def reset_config_cache():
     """Reset config cache before each test."""
-    from mcp_server_youtube.config import get_app_settings, get_x402_settings
-    from mcp_server_youtube.dependencies import get_db_manager
+    from mcp_server_youtube.config import get_app_settings
+    from mcp_server_youtube.x402_config import get_x402_settings
 
     # Clear LRU cache
     get_app_settings.cache_clear()
     get_x402_settings.cache_clear()
-    get_db_manager.cache_clear()
 
     yield
 
     # Clear after test too
     get_app_settings.cache_clear()
     get_x402_settings.cache_clear()
-    get_db_manager.cache_clear()
