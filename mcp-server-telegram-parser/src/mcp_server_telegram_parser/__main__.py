@@ -33,7 +33,7 @@ if __name__ == "__main__":
     logger.info(f"Starting Telegram Parser MCP server on {args.host}:{args.port}")
 
     uvicorn.run(
-        "mcp_server_telegram_parser.__main__:create_app",
+        "mcp_server_telegram_parser.app:create_app",
         host=args.host,
         port=args.port,
         reload=args.reload,
